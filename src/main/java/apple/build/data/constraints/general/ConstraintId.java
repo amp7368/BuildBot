@@ -1,11 +1,11 @@
-package apple.build.data.constraints;
+package apple.build.data.constraints.general;
 
 import apple.build.wynncraft.items.Item;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public class ConstraintId extends BuildConstraint {
+public class ConstraintId extends BuildConstraintGeneral {
     private final String name;
     private final int value;
 

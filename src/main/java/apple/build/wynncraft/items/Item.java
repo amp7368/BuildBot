@@ -9,12 +9,19 @@ import org.json.JSONObject;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class Item {
     public static final int SKILLS_FOR_PLAYER = 200;
+    private static final Set<String> UNROLLABLE = new HashSet<String>() {{
+        add("thunderDefense");
+        add("airDefense");
+        add("earthDefense");
+        add("waterDefense");
+        add("fireDefense");
+    }};
     public final Map<String, Integer> ids;
     public final String name;
     public final String displayName;
@@ -210,14 +217,17 @@ public class Item {
     }
 
     public void roll(double negativeRoll, double positiveRoll) {
+        if (identified) return;
         for (Map.Entry<String, Integer> entry : ids.entrySet()) {
-            int value = entry.getValue();
-            if (value < 0) {
-                value = (int) Math.round(value * negativeRoll);
-            } else {
-                value = (int) Math.round(value * positiveRoll);
+            if (!UNROLLABLE.contains(entry.getKey())) {
+                int value = entry.getValue();
+                if (value < 0) {
+                    value = (int) Math.round(value * negativeRoll);
+                } else {
+                    value = (int) Math.round(value * positiveRoll);
+                }
+                entry.setValue(value);
             }
-            entry.setValue(value);
         }
     }
 
@@ -232,55 +242,19 @@ public class Item {
     }
 
 
-    public boolean isSkillImpossible(int finalThunderReq, int finalAirReq, int finalEarthReq, int finalWaterReq, int finalFireReq,
-                                     int finalThunder, int finalAir, int finalEarth, int finalWater, int finalFire,
-                                     Set<ElementSkill> skills) {
-        int myThunderReq = dexterity == 0 ? finalThunderReq : Math.max(dexterity, finalThunderReq);
-        int myAirReq = agility == 0 ? finalThunderReq : Math.max(agility, finalAirReq);
-        int myEarthReq = strength == 0 ? finalThunderReq : Math.max(strength, finalEarthReq);
-        int myWaterReq = intelligence == 0 ? finalThunderReq : Math.max(intelligence, finalWaterReq);
-        int myFireReq = defense == 0 ? finalThunderReq : Math.max(defense, finalFireReq);
+    public boolean isSkillImpossible(int[] reqs, int[] skills, Set<ElementSkill> archetype) {
         int skillsLeft = SKILLS_FOR_PLAYER;
-        if (myThunderReq != 0) {
-            myThunderReq -= finalThunder;
-            if (myThunderReq > 0) {
-                if (!skills.contains(ElementSkill.THUNDER))
-                    return true; // return fails for combinations that aren't our 3 element archetype
-                skillsLeft -= myThunderReq;
+        int i = 0;
+        for (ElementSkill elementSkill : ElementSkill.values()) {
+            if (reqs[i] != 0) {
+                int myReq = reqs[i] - skills[i];
+                if (myReq > 0) {
+                    if (!archetype.contains(elementSkill))
+                        return true; // return fails for combinations that aren't in our archetype
+                    skillsLeft -= myReq;
+                }
             }
-
-        }
-        if (myAirReq != 0) {
-            myAirReq -= finalAir;
-            if (myAirReq > 0) {
-                if (!skills.contains(ElementSkill.AIR))
-                    return true; // return fails for combinations that aren't our 3 element archetype
-                skillsLeft -= myAirReq;
-            }
-        }
-        if (myEarthReq != 0) {
-            myEarthReq -= finalEarth;
-            if (myEarthReq > 0) {
-                if (!skills.contains(ElementSkill.EARTH))
-                    return true; // return fails for combinations that aren't our 3 element archetype
-                skillsLeft -= myEarthReq;
-            }
-        }
-        if (myWaterReq != 0) {
-            myWaterReq -= finalWater;
-            if (myWaterReq > 0) {
-                if (!skills.contains(ElementSkill.WATER))
-                    return true; // return fails for combinations that aren't our 3 element archetype
-                skillsLeft -= myWaterReq;
-            }
-        }
-        if (myFireReq != 0) {
-            myFireReq -= finalFire;
-            if (myFireReq > 0) {
-                if (!skills.contains(ElementSkill.FIRE))
-                    return true; // return fails for combinations that aren't our 3 element archetype
-            }
-            skillsLeft -= myFireReq;
+            i++;
         }
         return skillsLeft < 0;
     }

@@ -1,4 +1,4 @@
-package apple.build.data.constraints;
+package apple.build.data.constraints.general;
 
 import apple.build.wynncraft.items.Accessory;
 import apple.build.wynncraft.items.Armor;
@@ -8,11 +8,12 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collection;
 import java.util.List;
 
-public class ConstraintHp extends BuildConstraint {
+public class ConstraintHp extends BuildConstraintGeneral {
+    public static final int BASE_HEALTH = 103 * 5 + 5;
     private final int ehp;
 
     public ConstraintHp(int ehp) {
-        this.ehp = ehp;
+        this.ehp = ehp - BASE_HEALTH;
     }
 
     @Override
