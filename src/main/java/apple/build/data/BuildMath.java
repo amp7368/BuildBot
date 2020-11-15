@@ -54,10 +54,10 @@ public class BuildMath {
         // multiply by spell elemental multiplier
         double multiplier = 1;
         for (i = 0; i < elementalLower.length; i++) {
-            double elementalMultiplier = 1 + spell.elemental[i];
-            multiplier -= spell.elemental[i];
-            elementalLower[i] *= elementalMultiplier;
-            elementalUpper[i] *= elementalMultiplier;
+            double elementalMultiplier = spell.elemental[i];
+            multiplier -= elementalMultiplier;
+            elementalLower[i] += neutralLower * elementalMultiplier;
+            elementalUpper[i] += neutralUpper * elementalMultiplier;
         }
         neutralLower *= multiplier;
         neutralUpper *= multiplier;
@@ -81,49 +81,100 @@ public class BuildMath {
         for (i = 0; i < elementalLower.length; i++) {
             double elementalIdBoost = Math.max(0, getSkillImprovement(input.skills[i]) / 100);
             elementalIdBoost += input.elemental[i];
-            elementalLower[i] *= idBoost + elementalIdBoost;
-            elementalUpper[i] *= idBoost + elementalIdBoost;
-            elementalLowerCrit[i] *= idBoostCrit + elementalIdBoost;
-            elementalUpperCrit[i] *= idBoostCrit + elementalIdBoost;
+            double idBoostElemental = Math.max(0, idBoost + elementalIdBoost);
+            double idBoostElementalCrit = Math.max(0, idBoostCrit + elementalIdBoost);
+            elementalLower[i] *= idBoostElemental;
+            elementalUpper[i] *= idBoostElemental;
+            elementalLowerCrit[i] *= idBoostElementalCrit;
+            elementalUpperCrit[i] *= idBoostElementalCrit;
         }
 
-        multiplier = input.attackSpeedModifier * (spell.damage);
+        multiplier = weapon.attackSpeed.modifier() * (spell.damage);
         neutralLower *= multiplier;
         neutralUpper *= multiplier;
         neutralLowerCrit *= multiplier;
         neutralUpperCrit *= multiplier;
         for (i = 0; i < elementalLower.length; i++) {
-            elementalLower[i] *= multiplier;
-            elementalUpper[i] *= multiplier;
-            elementalLowerCrit[i] *= multiplier;
-            elementalUpperCrit[i] *= multiplier;
+            elementalLower[i] = Math.floor(elementalLower[i] * multiplier);
+            elementalUpper[i] = Math.floor(elementalUpper[i] * multiplier);
+            elementalLowerCrit[i] = Math.floor(elementalLowerCrit[i] * multiplier);
+            elementalUpperCrit[i] = Math.floor(elementalUpperCrit[i] * multiplier);
         }
         multiplier = input.spellDamageRaw * (spell.damage);
         neutralLower += multiplier;
         neutralUpper += multiplier;
+        neutralLowerCrit += multiplier;
+        neutralUpperCrit += multiplier;
         return new DamageOutput(neutralLower, neutralUpper, elementalLower, elementalUpper,
                 neutralLowerCrit, neutralUpperCrit, elementalLowerCrit, elementalUpperCrit,
                 getSkillImprovement(input.dexterity) / 100);
     }
 
+    public static DamageOutput getDamage(DamageInput input, Weapon weapon) {
+        double neutralLower = weapon.damage.getKey();
+        double neutralUpper = weapon.damage.getValue();
+        int elementSkillsLength = ElementSkill.values().length;
+        double[] elementalLower = new double[elementSkillsLength];
+        double[] elementalUpper = new double[elementSkillsLength];
+        int i = 0;
+        // get the base damage
+        for (Pair<Integer, Integer> elemental : weapon.elemental) {
+            elementalLower[i] = elemental.getKey();
+            elementalUpper[i++] = elemental.getValue();
+        }
+        double idBoost = 1;
+        idBoost += input.mainDamage;
+        idBoost += getSkillImprovement(input.strength) / 100;
+
+        double idBoostCrit = idBoost + 1;
+        double neutralLowerCrit = neutralLower;
+        double neutralUpperCrit = neutralUpper;
+        double[] elementalLowerCrit = new double[elementSkillsLength];
+        double[] elementalUpperCrit = new double[elementSkillsLength];
+        System.arraycopy(elementalLower, 0, elementalLowerCrit, 0, elementSkillsLength);
+        System.arraycopy(elementalUpper, 0, elementalUpperCrit, 0, elementSkillsLength);
+
+        neutralLower *= idBoost;
+        neutralUpper *= idBoost;
+        neutralLowerCrit *= idBoostCrit;
+        neutralUpperCrit *= idBoostCrit;
+        for (i = 0; i < elementalLower.length; i++) {
+            double elementalIdBoost = Math.max(0, getSkillImprovement(input.skills[i]) / 100);
+            elementalIdBoost += input.elemental[i];
+            elementalLower[i] = Math.floor(elementalLower[i] * (idBoost + elementalIdBoost));
+            elementalUpper[i] = Math.floor(elementalUpper[i] * (idBoost + elementalIdBoost));
+            elementalLowerCrit[i] = Math.floor(elementalLowerCrit[i] * (idBoostCrit + elementalIdBoost));
+            elementalUpperCrit[i] = Math.floor(elementalUpperCrit[i] * (idBoostCrit + elementalIdBoost));
+        }
+        neutralLower += input.mainDamageRaw;
+        neutralUpper += input.mainDamageRaw;
+        neutralLowerCrit += input.mainDamageRaw;
+        neutralUpperCrit += input.mainDamageRaw;
+        return new DamageOutput(neutralLower, neutralUpper, elementalLower, elementalUpper,
+                neutralLowerCrit, neutralUpperCrit, elementalLowerCrit, elementalUpperCrit,
+                getSkillImprovement(input.dexterity) / 100, input.attackSpeedModifier);
+
+    }
+
     public static void main(String[] args) throws SQLException, ClassNotFoundException {
         VerifyDB.initialize();
-        List<Item> items = GetDB.getAllItems(Item.ItemType.WAND);
+        List<Item> items = GetDB.getAllItems(Item.ItemType.BOW);
         Weapon item = null;
         for (Item i : items) {
-            if (i.name.equals("Nepta Floodbringer"))
+            if (i.name.equals("Divzer"))
                 item = (Weapon) i;
         }
         if (item == null) return;
-        System.out.println(getDamage(ConstraintSpellCost.Spell.METEOR, new DamageInput(
-                .93,
-                .14,
-                252,
-                164,
-                new int[]{-30, -30, 40, 130, 70},
+        DamageOutput damage = getDamage(ConstraintSpellCost.Spell.BOMB_ARROW, new DamageInput(
+                .68,
+                -.14,
+                835,
+                1745,
+                new int[]{157, -580, -30, 107, 57},
                 0,
-                new double[]{-1.19, 0, -.04, .60, .44},
-                4.3
-        ), item).dps());
+                new double[]{1.02, -.65, -.65, -3.43, -3.25},
+                Item.AttackSpeed.toModifier(Item.AttackSpeed.SLOW.speed)
+        ), item);
+        System.out.println(damage.dps());
     }
 }

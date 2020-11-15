@@ -66,9 +66,9 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
     }
 
     public enum Spell {
-        ARROW_STORM(6, 1, 6, 0, 0, 0, 0, 0.15),
+        ARROW_STORM(6, 1, 6, .25, 0, 0, 0, 0.15),
         ESCAPE(3, 2, 1, 0, 0.5, 0, 0, 0),
-        BOMB_ARROW(8, 3, 2.5, 0, 0, 0.25, 0, 0.25),
+        BOMB_ARROW(8, 3, 2.5, 0, 0, 0.25, 0, 0.15),
         ARROW_SHIELD(10, 4, 1, 0, 0.3, 0, 0.3, 0),
         BASH(6, 1, 1.3, 0, 0, .4, 0, 0),
         CHARGE(4, 2, 1.5, 0, 0, 0, 0, 0.4),

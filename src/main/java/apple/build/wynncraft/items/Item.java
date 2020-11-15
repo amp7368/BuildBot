@@ -354,5 +354,9 @@ public class Item {
         public static double toModifier(int myAttackSpeed) {
             return modifierMap.get(Math.max(0, Math.min(myAttackSpeed, MAX_SPEED)));
         }
+
+        public double modifier() {
+            return toModifier(speed);
+        }
     }
 }

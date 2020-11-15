@@ -2,7 +2,9 @@ package apple.build.data;
 
 import apple.build.data.constraints.advanced_damage.BuildConstraintAdvancedDamage;
 import apple.build.data.constraints.advanced_skill.BuildConstraintAdvancedSkills;
+import apple.build.data.constraints.advanced_skill.ConstraintSpellCost;
 import apple.build.data.constraints.answers.DamageInput;
+import apple.build.data.constraints.answers.DamageOutput;
 import apple.build.data.constraints.general.BuildConstraintGeneral;
 import apple.build.utils.Pretty;
 import apple.build.wynncraft.items.Item;
@@ -102,7 +104,6 @@ public class BuildGenerator {
      * filters item pool based on whether the item is possible given the requirements of damage
      */
     private void filterWeaponOnAdvancedDamageConstraints() {
-
         int size = allItems.length;
         int elementSize = ElementSkill.values().length;
         int[] spellDmgAll = new int[size];
@@ -484,5 +485,29 @@ public class BuildGenerator {
         } else {
             return Collections.singletonList(new Build(allItems));
         }
+    }
+
+    private boolean c() {
+        for (List<Item> items : allItems) {
+            if (!d(items)) return false;
+        }
+        return true;
+    }
+
+    private boolean d(List<Item> items) {
+        Set<String> set = new HashSet<>() {{
+            add("Nighthawk");
+            add("Boreal-Patterned Aegis");
+            add("Cinderchain");
+            add("Sine");
+            add("Diamond Static Ring");
+            add("Diamond Hydro Bracelet");
+            add("Tenuto");
+            add("Divzer");
+        }};
+        for (Item item : items) {
+            if (set.contains(item.name)) return true;
+        }
+        return false;
     }
 }
