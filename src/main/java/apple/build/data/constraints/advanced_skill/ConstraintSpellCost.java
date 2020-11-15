@@ -89,22 +89,35 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
 
         public final int mana; // the base mana cost
         private final int spellNum; // the spell # (1,2,3,4)
-        private final double damage; // the base spell dmg
-        private final double thunder; // the extra thunder
-        private final double air; // the extra air
-        private final double earth; // the extra earth
-        private final double water; // the extra water
-        private final double fire; // the extra fire
+        public final double damage; // the base spell dmg
+        public final double[] elemental; // the extra thunder
 
         Spell(int mana, int spellNum, double damage, double thunder, double air, double earth, double water, double fire) {
             this.mana = mana;
             this.spellNum = spellNum;
             this.damage = damage;
-            this.thunder = thunder;
-            this.air = air;
-            this.earth = earth;
-            this.water = water;
-            this.fire = fire;
+            elemental = new double[ElementSkill.values().length];
+            int i = 0;
+            for (ElementSkill element : ElementSkill.values()) {
+                switch (element) {
+                    case THUNDER:
+                        elemental[i] = thunder;
+                        break;
+                    case AIR:
+                        elemental[i] = air;
+                        break;
+                    case EARTH:
+                        elemental[i] = earth;
+                        break;
+                    case WATER:
+                        elemental[i] = water;
+                        break;
+                    case FIRE:
+                        elemental[i] = fire;
+                        break;
+                }
+                i++;
+            }
         }
     }
 }

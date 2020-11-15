@@ -259,6 +259,47 @@ public class Item {
         return skillsLeft < 0;
     }
 
+    public int getId(String idName) {
+        return ids.getOrDefault(idName, 0);
+    }
+
+    public int getRequiredSkill(ElementSkill elementSkill) {
+        switch (elementSkill) {
+            case THUNDER:
+                return dexterity;
+            case AIR:
+                return agility;
+            case EARTH:
+                return strength;
+            case WATER:
+                return intelligence;
+            case FIRE:
+                return defense;
+        }
+        return 0;
+    }
+
+    public int getSkill(ElementSkill elementSkill) {
+        switch (elementSkill) {
+            case THUNDER:
+                return getId("dexterityPoints");
+            case AIR:
+                return getId("agilityPoints");
+            case EARTH:
+                return getId("strengthPoints");
+            case WATER:
+                return getId("intelligencePoints");
+            case FIRE:
+                return getId("defensePoints");
+        }
+        return 0;
+    }
+
+    @Override
+    public String toString() {
+        return displayName == null ? name : displayName.equals("null") ? name : displayName;
+    }
+
     public enum ItemType {
         HELMET,
         CHESTPLATE,
@@ -284,12 +325,34 @@ public class Item {
     }
 
     public enum AttackSpeed {
-        SUPER_SLOW,
-        VERY_SLOW,
-        SLOW,
-        NORMAL,
-        FAST,
-        VERY_FAST,
-        SUPER_FAST
+        SUPER_SLOW(0),
+        VERY_SLOW(1),
+        SLOW(2),
+        NORMAL(3),
+        FAST(4),
+        VERY_FAST(5),
+        SUPER_FAST(6);
+
+        public static final int MAX_SPEED = 6;
+        public int speed;
+        private static final Map<Integer, Double> modifierMap = new HashMap<>() {
+            {
+                put(0, 0.51);
+                put(1, 0.83);
+                put(2, 1.5);
+                put(3, 2.05);
+                put(4, 2.5);
+                put(5, 3.1);
+                put(6, 4.3);
+            }
+        };
+
+        AttackSpeed(int speed) {
+            this.speed = speed;
+        }
+
+        public static double toModifier(int myAttackSpeed) {
+            return modifierMap.get(Math.max(0, Math.min(myAttackSpeed, MAX_SPEED)));
+        }
     }
 }
