@@ -1,7 +1,5 @@
 package apple.build.data.constraints.answers;
 
-import apple.build.wynncraft.items.Item;
-
 public class DamageOutput {
     private final int neutralLower;
     private final int neutralUpper;

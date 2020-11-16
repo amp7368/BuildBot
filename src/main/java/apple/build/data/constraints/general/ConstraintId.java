@@ -6,11 +6,11 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 public class ConstraintId extends BuildConstraintGeneral {
-    private final String name;
+    private final int name;
     private final int value;
 
     public ConstraintId(String name, int value) {
-        this.name = name;
+        this.name = Item.getIdIndex(name);
         this.value = value;
     }
 

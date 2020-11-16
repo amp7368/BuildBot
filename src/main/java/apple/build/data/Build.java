@@ -8,11 +8,11 @@ import java.util.stream.Collectors;
 
 public class Build {
 
-    private final List<Item> items = new ArrayList<>();
+    final List<Item> items = new ArrayList<>();
 
     public Build(List<Item>[] allItems) {
-        for (int i = 0; i < allItems.length; i++) {
-            items.add(allItems[i].get(0));
+        for (List<Item> allItem : allItems) {
+            items.add(allItem.get(0));
         }
     }
 

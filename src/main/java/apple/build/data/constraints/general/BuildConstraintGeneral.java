@@ -41,7 +41,7 @@ public abstract class BuildConstraintGeneral implements BuildConstraint {
      * @param items the items to check against
      * @return true if it satisfies, otherwise false
      */
-    abstract boolean internalIsValid(Collection<Item> items);
+    protected abstract boolean internalIsValid(Collection<Item> items);
 
     /**
      * gets the best item among the given items

@@ -2,12 +2,10 @@ package apple.build.data;
 
 import apple.build.data.constraints.advanced_damage.BuildConstraintAdvancedDamage;
 import apple.build.data.constraints.advanced_skill.BuildConstraintAdvancedSkills;
-import apple.build.data.constraints.advanced_skill.ConstraintSpellCost;
 import apple.build.data.constraints.answers.DamageInput;
-import apple.build.data.constraints.answers.DamageOutput;
 import apple.build.data.constraints.general.BuildConstraintGeneral;
-import apple.build.utils.Pretty;
 import apple.build.wynncraft.items.Item;
+import apple.build.wynncraft.items.ItemIdIndex;
 import apple.build.wynncraft.items.Weapon;
 
 import java.math.BigInteger;
@@ -16,11 +14,15 @@ import java.util.*;
 public class BuildGenerator {
     private final int layer;
     private List<Item>[] allItems;
-    private final List<BuildGenerator> subGenerators = new ArrayList<>();
+    private List<BuildGenerator> subGenerators = new ArrayList<>();
     private static long test = System.currentTimeMillis();
     private final List<BuildConstraintGeneral> constraints;
     private final List<BuildConstraintAdvancedSkills> constraintsAdvancedSkill;
     private final List<BuildConstraintAdvancedDamage> constraintsAdvancedDamage;
+    private final List<Build> extraBuilds = new ArrayList<>();
+    private static final Object sync = new Object();
+    private static int counter = 0;
+    private static long timeCounter = 0;
 
     /**
      * makes a generator for every build possible with the given items
@@ -68,20 +70,26 @@ public class BuildGenerator {
         filterOnConstraints();
         if (isFail()) return;
         filterOnAdvancedSkillConstraints();
+
         if (isFail()) return;
-//        filterOnTranslationConstraints();
-//        if (isFail()) return;
+        filterOnTranslationConstraints();
+        if (isFail()) return;
         breakApart();
         int i = 0;
-        System.out.println(size());
-        System.out.println("time " + (System.currentTimeMillis() - test) + " | " + i++ + "/" + size());
         for (BuildGenerator generator : subGenerators) {
             long now = System.currentTimeMillis();
             generator.generate(archetype, 9);
-            System.out.println("time " + (now - test) + " | " + i++ + "/" + size());
+            System.out.println("time " + (now - test) + " | " + i++ + "/" + subGenerators.size());
         }
         subGenerators.removeIf(generator -> generator.size().equals(BigInteger.ZERO));
 
+        List<Build> builds = getBuilds();
+        finalLayerFilter(builds);
+        extraBuilds.addAll(builds);
+        subGenerators = Collections.emptyList();
+        allItems = new List[0];
+
+        System.out.println("Counter " + counter + " || " + "Time " + timeCounter);
     }
 
 
@@ -89,15 +97,39 @@ public class BuildGenerator {
      * filters item pool as much as possible, then generates all possible builds
      */
     public void generate(Set<ElementSkill> archetype, int layerToStop) {
-        if (layer == layerToStop) return;
+        if (layer == layerToStop) {
+            List<Build> builds = getBuilds();
+            finalLayerFilter(builds);
+            extraBuilds.addAll(builds);
+            subGenerators = Collections.emptyList();
+            allItems = new List[0];
+            return;
+        }
         filterOnConstraints();
+        if (isFail()) return;
         filterOnAdvancedSkillConstraints();
+        if (isFail()) return;
         filterWeaponOnAdvancedDamageConstraints();
-        filterOnSkillReqs(archetype);
+        if (isFail()) return;
+        filterOnSkillReqsFirstPass(archetype);
         if (isFail()) return;
         breakApart();
         subGenerators.forEach(buildGenerator -> buildGenerator.generate(archetype, layerToStop));
         subGenerators.removeIf(generator -> generator.size().equals(BigInteger.ZERO));
+
+        if (size().compareTo(BigInteger.valueOf(100)) < 0) {
+            List<Build> builds = getBuilds();
+            finalLayerFilter(builds);
+            extraBuilds.addAll(builds);
+            subGenerators = Collections.emptyList();
+        }
+    }
+
+    /**
+     * do all filters that require defined items to check
+     */
+    private void finalLayerFilter(List<Build> builds) {
+        builds.removeIf(this::filterOnSkillReqsSecondPass);
     }
 
     /**
@@ -126,11 +158,11 @@ public class BuildGenerator {
             int attackSpeed = 0;
 
             for (Item item : allItems[typePieceIndex]) {
-                spellDmg = Math.max(spellDmg, item.getId("spellDamage"));
-                spellDmgRaw = Math.max(spellDmgRaw, item.getId("spellDamageRaw"));
-                mainDmg = Math.max(mainDmg, item.getId("damageBonus"));
-                mainDmgRaw = Math.max(mainDmgRaw, item.getId("damageBonusRaw"));
-                attackSpeed = Math.max(attackSpeed, item.getId("attackSpeedBonus"));
+                spellDmg = Math.max(spellDmg, item.getId(ItemIdIndex.SPELL_DAMAGE));
+                spellDmgRaw = Math.max(spellDmgRaw, item.getId(ItemIdIndex.SPELL_DAMAGE_RAW));
+                mainDmg = Math.max(mainDmg, item.getId(ItemIdIndex.DAMAGE_BONUS));
+                mainDmgRaw = Math.max(mainDmgRaw, item.getId(ItemIdIndex.DAMAGE_BONUS_RAW));
+                attackSpeed = Math.max(attackSpeed, item.getId(ItemIdIndex.ATTACK_SPEED_BONUS));
             }
             spellDmgAll[typePieceIndex] = spellDmg;
             spellDmgRawAll[typePieceIndex] = spellDmgRaw;
@@ -149,9 +181,9 @@ public class BuildGenerator {
             for (ElementSkill elementSkill : ElementSkill.values()) {
                 for (Item item : allItems[typePieceIndex]) {
                     elementalDamage[elementIndex] = Math.max(elementalDamage[elementIndex],
-                            item.getId("bonus" + Pretty.uppercaseFirst(elementSkill.name().toLowerCase() + "Damage")));
+                            item.getId(elementSkill.damageIdIndex));
                     elementalDamage[elementIndex] = Math.max(elementalDamage[elementIndex],
-                            item.getId("bonus" + Pretty.uppercaseFirst(elementSkill.name().toLowerCase() + "Damage")));
+                            item.getId(elementSkill.damageIdIndex));
                 }
                 skills[elementIndex] = BuildUtils.bestSkillPoints(elementSkill, allItems[typePieceIndex]);
                 requiredSkills[elementIndex] = BuildUtils.bestSkillReqs(elementSkill, allItems[typePieceIndex]);
@@ -202,7 +234,7 @@ public class BuildGenerator {
                     mySkills[i] = skill;
                 }
                 mySkills[i] += item.getSkill(elementSkill); // do this after because weapon skill doesn't help with reqs
-                myElemental[i] = ((double) (elementalDamage[i] + item.getId("bonus" + Pretty.uppercaseFirst(elementSkill.name().toLowerCase() + "Damage")))) / 100d;
+                myElemental[i] = ((double) (elementalDamage[i] + item.getId(elementSkill.damageIdIndex))) / 100d;
                 i++;
             }
             int mySpellDmg = finalSpellDmg;
@@ -210,11 +242,11 @@ public class BuildGenerator {
             int myMainDmg = finalMainDmg;
             int myMainDmgRaw = finalMainDmgRaw;
             int myAttackSpeed = finalAttackSpeed;
-            mySpellDmg += item.getId("spellDamage");
-            mySpellDmgRaw += item.getId("spellDamageRaw");
-            myMainDmg += item.getId("damageBonus");
-            myMainDmgRaw += item.getId("damageBonusRaw");
-            myAttackSpeed += item.getId("attackSpeedBonus");
+            mySpellDmg += item.getId(ItemIdIndex.SPELL_DAMAGE);
+            mySpellDmgRaw += item.getId(ItemIdIndex.SPELL_DAMAGE_RAW);
+            myMainDmg += item.getId(ItemIdIndex.DAMAGE_BONUS);
+            myMainDmgRaw += item.getId(ItemIdIndex.DAMAGE_BONUS_RAW);
+            myAttackSpeed += item.getId(ItemIdIndex.ATTACK_SPEED_BONUS);
             myAttackSpeed += ((Weapon) item).attackSpeed.speed;
             double myFinalSpellDmg = mySpellDmg / 100.0;
             double myFinalMainDmg = myMainDmg / 100.0;
@@ -239,6 +271,7 @@ public class BuildGenerator {
         for (BuildGenerator generator : subGenerators) {
             combinationsCount = combinationsCount.add(generator.size());
         }
+        combinationsCount = combinationsCount.add(BigInteger.valueOf(extraBuilds.size()));
         return combinationsCount;
     }
 
@@ -274,7 +307,7 @@ public class BuildGenerator {
      *
      * @param archetype the archetype we're making
      */
-    private void filterOnSkillReqs(Set<ElementSkill> archetype) {
+    private void filterOnSkillReqsFirstPass(Set<ElementSkill> archetype) {
         int size = allItems.length;
         int elementSize = ElementSkill.values().length;
         int[][] skillsAll = new int[elementSize][size];
@@ -309,6 +342,149 @@ public class BuildGenerator {
                     archetype
             ));
         }
+    }
+
+    private boolean filterOnSkillReqsSecondPass(Build build) {
+        int elementLength = ElementSkill.values().length;
+        List<Item> group1 = new ArrayList<>();
+        List<Item> group2Unsorted = new ArrayList<>();
+        List<Item> group3 = new ArrayList<>();
+        int weaponIndex = build.items.size() - 1;
+        for (int i = 0; i < weaponIndex; i++) {
+            Item item = build.items.get(i);
+            if (item.strength == 0 && item.dexterity == 0 && item.agility == 0 && item.intelligence == 0 && item.defense == 0) {
+                // group 1
+                group1.add(item);
+            } else {
+                // group 2 or 3
+                boolean isGroup2 = false;
+                for (ElementSkill elementSkill : ElementSkill.values()) {
+                    if (item.getSkill(elementSkill) != 0) {
+                        isGroup2 = true;
+                    }
+                }
+                if (isGroup2) group2Unsorted.add(item);
+                else group3.add(item);
+            }
+        }
+        group3.add(build.items.get(weaponIndex));
+        int[] skills = new int[elementLength];
+        for (Item item : group1) {
+            skills[0] += item.dexterity;
+            skills[1] += item.agility;
+            skills[2] += item.strength;
+            skills[3] += item.intelligence;
+            skills[4] += item.defense;
+        }
+        if (group2Unsorted.isEmpty()) {
+            // check it once to see if it works
+            return !passesSkillReqSecondPass(skills, new Item[0], group3);
+        }
+        Item[] items = new Item[group2Unsorted.size()];
+        group2Unsorted.toArray(items);
+        int length = items.length;
+        int[] c = new int[length];
+        int i = 0;
+        while (i < length) {
+            if (c[i] < i) {
+                if (i % 2 == 0) {
+                    Item i1 = items[0];
+                    items[0] = items[i];
+                    items[i] = i1;
+                } else {
+                    int index = c[i];
+                    Item i1 = items[index];
+                    items[index] = items[i];
+                    items[i] = i1;
+                }
+                if (passesSkillReqSecondPass(skills, items, group3)) {
+                    return false;
+                }
+                c[i]++;
+                i = 0;
+            } else {
+                c[i] = 0;
+                i++;
+            }
+        }
+        // this is impossible if we didn't return already
+        return true;
+    }
+
+
+    private boolean passesSkillReqSecondPass(int[] skills, Item[] group2, List<Item> group3) {
+        int[] mySkills = Arrays.copyOf(skills, skills.length);
+        int extraSkillPoints = Item.SKILLS_FOR_PLAYER;
+
+        for (int group2Index = 0; group2Index < group2.length; group2Index++) {
+            Item item = group2[group2Index];
+            extraSkillPoints = helperPassesSkillReqSecondPass(item, mySkills, extraSkillPoints);
+            if (extraSkillPoints < 0) return false;
+            int i = 0;
+            boolean badSkills = false;
+            for (ElementSkill elementSkill : ElementSkill.values()) {
+                int skill = item.getSkill(elementSkill);
+                if (skill < 0) badSkills = true;
+                mySkills[i++] += skill;
+            }
+            if (badSkills) {
+                // check all the previous items
+                for (i = 0; i < group2Index; i++) {
+                    extraSkillPoints = helperPassesSkillReqSecondPass(group2[i], mySkills, extraSkillPoints);
+                    if (extraSkillPoints < 0) return false;
+                }
+            }
+        }
+        for (Item item : group3) {
+            extraSkillPoints = helperPassesSkillReqSecondPass(item, mySkills, extraSkillPoints);
+            if (extraSkillPoints < 0) return false;
+        }
+        return true;
+    }
+
+    private int helperPassesSkillReqSecondPass(Item item, int[] mySkills, int extraSkillPoints) {
+        int req, difference;
+        req = item.dexterity;
+        if (req != 0) {
+            difference = req - mySkills[0];
+            if (difference > 0) {
+                extraSkillPoints -= difference;
+                mySkills[0] = req;
+            }
+        }
+        if (req != 0) {
+            req = item.agility;
+            difference = req - mySkills[1];
+            if (difference > 0) {
+                extraSkillPoints -= difference;
+                mySkills[1] = req;
+            }
+        }
+        if (req != 0) {
+            req = item.strength;
+            difference = req - mySkills[2];
+            if (difference > 0) {
+                extraSkillPoints -= difference;
+                mySkills[2] = req;
+            }
+        }
+        if (req != 0) {
+            req = item.intelligence;
+            difference = req - mySkills[3];
+            if (difference > 0) {
+                extraSkillPoints -= difference;
+                mySkills[3] = req;
+            }
+        }
+        if (req != 0) {
+            req = item.defense;
+            difference = req - mySkills[4];
+            if (difference > 0) {
+                extraSkillPoints -= difference;
+                mySkills[4] = req;
+            }
+        }
+        return extraSkillPoints;
     }
 
     /**
@@ -348,7 +524,6 @@ public class BuildGenerator {
                 if (item.dexterity != 0) {
                     if (!archetype.contains(ElementSkill.THUNDER)) {
                         itemIterator.remove();
-                        continue;
                     }
                 }
             }
@@ -367,8 +542,7 @@ public class BuildGenerator {
                 for (BuildConstraintAdvancedSkills constraint : constraintsAdvancedSkill) {
                     if (constraint.contributes(item)) return false;
                 }
-                if (BuildUtils.contributesToUseful(item)) return false;
-                return true;
+                return !BuildUtils.contributesToUseful(item);
             });
         }
     }
@@ -481,9 +655,12 @@ public class BuildGenerator {
             for (BuildGenerator generator : subGenerators) {
                 builds.addAll(generator.getBuilds());
             }
+            builds.addAll(extraBuilds);
             return builds;
         } else {
-            return Collections.singletonList(new Build(allItems));
+            ArrayList<Build> builds = new ArrayList<>(1);
+            builds.add(new Build(allItems));
+            return builds;
         }
     }
 

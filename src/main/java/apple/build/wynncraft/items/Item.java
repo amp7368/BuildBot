@@ -1,6 +1,7 @@
 package apple.build.wynncraft.items;
 
 import apple.build.data.ElementSkill;
+import apple.build.utils.OneToOneMap;
 import apple.build.utils.Pair;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONArray;
@@ -15,14 +16,16 @@ import java.util.Set;
 
 public class Item {
     public static final int SKILLS_FOR_PLAYER = 200;
-    private static final Set<String> UNROLLABLE = new HashSet<String>() {{
+    private static final Set<String> UNROLLABLE = new HashSet<>() {{
         add("thunderDefense");
         add("airDefense");
         add("earthDefense");
         add("waterDefense");
         add("fireDefense");
     }};
-    public final Map<String, Integer> ids;
+    private static final OneToOneMap<String, Integer> idNameToUid = new OneToOneMap<>();
+    private static int currentUid = 0;
+    public final Map<Integer, Integer> ids = new HashMap<>();
     public final String name;
     public final String displayName;
     public final String tier;
@@ -47,7 +50,14 @@ public class Item {
     public Item(Map<String, Integer> ids, String name, String displayName, int level, int strength, int dexterity, int intelligence, int agility, int defense, String tier, Integer sockets, String dropType,
                 @Nullable String restrictions, @Nullable String set, @Nullable String addedLore, @Nullable String material,
                 @Nullable String quest, @Nullable ClassType classRequirement, String[] majorIds, boolean identified, ItemType type) {
-        this.ids = ids;
+        for (Map.Entry<String, Integer> entry : ids.entrySet()) {
+            Integer uid = idNameToUid.getFromKey(entry.getKey());
+            if (uid == null) {
+                uid = currentUid++;
+                idNameToUid.put(entry.getKey(), uid);
+            }
+            this.ids.put(uid, entry.getValue());
+        }
         this.name = name;
         this.displayName = displayName;
         this.level = level;
@@ -71,7 +81,6 @@ public class Item {
     }
 
     public Item(ResultSet response, ItemType itemType) throws SQLException {
-        this.ids = new HashMap<>();
         this.name = response.getString("name");
         this.displayName = response.getString("displayName");
         this.tier = response.getString("tier");
@@ -209,17 +218,31 @@ public class Item {
         }
     }
 
+    public static int getIdIndex(String idName) {
+        return idNameToUid.getFromKey(idName);
+    }
+
+    public static String getIdName(Integer index) {
+        return idNameToUid.getFromVal(index);
+    }
+
     public void addIds(ResultSet response) throws SQLException {
         if (!response.isClosed())
             while (response.next()) {
-                ids.put(response.getString("id_name"), response.getInt("value"));
+                String idName = response.getString("id_name");
+                Integer uid = idNameToUid.getFromKey(idName);
+                if (uid == null) {
+                    uid = currentUid++;
+                    idNameToUid.put(idName, uid);
+                }
+                this.ids.put(uid, response.getInt("value"));
             }
     }
 
     public void roll(double negativeRoll, double positiveRoll) {
         if (identified) return;
-        for (Map.Entry<String, Integer> entry : ids.entrySet()) {
-            if (!UNROLLABLE.contains(entry.getKey())) {
+        for (Map.Entry<Integer, Integer> entry : ids.entrySet()) {
+            if (!UNROLLABLE.contains(idNameToUid.getFromVal(entry.getKey()))) {
                 int value = entry.getValue();
                 if (value < 0) {
                     value = (int) Math.round(value * negativeRoll);
@@ -259,7 +282,7 @@ public class Item {
         return skillsLeft < 0;
     }
 
-    public int getId(String idName) {
+    public int getId(int idName) {
         return ids.getOrDefault(idName, 0);
     }
 
@@ -282,15 +305,15 @@ public class Item {
     public int getSkill(ElementSkill elementSkill) {
         switch (elementSkill) {
             case THUNDER:
-                return getId("dexterityPoints");
+                return getId(ItemIdIndex.DEXTERITY_POINTS);
             case AIR:
-                return getId("agilityPoints");
+                return getId(ItemIdIndex.AGILITY_POINTS);
             case EARTH:
-                return getId("strengthPoints");
+                return getId(ItemIdIndex.STRENGTH_POINTS);
             case WATER:
-                return getId("intelligencePoints");
+                return getId(ItemIdIndex.INTELLIGENCE_POINTS);
             case FIRE:
-                return getId("defensePoints");
+                return getId(ItemIdIndex.DEFENSE_POINTS);
         }
         return 0;
     }
