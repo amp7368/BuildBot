@@ -34,9 +34,9 @@ public class InsertDB {
                     } else if (item instanceof Accessory) {
                         batch.add(GetSql.insertItem((Accessory) item));
                     }
-                    for (Map.Entry<String, Integer> id : item.ids.entrySet()) {
+                    for (Map.Entry<Integer, Integer> id : item.ids.entrySet()) {
                         if (id.getValue() != 0)
-                            batch.add(GetSql.insertId(item.name, id.getKey(), id.getValue()));
+                            batch.add(GetSql.insertId(item.name, Item.getIdName(id.getKey()), id.getValue()));
                     }
                 }
                 if (i % 50 == 0) {

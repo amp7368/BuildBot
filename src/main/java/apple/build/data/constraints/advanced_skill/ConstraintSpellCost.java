@@ -2,7 +2,6 @@ package apple.build.data.constraints.advanced_skill;
 
 import apple.build.data.BuildMath;
 import apple.build.data.ElementSkill;
-import apple.build.data.constraints.advanced_skill.BuildConstraintAdvancedSkills;
 import apple.build.wynncraft.items.Item;
 import org.jetbrains.annotations.Nullable;
 
@@ -11,12 +10,15 @@ import java.util.List;
 
 public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
     public static final String SPELL_COST_RAW_NAME = "spellCostRaw";
+    public static final int INTELLIGENCE_POINTS = Item.getIdIndex("intelligencePoints");
     private final int cost;
     private final Spell spell;
+    private final int idIndex;
 
     public ConstraintSpellCost(Spell spell, int cost) {
         this.cost = cost;
         this.spell = spell;
+        this.idIndex = Item.getIdIndex(SPELL_COST_RAW_NAME + spell.spellNum);
     }
 
     @Override
@@ -24,7 +26,7 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
         int addedCostRaw = 0;
         int intelligence = bestSkillsPossible[ElementSkill.WATER.ordinal()] + extraSkillPoints;
         for (Item item : items) {
-            addedCostRaw += item.ids.getOrDefault(SPELL_COST_RAW_NAME + spell.spellNum, 0);
+            addedCostRaw += item.ids.getOrDefault(idIndex, 0);
         }
         return BuildMath.getMana(spell, intelligence, addedCostRaw) <= cost;
     }
@@ -36,9 +38,9 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
         for (Item item : items) {
             if (best == null) {
                 best = item;
-                bestVal = best.ids.getOrDefault(SPELL_COST_RAW_NAME + spell.spellNum, 0);
+                bestVal = best.ids.getOrDefault(idIndex, 0);
             } else {
-                Integer val = item.ids.getOrDefault(SPELL_COST_RAW_NAME + spell.spellNum, 0);
+                Integer val = item.ids.getOrDefault(idIndex, 0);
                 if (val < bestVal) {
                     best = item;
                     bestVal = val;
@@ -50,25 +52,25 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
 
     @Override
     public boolean contributes(Item item) {
-        return item.ids.getOrDefault(SPELL_COST_RAW_NAME + spell.spellNum, 0) < 0 ||
-                item.ids.getOrDefault("intelligencePoints", 0) > 0; // we want negative spell cost
+        return item.ids.getOrDefault(idIndex, 0) < 0 ||
+                item.ids.getOrDefault(INTELLIGENCE_POINTS, 0) > 0; // we want negative spell cost
     }
 
     @Override
     public int compare(Item item1, Item item2) {
-        int comparing = item1.ids.getOrDefault(SPELL_COST_RAW_NAME + spell.spellNum, 0) -
-                item2.ids.getOrDefault(SPELL_COST_RAW_NAME + spell.spellNum, 0);
+        int comparing = item1.ids.getOrDefault(idIndex, 0) -
+                item2.ids.getOrDefault(idIndex, 0);
         if (comparing == 0) {
-            comparing = item1.ids.getOrDefault("intelligencePoints", 0) -
-                    item2.ids.getOrDefault("intelligencePoints", 0);
+            comparing = item1.ids.getOrDefault(INTELLIGENCE_POINTS, 0) -
+                    item2.ids.getOrDefault(INTELLIGENCE_POINTS, 0);
         }
         return comparing;
     }
 
     public enum Spell {
-        ARROW_STORM(6, 1, 6, 0, 0, 0, 0, 0.15),
+        ARROW_STORM(6, 1, 6, .25, 0, 0, 0, 0.15),
         ESCAPE(3, 2, 1, 0, 0.5, 0, 0, 0),
-        BOMB_ARROW(8, 3, 2.5, 0, 0, 0.25, 0, 0.25),
+        BOMB_ARROW(8, 3, 2.5, 0, 0, 0.25, 0, 0.15),
         ARROW_SHIELD(10, 4, 1, 0, 0.3, 0, 0.3, 0),
         BASH(6, 1, 1.3, 0, 0, .4, 0, 0),
         CHARGE(4, 2, 1.5, 0, 0, 0, 0, 0.4),
@@ -89,22 +91,35 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
 
         public final int mana; // the base mana cost
         private final int spellNum; // the spell # (1,2,3,4)
-        private final double damage; // the base spell dmg
-        private final double thunder; // the extra thunder
-        private final double air; // the extra air
-        private final double earth; // the extra earth
-        private final double water; // the extra water
-        private final double fire; // the extra fire
+        public final double damage; // the base spell dmg
+        public final double[] elemental; // the extra thunder
 
         Spell(int mana, int spellNum, double damage, double thunder, double air, double earth, double water, double fire) {
             this.mana = mana;
             this.spellNum = spellNum;
             this.damage = damage;
-            this.thunder = thunder;
-            this.air = air;
-            this.earth = earth;
-            this.water = water;
-            this.fire = fire;
+            elemental = new double[ElementSkill.values().length];
+            int i = 0;
+            for (ElementSkill element : ElementSkill.values()) {
+                switch (element) {
+                    case THUNDER:
+                        elemental[i] = thunder;
+                        break;
+                    case AIR:
+                        elemental[i] = air;
+                        break;
+                    case EARTH:
+                        elemental[i] = earth;
+                        break;
+                    case WATER:
+                        elemental[i] = water;
+                        break;
+                    case FIRE:
+                        elemental[i] = fire;
+                        break;
+                }
+                i++;
+            }
         }
     }
 }

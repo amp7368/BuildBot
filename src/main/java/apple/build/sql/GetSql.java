@@ -1,5 +1,7 @@
 package apple.build.sql;
 
+import apple.build.data.ElementSkill;
+import apple.build.utils.Pair;
 import apple.build.wynncraft.items.Accessory;
 import apple.build.wynncraft.items.Armor;
 import apple.build.wynncraft.items.Item;
@@ -24,6 +26,34 @@ public class GetSql {
     }
 
     public static String insertItem(Weapon item) {
+        Pair<Integer, Integer> thunderDamage = null;
+        Pair<Integer, Integer> airDamage = null;
+        Pair<Integer, Integer> waterDamage = null;
+        Pair<Integer, Integer> earthDamage = null;
+        Pair<Integer, Integer> fireDamage = null;
+        int i = 0;
+        for (ElementSkill elementSkill : ElementSkill.values()) {
+            switch (elementSkill) {
+                case THUNDER:
+                    thunderDamage = item.elemental[i];
+                    break;
+                case AIR:
+                    airDamage = item.elemental[i];
+                    break;
+                case EARTH:
+                    earthDamage = item.elemental[i];
+                    break;
+                case WATER:
+                    waterDamage = item.elemental[i];
+                    break;
+                case FIRE:
+                    fireDamage = item.elemental[i];
+                    break;
+            }
+            i++;
+        }
+
+
         return String.format("INSERT INTO %s " +
                         "VALUES ('%s','%s',%d,%d,%d,%d,%d,%d,'%s',%d,'%s',%s,%s,%s,%s,%s,%s,'%s',%b,'%s',%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d);",
                 item.type.name().toLowerCase(),
@@ -47,16 +77,16 @@ public class GetSql {
                 item.majorIds == null || item.majorIds.length == 0 ? null : String.join(",", item.majorIds),
                 item.identified,
                 item.attackSpeed.name(),
-                item.thunderDamage.getValue(),
-                item.airDamage.getValue(),
-                item.waterDamage.getValue(),
-                item.earthDamage.getValue(),
-                item.fireDamage.getValue(),
-                item.thunderDamage.getKey(),
-                item.airDamage.getKey(),
-                item.waterDamage.getKey(),
-                item.earthDamage.getKey(),
-                item.fireDamage.getKey(),
+                thunderDamage.getValue(),
+                airDamage.getValue(),
+                waterDamage.getValue(),
+                earthDamage.getValue(),
+                fireDamage.getValue(),
+                thunderDamage.getKey(),
+                airDamage.getKey(),
+                waterDamage.getKey(),
+                earthDamage.getKey(),
+                fireDamage.getKey(),
                 item.damage.getValue(),
                 item.damage.getKey()
         );
