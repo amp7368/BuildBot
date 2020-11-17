@@ -3,6 +3,7 @@ package apple.build.data;
 import apple.build.data.constraints.advanced_damage.BuildConstraintAdvancedDamage;
 import apple.build.data.constraints.advanced_skill.BuildConstraintAdvancedSkills;
 import apple.build.data.constraints.answers.DamageInput;
+import apple.build.data.constraints.filter.BuildConstraintExclusion;
 import apple.build.data.constraints.general.BuildConstraintGeneral;
 import apple.build.wynncraft.items.Item;
 import apple.build.wynncraft.items.ItemIdIndex;
@@ -17,6 +18,7 @@ public class BuildGenerator {
     private List<BuildGenerator> subGenerators = new ArrayList<>();
     private static long test = System.currentTimeMillis();
     private final List<BuildConstraintGeneral> constraints;
+    private final List<BuildConstraintExclusion> constraintsExclusion;
     private final List<BuildConstraintAdvancedSkills> constraintsAdvancedSkill;
     private final List<BuildConstraintAdvancedDamage> constraintsAdvancedDamage;
     private final List<Build> extraBuilds = new ArrayList<>();
@@ -35,15 +37,17 @@ public class BuildGenerator {
         this.constraints = new ArrayList<>();
         this.constraintsAdvancedSkill = new ArrayList<>();
         this.constraintsAdvancedDamage = new ArrayList<>();
+        this.constraintsExclusion = new ArrayList<>();
     }
 
     private BuildGenerator(List<Item>[] subItems, List<BuildConstraintGeneral> constraints,
                            List<BuildConstraintAdvancedSkills> constraintsAdvancedSkill,
-                           List<BuildConstraintAdvancedDamage> constraintsAdvancedDamage, int layer) {
+                           List<BuildConstraintAdvancedDamage> constraintsAdvancedDamage, List<BuildConstraintExclusion> constraintsExclusion, int layer) {
         this.allItems = subItems;
         this.constraints = constraints;
         this.constraintsAdvancedSkill = constraintsAdvancedSkill;
         this.constraintsAdvancedDamage = constraintsAdvancedDamage;
+        this.constraintsExclusion = constraintsExclusion;
         this.layer = layer;
     }
 
@@ -57,6 +61,10 @@ public class BuildGenerator {
 
     public void addConstraint(BuildConstraintAdvancedDamage constraint) {
         this.constraintsAdvancedDamage.add(constraint);
+    }
+
+    public void addConstraint(BuildConstraintExclusion buildConstraintExclusion) {
+        this.constraintsExclusion.add(buildConstraintExclusion);
     }
 
     /**
@@ -105,6 +113,8 @@ public class BuildGenerator {
             allItems = new List[0];
             return;
         }
+        filterOnExclusion();
+        if (isFail()) return;
         filterOnConstraints();
         if (isFail()) return;
         filterOnAdvancedSkillConstraints();
@@ -122,6 +132,23 @@ public class BuildGenerator {
             finalLayerFilter(builds);
             extraBuilds.addAll(builds);
             subGenerators = Collections.emptyList();
+        }
+    }
+
+    private void filterOnExclusion() {
+        List<Item> knownItems = new ArrayList<>();
+        int start = 0;
+        for (; start < allItems.length; start++) {
+            List<Item> items = allItems[start];
+            if (items.size() == 1) {
+                knownItems.add(items.get(0));
+            } else {
+                break;
+            }
+        }
+        for (BuildConstraintExclusion exclusion : constraintsExclusion) {
+            for (int i = start; i < allItems.length; i++)
+                exclusion.filter(allItems[i], knownItems);
         }
     }
 
@@ -296,7 +323,7 @@ public class BuildGenerator {
                     subItems[subIndex] = new ArrayList<>(allItems[subIndex]);
                 }
             }
-            subGenerators.add(new BuildGenerator(subItems, constraints, constraintsAdvancedSkill, constraintsAdvancedDamage, layer + 1));
+            subGenerators.add(new BuildGenerator(subItems, constraints, constraintsAdvancedSkill, constraintsAdvancedDamage, constraintsExclusion, layer + 1));
         }
         allItems = new List[0];
     }

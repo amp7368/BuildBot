@@ -2,6 +2,7 @@ package apple.build;
 
 import apple.build.data.Build;
 import apple.build.data.BuildGenerator;
+import apple.build.data.constraints.filter.BuildConstraintExclusion;
 import apple.build.data.ElementSkill;
 import apple.build.data.constraints.advanced_damage.ConstraintMainDamage;
 import apple.build.data.constraints.advanced_damage.ConstraintSpellDamage;
@@ -84,6 +85,8 @@ public class BuildMain {
         builds.addConstraint(new ConstraintSpellDamage(ConstraintSpellCost.Spell.BOMB_ARROW, 15700));
         builds.addConstraint(new ConstraintSpellDamage(ConstraintSpellCost.Spell.ARROW_STORM, 38500));
         builds.addConstraint(new ConstraintMainDamage(4100));
+        for (BuildConstraintExclusion constraint : BuildConstraintExclusion.all)
+            builds.addConstraint(constraint);
         long start = System.currentTimeMillis();
 
         builds.generate(new HashSet<>() {{
@@ -91,10 +94,10 @@ public class BuildMain {
             add(ElementSkill.WATER);
             add(ElementSkill.FIRE);
         }});
+//        for (Build build : builds.getBuilds()) {
+//            System.out.println(build.toString());
+//        }
         System.out.println("Total time: " + (System.currentTimeMillis() - start) + " || Size: " + builds.size());
-        for (Build build : builds.getBuilds()) {
-            System.out.println(build.toString());
-        }
 //        System.out.println((System.currentTimeMillis() - start)+ " || " + builds.size());
     }
 
