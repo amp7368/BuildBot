@@ -158,6 +158,6 @@ public class GetSql {
     }
 
     public static String getAllIds(String item) {
-        return String.format("SELECT * FROM ids WHERE name = '%s'", item);
+        return String.format("SELECT * FROM ids WHERE name = '%s'", convertToSql(item));
     }
 }

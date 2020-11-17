@@ -11,6 +11,7 @@ import apple.build.wynncraft.items.Weapon;
 
 import java.math.BigInteger;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class BuildGenerator {
     private final int layer;
@@ -83,12 +84,14 @@ public class BuildGenerator {
         filterOnTranslationConstraints();
         if (isFail()) return;
         breakApart();
-        int i = 0;
-        for (BuildGenerator generator : subGenerators) {
-            long now = System.currentTimeMillis();
+        AtomicInteger i = new AtomicInteger();
+//        for (BuildGenerator generator : subGenerators) {
+        subGenerators.parallelStream().forEach(generator -> {
             generator.generate(archetype, 9);
-            System.out.println("time " + (now - test) + " | " + i++ + "/" + subGenerators.size());
-        }
+            long now = System.currentTimeMillis();
+            System.out.println("time " + (now - test) + " | " + i.getAndIncrement() + "/" + subGenerators.size());
+//        }
+        });
         subGenerators.removeIf(generator -> generator.size().equals(BigInteger.ZERO));
 
         List<Build> builds = getBuilds();
@@ -124,7 +127,7 @@ public class BuildGenerator {
         filterOnSkillReqsFirstPass(archetype);
         if (isFail()) return;
         breakApart();
-        subGenerators.forEach(buildGenerator -> buildGenerator.generate(archetype, layerToStop));
+        subGenerators.parallelStream().forEach(buildGenerator -> buildGenerator.generate(archetype, layerToStop));
         subGenerators.removeIf(generator -> generator.size().equals(BigInteger.ZERO));
 
         if (size().compareTo(BigInteger.valueOf(100)) < 0) {
@@ -397,11 +400,11 @@ public class BuildGenerator {
         group3.add(build.items.get(weaponIndex));
         int[] skills = new int[elementLength];
         for (Item item : group1) {
-            skills[0] += item.dexterity;
-            skills[1] += item.agility;
-            skills[2] += item.strength;
-            skills[3] += item.intelligence;
-            skills[4] += item.defense;
+            skills[0] += item.getSkill(ElementSkill.THUNDER);
+            skills[1] += item.getSkill(ElementSkill.AIR);
+            skills[2] += item.getSkill(ElementSkill.EARTH);
+            skills[3] += item.getSkill(ElementSkill.WATER);
+            skills[4] += item.getSkill(ElementSkill.FIRE);
         }
         if (group2Unsorted.isEmpty()) {
             // check it once to see if it works
@@ -479,32 +482,32 @@ public class BuildGenerator {
                 mySkills[0] = req;
             }
         }
+        req = item.agility;
         if (req != 0) {
-            req = item.agility;
             difference = req - mySkills[1];
             if (difference > 0) {
                 extraSkillPoints -= difference;
                 mySkills[1] = req;
             }
         }
+        req = item.strength;
         if (req != 0) {
-            req = item.strength;
             difference = req - mySkills[2];
             if (difference > 0) {
                 extraSkillPoints -= difference;
                 mySkills[2] = req;
             }
         }
+        req = item.intelligence;
         if (req != 0) {
-            req = item.intelligence;
             difference = req - mySkills[3];
             if (difference > 0) {
                 extraSkillPoints -= difference;
                 mySkills[3] = req;
             }
         }
+        req = item.defense;
         if (req != 0) {
-            req = item.defense;
             difference = req - mySkills[4];
             if (difference > 0) {
                 extraSkillPoints -= difference;

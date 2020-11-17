@@ -1,6 +1,7 @@
 package apple.build.wynncraft.items;
 
 import apple.build.data.ElementSkill;
+import apple.build.sql.GetSql;
 import apple.build.utils.OneToOneMap;
 import apple.build.utils.Pair;
 import org.jetbrains.annotations.Nullable;
@@ -22,6 +23,11 @@ public class Item {
         add("earthDefense");
         add("waterDefense");
         add("fireDefense");
+        add("dexterityPoints");
+        add("agilityPoints");
+        add("strengthPoints");
+        add("defensePoints");
+        add("intelligencePoints");
     }};
     private static final OneToOneMap<String, Integer> idNameToUid = new OneToOneMap<>();
     private static int currentUid = 0;
@@ -51,6 +57,7 @@ public class Item {
                 @Nullable String restrictions, @Nullable String set, @Nullable String addedLore, @Nullable String material,
                 @Nullable String quest, @Nullable ClassType classRequirement, String[] majorIds, boolean identified, ItemType type) {
         for (Map.Entry<String, Integer> entry : ids.entrySet()) {
+
             Integer uid = idNameToUid.getFromKey(entry.getKey());
             if (uid == null) {
                 uid = currentUid++;
@@ -81,8 +88,8 @@ public class Item {
     }
 
     public Item(ResultSet response, ItemType itemType) throws SQLException {
-        this.name = response.getString("name");
-        this.displayName = response.getString("displayName");
+        this.name = GetSql.convertFromSql(response.getString("name"));
+        this.displayName = GetSql.convertFromSql(response.getString("displayName"));
         this.tier = response.getString("tier");
         this.sockets = response.getInt("sockets");
         this.strength = response.getInt("strength");
@@ -93,9 +100,9 @@ public class Item {
         this.dropType = response.getString("dropType");
         this.restrictions = response.getString("restrictions");
         this.set = response.getString("setString");
-        this.addedLore = response.getString("addedLore");
+        this.addedLore = GetSql.convertFromSql(response.getString("addedLore"));
         this.material = response.getString("material");
-        this.quest = response.getString("quest");
+        this.quest = GetSql.convertFromSql(response.getString("quest"));
         String classRequirementTemp = response.getString("classRequirement");
         this.classRequirement = classRequirementTemp == null ? null : ClassType.valueOf(classRequirementTemp);
         String majorIdsTemp = response.getString("majorIds");

@@ -48,11 +48,12 @@ public class BuildMain {
         bracelets.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
         List<Item> necklaces = GetDB.getAllItems(Item.ItemType.NECKLACE);
         necklaces.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
+        necklaces.sort((anotherString2, anotherString) -> String.CASE_INSENSITIVE_ORDER.compare(anotherString.name, anotherString2.name));
         List<Item> bows = GetDB.getAllItems(Item.ItemType.BOW);
         bows.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
         Item mine = null;
-        String name = "div";
-        for (Item i : bows) {
+        String name = "tenut";
+        for (Item i : necklaces) {
             if (i.name.toLowerCase().contains(name) || i.displayName.toLowerCase().contains(name)) {
                 mine = i;
                 break;
@@ -63,12 +64,12 @@ public class BuildMain {
         chestplates.removeIf(item -> item.level < 80);
         leggings.removeIf(item -> item.level < 80);
         boots.removeIf(item -> item.level < 80);
-//        helmets.removeIf(item -> !item.name.equals("Nighthawk"));
+//        helmets.removeIf(item -> !item.name.equals("Sizzling Shawl"));
 //        chestplates.removeIf(item -> !item.name.equals("Boreal-Patterned Aegis"));
-//        leggings.removeIf(item -> !item.name.equals("Cinderchain"));
-//        boots.removeIf(item -> !item.name.equals("Sine"));
-//        rings.removeIf(item -> !item.name.equals("Diamond Static Ring") && !item.name.equals("Diamond Static Ring"));
-//        bracelets.removeIf(item -> !item.name.equals("Diamond Hydro Bracelet"));
+//        leggings.removeIf(item -> !item.name.equals("Leggings of Desolation"));
+//        boots.removeIf(item -> !item.name.equals("Stardew"));
+//        rings.removeIf(item -> !item.name.equals("Gold Static Ring") && !item.name.equals("Diamond Static Ring"));
+//        bracelets.removeIf(item -> !item.name.equals("Diamond Static Bracelet"));
 //        necklaces.removeIf(item -> !item.name.equals("Tenuto"));
 //        bows.removeIf(item -> !item.name.equals("Divzer"));
         List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, bows};
@@ -94,39 +95,10 @@ public class BuildMain {
             add(ElementSkill.WATER);
             add(ElementSkill.FIRE);
         }});
-//        for (Build build : builds.getBuilds()) {
-//            System.out.println(build.toString());
-//        }
+        for (Build build : builds.getBuilds()) {
+            System.out.println(build.toString());
+        }
         System.out.println("Total time: " + (System.currentTimeMillis() - start) + " || Size: " + builds.size());
 //        System.out.println((System.currentTimeMillis() - start)+ " || " + builds.size());
-    }
-
-    public static void maian(String[] args) {
-        int[] items = new int[]{1, 2, 3};
-        System.out.println(Arrays.toString(items));
-        int length = items.length;
-        int[] c = new int[length];
-        int i = 0;
-        while (i < length) {
-            if (c[i] < i) {
-                if (i % 2 == 0) {
-                    int i1 = items[0];
-                    items[0] = items[i];
-                    items[i] = i1;
-                } else {
-                    int index = c[i];
-                    int i1 = items[index];
-                    items[index] = items[i];
-                    items[i] = i1;
-                }
-                System.out.println(Arrays.toString(items) + " - " + Arrays.toString(c));
-                c[i]++;
-                i = 0;
-            } else {
-                c[i] = 0;
-                i++;
-            }
-            int a = 3;
-        }
     }
 }
