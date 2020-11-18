@@ -50,8 +50,8 @@ public class BuildMain {
         List<Item> necklaces = GetDB.getAllItems(Item.ItemType.NECKLACE);
         necklaces.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
         necklaces.sort((anotherString2, anotherString) -> String.CASE_INSENSITIVE_ORDER.compare(anotherString.name, anotherString2.name));
-        List<Item> bows = GetDB.getAllItems(Item.ItemType.BOW);
-        bows.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
+        List<Item> weapon = GetDB.getAllItems(Item.ItemType.BOW);
+        weapon.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
         Item mine = null;
         String name = "tenut";
         for (Item i : necklaces) {
@@ -72,34 +72,35 @@ public class BuildMain {
 //        rings.removeIf(item -> !item.name.equals("Gold Static Ring") && !item.name.equals("Diamond Static Ring"));
 //        bracelets.removeIf(item -> !item.name.equals("Diamond Static Bracelet"));
 //        necklaces.removeIf(item -> !item.name.equals("Tenuto"));
-//        bows.removeIf(item -> !item.name.equals("Divzer"));
-        List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, bows};
+//        weapon.removeIf(item -> !item.name.equals("Divzer"));
+        List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, weapon};
 
         BuildGenerator builds = new BuildGenerator(allItems);
-        System.out.println(builds.size());
-        builds.addConstraint(new ConstraintId("manaSteal", 14));
-        builds.addConstraint(new ConstraintId("spellDamage", 68));
-        builds.addConstraint(new ConstraintId("spellDamageRaw", 835));
-        builds.addConstraint(new ConstraintId("bonusThunderDamage", 102));
-        builds.addConstraint(new ConstraintId("attackSpeedBonus", -4));
-        builds.addConstraint(new ConstraintDefense(ElementSkill.EARTH,-100));
-        builds.addConstraint(new ConstraintDefense(ElementSkill.THUNDER,564));
-        builds.addConstraint(new ConstraintDefense(ElementSkill.WATER,216));
-        builds.addConstraint(new ConstraintDefense(ElementSkill.FIRE,456));
-        builds.addConstraint(new ConstraintDefense(ElementSkill.AIR,0));
-        builds.addConstraint(new ConstraintHp(12000));
-        builds.addConstraint(new ConstraintSpellCost(ConstraintSpellCost.Spell.ARROW_STORM, 1));
-        builds.addConstraint(new ConstraintSpellCost(ConstraintSpellCost.Spell.BOMB_ARROW, 2));
-        builds.addConstraint(new ConstraintSpellDamage(ConstraintSpellCost.Spell.BOMB_ARROW, 15700));
-        builds.addConstraint(new ConstraintSpellDamage(ConstraintSpellCost.Spell.ARROW_STORM, 38500));
-        builds.addConstraint(new ConstraintMainDamage(4100));
+        builds.addConstraint(new ConstraintId("manaRegen", 12));
+//        builds.addConstraint(new ConstraintId("manaSteal", 6));
+        builds.addConstraint(new ConstraintId("spellDamage", 44));
+        builds.addConstraint(new ConstraintId("spellDamageRaw",798));
+        builds.addConstraint(new ConstraintId("bonusAirDamage", 110));
+        builds.addConstraint(new ConstraintId("speed", 153));
+//        builds.addConstraint(new ConstraintId("attackSpeedBonus", -4));
+//        builds.addConstraint(new ConstraintDefense(ElementSkill.EARTH,0));
+//        builds.addConstraint(new ConstraintDefense(ElementSkill.THUNDER,-125));
+//        builds.addConstraint(new ConstraintDefense(ElementSkill.WATER,500));
+//        builds.addConstraint(new ConstraintDefense(ElementSkill.FIRE,300));
+//        builds.addConstraint(new ConstraintDefense(ElementSkill.AIR,800));
+        builds.addConstraint(new ConstraintHp(12600));
+        builds.addConstraint(new ConstraintSpellCost(ConstraintSpellCost.Spell.ARROW_STORM, 3));
+        builds.addConstraint(new ConstraintSpellCost(ConstraintSpellCost.Spell.BOMB_ARROW, 4));
+        builds.addConstraint(new ConstraintSpellDamage(ConstraintSpellCost.Spell.ARROW_STORM, 17800));
+        builds.addConstraint(new ConstraintSpellDamage(ConstraintSpellCost.Spell.BOMB_ARROW, 7000));
+//        builds.addConstraint(new ConstraintMainDamage(5400));
         for (BuildConstraintExclusion constraint : BuildConstraintExclusion.all)
             builds.addConstraint(constraint);
         long start = System.currentTimeMillis();
         builds.generate(new HashSet<>() {{
-            add(ElementSkill.THUNDER);
-            add(ElementSkill.WATER);
             add(ElementSkill.FIRE);
+            add(ElementSkill.WATER);
+            add(ElementSkill.AIR);
         }});
         for (Build build : builds.getBuilds()) {
             System.out.println(build.toString());

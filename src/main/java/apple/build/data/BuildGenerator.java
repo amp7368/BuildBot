@@ -80,6 +80,9 @@ public class BuildGenerator {
      * generates for the top level
      */
     public void generate(Set<ElementSkill> archetype) {
+        if (c()) {
+            int a = 3;
+        }
         filterOnBadArchetype(archetype);
         if (isFail()) return;
         filterOnBadContribution();
@@ -87,10 +90,9 @@ public class BuildGenerator {
         filterOnConstraints();
         if (isFail()) return;
         filterOnAdvancedSkillConstraints();
-
         if (isFail()) return;
-        filterOnTranslationConstraints();
-        if (isFail()) return;
+//        filterOnTranslationConstraints();
+//        if (isFail()) return;
         breakApart();
         AtomicInteger i = new AtomicInteger();
         long test = System.currentTimeMillis();
@@ -113,15 +115,19 @@ public class BuildGenerator {
      * filters item pool as much as possible, then generates all possible builds
      */
     public void generate(Set<ElementSkill> archetype, int layerToStop) {
+        if (c()) {
+            int a = 3;
+        }
         Thread.currentThread().setPriority(layer + 2);
         if (size().compareTo(BigInteger.valueOf(100)) < 0 || layer == layerToStop) {
             List<Build> builds = getBuilds();
-            finalLayerFilter(builds);
             extraBuilds.addAll(builds);
+            finalLayerFilter(builds);
             subGenerators = Collections.emptyList();
             allItems = new List[0];
             return;
         }
+
         filterOnExclusion();
         if (isFail()) return;
         filterOnConstraints();
@@ -132,7 +138,11 @@ public class BuildGenerator {
         if (isFail()) return;
         filterOnSkillReqsFirstPass(archetype);
         if (isFail()) return;
+        if (c()) {
+            int a = 3;
+        }
         breakApart();
+
         subGenerators.parallelStream().forEach(buildGenerator -> buildGenerator.generate(archetype, layerToStop));
         subGenerators.removeIf(generator -> generator.size().equals(BigInteger.ZERO));
         if (size().compareTo(BigInteger.valueOf(100)) < 0) {
@@ -160,12 +170,20 @@ public class BuildGenerator {
         }
     }
 
+    private boolean filterOnExclusion(Build build) {
+        for (BuildConstraintExclusion exclusion : constraintsExclusion) {
+            if (!exclusion.isValid(build.items)) return true;
+        }
+        return false;
+    }
+
     /**
      * do all filters that require defined items to check
      */
     private void finalLayerFilter(List<Build> builds) {
 //        builds.removeIf(build -> filterOnSkillReqsSecondPass(build) ||
 //                filterWeaponOnAdvancedDamageConstraintsSecondPass(build) || filterOnDefense(build));
+
         builds.removeIf(build -> {
             if (c(build)) {
                 int a = 3;
@@ -173,17 +191,17 @@ public class BuildGenerator {
             if (filterOnSkillReqsSecondPass(build)) return true;
             if (filterWeaponOnAdvancedDamageConstraintsSecondPass(build)) return true;
             if (filterOnDefense(build)) return true;
+            if (filterOnConstraints(build)) return true;
+            if (filterOnExclusion(build)) return true;
             return false;
         });
     }
+
 
     private boolean filterOnDefense(Build build) {
         int length = ElementSkill.values().length;
         int[] defensePerc = new int[length];
         int[] defenseRaw = new int[length];
-        if (c(build)) {
-            int a = 3;
-        }
         int i = 0;
         for (ElementSkill elementSkill : ElementSkill.values()) {
             for (Item item : build.items) {
@@ -202,13 +220,6 @@ public class BuildGenerator {
         return false;
     }
 
-    private boolean c(Build build) {
-        for (Item item : build.items) {
-            if (!d(Collections.singletonList(item)))
-                return false;
-        }
-        return true;
-    }
 
     private boolean filterWeaponOnAdvancedDamageConstraintsSecondPass(Build build) {
         int spellDmg = 0;
@@ -392,17 +403,22 @@ public class BuildGenerator {
 
     private void breakApart() {
         int pieceIndex = -1;
-        for (int i = 0; i < allItems.length; i++) {
-            if (allItems[i].size() != 1) {
-                pieceIndex = i;
-                break;
+        int pieceCount = -1;
+        int length = allItems.length;
+        for (int i = 0; i < length; i++) {
+            int size = allItems[i].size();
+            if (size != 1) {
+                if (size < pieceCount || pieceIndex == -1) {
+                    pieceIndex = i;
+                    pieceCount = size;
+                }
             }
         }
         if (pieceIndex == -1) return;
         List<Item> items = allItems[pieceIndex];
         for (Item chosenItem : items) {
-            List<Item>[] subItems = new List[allItems.length];
-            for (int subIndex = 0; subIndex < subItems.length; subIndex++) {
+            List<Item>[] subItems = new List[length];
+            for (int subIndex = 0; subIndex < length; subIndex++) {
                 if (subIndex == pieceIndex) {
                     List<Item> smallList = new ArrayList<>(1);
                     smallList.add(chosenItem);
@@ -768,6 +784,14 @@ public class BuildGenerator {
         }
     }
 
+    private boolean filterOnConstraints(Build build) {
+        for (BuildConstraintGeneral constraint : constraints) {
+            if (!constraint.isValid(build.items))
+                return true;
+        }
+        return false;
+    }
+
     /**
      * filters item pool based on if the item is possible given that all the other items would be optimal for the constraint
      */
@@ -833,9 +857,17 @@ public class BuildGenerator {
             return builds;
         } else {
             ArrayList<Build> builds = new ArrayList<>(1);
-            builds.add(new Build(allItems));
+            builds.addAll(Build.makeBuilds(allItems));
             return builds;
         }
+    }
+
+    private boolean c(Build build) {
+        for (Item item : build.items) {
+            if (!d(Collections.singletonList(item)))
+                return false;
+        }
+        return true;
     }
 
     private boolean c() {
@@ -848,16 +880,17 @@ public class BuildGenerator {
     private boolean d(List<Item> items) {
         Set<String> set = new HashSet<>() {{
             add("Nighthawk");
-            add("Boreal-Patterned Aegis");
-            add("Cinderchain");
-            add("Sine");
-            add("Diamond Static Ring");
-            add("Diamond Hydro Bracelet");
-            add("Tenuto");
-            add("Divzer");
+            add("The Courier's Cape");
+            add("Eden-Blessed Guards");
+            add("Virtuoso");
+            add("Moon Pool Circlet");
+            add("Raging Wind");
+            add("Vortex Bracer");
+            add("Necklace of a Thousand Storms");
+            add("Gale's Force");
         }};
         for (Item item : items) {
-            if (set.contains(item.name)) return true;
+            if (set.contains(item.name) || set.contains(item.displayName)) return true;
         }
         return false;
     }

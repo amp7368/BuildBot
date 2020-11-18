@@ -28,6 +28,17 @@ public class BuildConstraintExclusion {
         }
     }
 
+    public boolean isValid(List<Item> items) {
+        boolean exists = false;
+        for (Item item : items) {
+            if (excluded.contains(item.name)) {
+                if (exists) return false;
+                exists = true;
+            }
+        }
+        return true;
+    }
+
     private enum BuildConstraintExclusionTypes {
         ORNATE(Arrays.asList("Ornate Shadow Cloud", "Ornate Shadow Cover", "Ornate Shadow Garb", "Ornate Shadow Cowl")),
         HIVE_MASTER(Arrays.asList(

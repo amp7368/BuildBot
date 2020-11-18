@@ -3,21 +3,52 @@ package apple.build.data;
 import apple.build.wynncraft.items.Item;
 import apple.build.wynncraft.items.Weapon;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Build {
 
-    public final List<Item> items = new ArrayList<>();
+    public final List<Item> items;
     public final List<Integer> ordering = new ArrayList<>();
     public int[] skills = null;
     public int extraSkillPoints = -1;
 
     public Build(List<Item>[] allItems) {
+        items = new ArrayList<>();
         for (List<Item> allItem : allItems) {
             items.add(allItem.get(0));
+        }
+    }
+
+    public Build(List<Item> chosen) {
+        items = chosen;
+    }
+
+    public static List<Build> makeBuilds(List<Item>[] allItems) {
+        List<Build> builds = new ArrayList<>();
+        List<Item> chosen = new ArrayList<>();
+        int i = 0;
+        for (List<Item> items : allItems) {
+            if (items.size() == 1) {
+                chosen.add(items.get(0));
+            } else {
+                makeBuilds(chosen, allItems, builds, i);
+                return builds;
+            }
+            i++;
+        }
+        return Collections.singletonList(new Build(chosen));
+    }
+
+    private static void makeBuilds(List<Item> chosen, List<Item>[] allItems, List<Build> builds, int indexAt) {
+        if (indexAt == allItems.length) {
+            builds.add(new Build(chosen));
+            return;
+        }
+        for (Item item : allItems[indexAt]) {
+            List<Item> subChosen = new ArrayList<>(chosen);
+            subChosen.add(item);
+            makeBuilds(subChosen, allItems, builds, indexAt + 1);
         }
     }
 
