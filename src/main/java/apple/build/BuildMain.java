@@ -2,6 +2,7 @@ package apple.build;
 
 import apple.build.data.Build;
 import apple.build.data.BuildGenerator;
+import apple.build.data.constraints.advanced_defense.ConstraintDefense;
 import apple.build.data.constraints.filter.BuildConstraintExclusion;
 import apple.build.data.ElementSkill;
 import apple.build.data.constraints.advanced_damage.ConstraintMainDamage;
@@ -75,11 +76,17 @@ public class BuildMain {
         List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, bows};
 
         BuildGenerator builds = new BuildGenerator(allItems);
+        System.out.println(builds.size());
         builds.addConstraint(new ConstraintId("manaSteal", 14));
         builds.addConstraint(new ConstraintId("spellDamage", 68));
         builds.addConstraint(new ConstraintId("spellDamageRaw", 835));
         builds.addConstraint(new ConstraintId("bonusThunderDamage", 102));
         builds.addConstraint(new ConstraintId("attackSpeedBonus", -4));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.EARTH,-100));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.THUNDER,564));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.WATER,216));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.FIRE,456));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.AIR,0));
         builds.addConstraint(new ConstraintHp(12000));
         builds.addConstraint(new ConstraintSpellCost(ConstraintSpellCost.Spell.ARROW_STORM, 1));
         builds.addConstraint(new ConstraintSpellCost(ConstraintSpellCost.Spell.BOMB_ARROW, 2));
@@ -89,7 +96,6 @@ public class BuildMain {
         for (BuildConstraintExclusion constraint : BuildConstraintExclusion.all)
             builds.addConstraint(constraint);
         long start = System.currentTimeMillis();
-
         builds.generate(new HashSet<>() {{
             add(ElementSkill.THUNDER);
             add(ElementSkill.WATER);
@@ -99,6 +105,5 @@ public class BuildMain {
             System.out.println(build.toString());
         }
         System.out.println("Total time: " + (System.currentTimeMillis() - start) + " || Size: " + builds.size());
-//        System.out.println((System.currentTimeMillis() - start)+ " || " + builds.size());
     }
 }

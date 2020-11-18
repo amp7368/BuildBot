@@ -12,6 +12,7 @@ public class DamageInput {
     public final int[] skills;
     public final double[] elemental;
     public final double attackSpeedModifier;
+    public boolean hawkeye = false;
 
     public DamageInput(double spellDamage, double mainDamage, int spellDamageRaw, int mainDamageRaw, int[] skills, int extraSkillPoints, double[] elemental, double attackSpeedModifier) {
         this.spellDamage = spellDamage;
@@ -38,5 +39,9 @@ public class DamageInput {
         this.skills = skills;
         this.elemental = elemental;
         this.attackSpeedModifier = attackSpeedModifier;
+    }
+
+    public void setHawkeye(boolean hawkeye) {
+        this.hawkeye = hawkeye;
     }
 }

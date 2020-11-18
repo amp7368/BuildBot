@@ -88,8 +88,10 @@ public class BuildMath {
             elementalLowerCrit[i] *= idBoostElementalCrit;
             elementalUpperCrit[i] *= idBoostElementalCrit;
         }
-
         multiplier = weapon.attackSpeed.modifier() * (spell.damage);
+        if (input.hawkeye && spell == ConstraintSpellCost.Spell.ARROW_STORM) {
+            multiplier *= 5 / 3d;
+        }
         neutralLower *= multiplier;
         neutralUpper *= multiplier;
         neutralLowerCrit *= multiplier;
@@ -101,6 +103,9 @@ public class BuildMath {
             elementalUpperCrit[i] = Math.floor(elementalUpperCrit[i] * multiplier);
         }
         multiplier = input.spellDamageRaw * (spell.damage);
+        if (input.hawkeye && spell == ConstraintSpellCost.Spell.ARROW_STORM) {
+            multiplier *= 5 / 3d;
+        }
         neutralLower += multiplier;
         neutralUpper += multiplier;
         neutralLowerCrit += multiplier;
