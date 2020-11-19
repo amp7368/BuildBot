@@ -17,6 +17,7 @@ import java.util.Set;
 
 public class Item {
     public static final int SKILLS_FOR_PLAYER = 200;
+    public static final int SKILLS_PER_ELEMENT = 100;
     private static final Set<String> UNROLLABLE = new HashSet<>() {{
         add("thunderDefense");
         add("airDefense");

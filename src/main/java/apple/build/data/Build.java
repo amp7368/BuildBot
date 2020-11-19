@@ -106,13 +106,15 @@ public class Build {
     }
 
     public boolean getHawkeye() {
-        boolean hawkEye = false;
-        for (String majorId : items.get(0).majorIds) {
+        return isHawkeye(items.get(0)) && items.get(items.size() - 1).type == Item.ItemType.BOW;
+    }
+
+    public static boolean isHawkeye(Item item) {
+        for (String majorId : item.majorIds) {
             if (majorId.equals("HAWKEYE")) {
-                hawkEye = true;
-                break;
+                return true;
             }
         }
-        return hawkEye && items.get(items.size() - 1).type == Item.ItemType.BOW;
+        return false;
     }
 }

@@ -7,6 +7,7 @@ import apple.build.data.constraints.answers.DamageInput;
 import apple.build.data.constraints.answers.SkillReqAnswer;
 import apple.build.data.constraints.filter.BuildConstraintExclusion;
 import apple.build.data.constraints.general.BuildConstraintGeneral;
+import apple.build.data.threads.GeneratorForkJoinPool;
 import apple.build.wynncraft.items.Item;
 import apple.build.wynncraft.items.ItemIdIndex;
 import apple.build.wynncraft.items.Weapon;
@@ -25,6 +26,8 @@ public class BuildGenerator {
     private final List<BuildConstraintAdvancedDamage> constraintsAdvancedDamage;
     private final List<BuildConstraintAdvancedDefense> constraintsAdvancedDefense;
     private final List<Build> extraBuilds = new ArrayList<>();
+    private static final int THREADS_TO_START = 50;
+    private static final int MAX_THREADS_AT_ONCE = 2;
 
     /**
      * makes a generator for every build possible with the given items
@@ -80,9 +83,6 @@ public class BuildGenerator {
      * generates for the top level
      */
     public void generate(Set<ElementSkill> archetype) {
-        if (c()) {
-            int a = 3;
-        }
         filterOnBadArchetype(archetype);
         if (isFail()) return;
         filterOnBadContribution();
@@ -96,13 +96,20 @@ public class BuildGenerator {
         breakApart();
         AtomicInteger i = new AtomicInteger();
         long test = System.currentTimeMillis();
-        Thread.currentThread().setPriority(layer + 2);
-        subGenerators.parallelStream().forEach(generator -> {
-            generator.generate(archetype, 9);
+        subGenerators.removeIf(buildGenerator -> buildGenerator.filterLower(archetype, 9));
+        if (subGenerators.isEmpty()) return;
+        new GeneratorForkJoinPool(subGenerators, (generator, threads) -> {
+            generator.generate(archetype, 9, threads);
+            if (i.get() >= 30) {
+                int a = 3;
+            }
             System.out.println("time " + (System.currentTimeMillis() - test) + " | " + i.getAndIncrement() + "/" + subGenerators.size());
-        });
+        }, MAX_THREADS_AT_ONCE, THREADS_TO_START).waitForCompletion();
+//        subGenerators.parallelStream().forEach(generator -> {
+//            generator.generate(archetype, 9);
+//            System.out.println("time " + (System.currentTimeMillis() - test) + " | " + i.getAndIncrement() + "/" + subGenerators.size());
+//        });
         subGenerators.removeIf(generator -> generator.size().equals(BigInteger.ZERO));
-
         List<Build> builds = getBuilds();
         finalLayerFilter(builds);
         extraBuilds.addAll(builds);
@@ -114,36 +121,24 @@ public class BuildGenerator {
     /**
      * filters item pool as much as possible, then generates all possible builds
      */
-    public void generate(Set<ElementSkill> archetype, int layerToStop) {
-        if (c()) {
-            int a = 3;
-        }
-        Thread.currentThread().setPriority(layer + 2);
-        if (size().compareTo(BigInteger.valueOf(100)) < 0 || layer == layerToStop) {
-            List<Build> builds = getBuilds();
-            extraBuilds.addAll(builds);
-            finalLayerFilter(builds);
-            subGenerators = Collections.emptyList();
-            allItems = new List[0];
-            return;
-        }
-
-        filterOnExclusion();
-        if (isFail()) return;
-        filterOnConstraints();
-        if (isFail()) return;
-        filterOnAdvancedSkillConstraints();
-        if (isFail()) return;
-        filterWeaponOnAdvancedDamageConstraintsFirstPass();
-        if (isFail()) return;
-        filterOnSkillReqsFirstPass(archetype);
-        if (isFail()) return;
-        if (c()) {
-            int a = 3;
-        }
+    public void generate(Set<ElementSkill> archetype, int layerToStop, float myThreadsCount) {
+        Thread.currentThread().setPriority(Math.min(layer + 2, 10));
         breakApart();
+        subGenerators.removeIf(buildGenerator -> buildGenerator.filterLower(archetype, layerToStop));
+        if (subGenerators.isEmpty()) return;
+        if (myThreadsCount == 1) {
+            for (BuildGenerator buildGenerator : subGenerators) {
+                buildGenerator.generate(archetype, layerToStop, myThreadsCount);
+            }
+        } else {
+            int maxThreadsAtOnceHere = MAX_THREADS_AT_ONCE + layer;
+            if (myThreadsCount > maxThreadsAtOnceHere) {
+                new GeneratorForkJoinPool(subGenerators, (generator, threads) -> generator.generate(archetype, 9, threads), maxThreadsAtOnceHere, myThreadsCount).waitForCompletion();
+            } else {
+                new GeneratorForkJoinPool(subGenerators, (generator, threads) -> generator.generate(archetype, 9, threads), Math.max(1, (int) myThreadsCount), myThreadsCount).waitForCompletion();
+            }
+        }
 
-        subGenerators.parallelStream().forEach(buildGenerator -> buildGenerator.generate(archetype, layerToStop));
         subGenerators.removeIf(generator -> generator.size().equals(BigInteger.ZERO));
         if (size().compareTo(BigInteger.valueOf(100)) < 0) {
             List<Build> builds = getBuilds();
@@ -151,6 +146,28 @@ public class BuildGenerator {
             extraBuilds.addAll(builds);
             subGenerators = Collections.emptyList();
         }
+    }
+
+    private boolean filterLower(Set<ElementSkill> archetype, int layerToStop) {
+        if (size().compareTo(BigInteger.valueOf(100)) < 0 || layer == layerToStop) {
+            List<Build> builds = getBuilds();
+            extraBuilds.addAll(builds);
+            finalLayerFilter(builds);
+            subGenerators = Collections.emptyList();
+            allItems = new List[0];
+            return false;
+        }
+        filterOnExclusion();
+        if (isFail()) return true;
+        filterOnConstraints();
+        if (isFail()) return true;
+        filterOnAdvancedSkillConstraints();
+        if (isFail()) return true;
+        filterWeaponOnAdvancedDamageConstraintsFirstPass();
+        if (isFail()) return true;
+        filterOnSkillReqsFirstPass(archetype);
+        if (isFail()) return true;
+        return false;
     }
 
     private void filterOnExclusion() {
@@ -181,13 +198,7 @@ public class BuildGenerator {
      * do all filters that require defined items to check
      */
     private void finalLayerFilter(List<Build> builds) {
-//        builds.removeIf(build -> filterOnSkillReqsSecondPass(build) ||
-//                filterWeaponOnAdvancedDamageConstraintsSecondPass(build) || filterOnDefense(build));
-
         builds.removeIf(build -> {
-            if (c(build)) {
-                int a = 3;
-            }
             if (filterOnSkillReqsSecondPass(build)) return true;
             if (filterWeaponOnAdvancedDamageConstraintsSecondPass(build)) return true;
             if (filterOnDefense(build)) return true;
@@ -274,6 +285,15 @@ public class BuildGenerator {
         int[][] skillsAll = new int[size][elementSize];
         int[][] requiredSkillsAll = new int[size][elementSize];
         int weaponIndex = size - 1;
+        boolean hawkeye = false;
+        List<Item> weapons = allItems[weaponIndex];
+        if (!weapons.isEmpty() && weapons.get(0).type == Item.ItemType.BOW)
+            for (Item item : allItems[0]) {
+                if (Build.isHawkeye(item)) {
+                    hawkeye = true;
+                    break;
+                }
+            }
         // skip weapon
         for (int typePieceIndex = 0; typePieceIndex < weaponIndex; typePieceIndex++) {
             // find max of all these
@@ -343,6 +363,7 @@ public class BuildGenerator {
         int finalMainDmg = mainDmg;
         int finalMainDmgRaw = mainDmgRaw;
         int finalAttackSpeed = attackSpeed;
+        boolean finalHawkeye = hawkeye;
         allItems[weaponIndex].removeIf(item -> {
             // make sure it's read only for the arrays
             int extraSkillPoints = Item.SKILLS_FOR_PLAYER;
@@ -377,6 +398,8 @@ public class BuildGenerator {
             double myFinalSpellDmg = mySpellDmg / 100.0;
             double myFinalMainDmg = myMainDmg / 100.0;
             DamageInput input = new DamageInput(myFinalSpellDmg, myFinalMainDmg, mySpellDmgRaw, myMainDmgRaw, mySkills, extraSkillPoints, myElemental, Item.AttackSpeed.toModifier(myAttackSpeed));
+            if (finalHawkeye)
+                input.setHawkeye(true);
             for (BuildConstraintAdvancedDamage constraint : constraintsAdvancedDamage) {
                 if (!constraint.isValid(input, (Weapon) item)) return true;
             }
@@ -589,10 +612,11 @@ public class BuildGenerator {
     private SkillReqAnswer passesSkillReqSecondPass(int[] skills, Item[] group2, List<Item> group3, Item weapon) {
         int[] mySkills = Arrays.copyOf(skills, skills.length);
         int extraSkillPoints = Item.SKILLS_FOR_PLAYER;
-
+        int[] extraSkillPerElement = new int[skills.length];
+        Arrays.fill(extraSkillPerElement, Item.SKILLS_PER_ELEMENT);
         for (int group2Index = 0; group2Index < group2.length; group2Index++) {
             Item item = group2[group2Index];
-            extraSkillPoints = helperPassesSkillReqSecondPass(item, mySkills, extraSkillPoints);
+            extraSkillPoints = helperPassesSkillReqSecondPass(item, mySkills, extraSkillPerElement, extraSkillPoints);
             if (extraSkillPoints < 0) return new SkillReqAnswer(false, null, 0);
             int i = 0;
             boolean badSkills = false;
@@ -604,12 +628,12 @@ public class BuildGenerator {
             if (badSkills) {
                 // check all the previous items
                 for (i = 0; i < group2Index; i++) {
-                    extraSkillPoints = helperPassesSkillReqSecondPass(group2[i], mySkills, extraSkillPoints);
+                    extraSkillPoints = helperPassesSkillReqSecondPass(group2[i], mySkills, extraSkillPerElement, extraSkillPoints);
                     if (extraSkillPoints < 0) return new SkillReqAnswer(false, null, 0);
                 }
             }
         }
-        extraSkillPoints = helperPassesSkillReqSecondPass(weapon, mySkills, extraSkillPoints);
+        extraSkillPoints = helperPassesSkillReqSecondPass(weapon, mySkills, extraSkillPerElement, extraSkillPoints);
         if (extraSkillPoints < 0) return new SkillReqAnswer(false, null, 0);
         int i = 0;
         boolean badSkills = false;
@@ -619,26 +643,30 @@ public class BuildGenerator {
             mySkills[i++] += skill;
         }
         for (Item item : group3) {
-            extraSkillPoints = helperPassesSkillReqSecondPass(item, mySkills, extraSkillPoints);
+            extraSkillPoints = helperPassesSkillReqSecondPass(item, mySkills, extraSkillPerElement, extraSkillPoints);
             if (extraSkillPoints < 0) return new SkillReqAnswer(false, null, 0);
         }
         if (badSkills) {
             // check all the previous items
             for (i = 0; i < group2.length; i++) {
-                extraSkillPoints = helperPassesSkillReqSecondPass(group2[i], mySkills, extraSkillPoints);
+                extraSkillPoints = helperPassesSkillReqSecondPass(group2[i], mySkills, extraSkillPerElement, extraSkillPoints);
                 if (extraSkillPoints < 0) return new SkillReqAnswer(false, null, 0);
             }
+        }
+        for (int skill : extraSkillPerElement) {
+            if (skill < 0) return new SkillReqAnswer(false, null, 0);
         }
         return new SkillReqAnswer(true, mySkills, extraSkillPoints);
     }
 
-    private int helperPassesSkillReqSecondPass(Item item, int[] mySkills, int extraSkillPoints) {
+    private int helperPassesSkillReqSecondPass(Item item, int[] mySkills, int[] extraSkillPerElement, int extraSkillPoints) {
         int req, difference;
         req = item.dexterity;
         if (req != 0) {
             difference = req - mySkills[0];
             if (difference > 0) {
                 extraSkillPoints -= difference;
+                extraSkillPerElement[0] -= difference;
                 mySkills[0] = req;
             }
         }
@@ -647,6 +675,7 @@ public class BuildGenerator {
             difference = req - mySkills[1];
             if (difference > 0) {
                 extraSkillPoints -= difference;
+                extraSkillPerElement[1] -= difference;
                 mySkills[1] = req;
             }
         }
@@ -655,6 +684,7 @@ public class BuildGenerator {
             difference = req - mySkills[2];
             if (difference > 0) {
                 extraSkillPoints -= difference;
+                extraSkillPerElement[2] -= difference;
                 mySkills[2] = req;
             }
         }
@@ -663,6 +693,7 @@ public class BuildGenerator {
             difference = req - mySkills[3];
             if (difference > 0) {
                 extraSkillPoints -= difference;
+                extraSkillPerElement[3] -= difference;
                 mySkills[3] = req;
             }
         }
@@ -671,6 +702,7 @@ public class BuildGenerator {
             difference = req - mySkills[4];
             if (difference > 0) {
                 extraSkillPoints -= difference;
+                extraSkillPerElement[4] -= difference;
                 mySkills[4] = req;
             }
         }
@@ -756,6 +788,9 @@ public class BuildGenerator {
                                 break;
                             }
                         }
+//                        for(BuildConstraintAdvancedDefense constraint:constraintsAdvancedDefense){
+//                            if(constraint.compare(asBest,item));
+//                        }
                         if (!isCool) badItems.add(item);
                     }
                 }
@@ -880,14 +915,14 @@ public class BuildGenerator {
     private boolean d(List<Item> items) {
         Set<String> set = new HashSet<>() {{
             add("Nighthawk");
-            add("The Courier's Cape");
-            add("Eden-Blessed Guards");
-            add("Virtuoso");
-            add("Moon Pool Circlet");
-            add("Raging Wind");
-            add("Vortex Bracer");
-            add("Necklace of a Thousand Storms");
-            add("Gale's Force");
+            add("Anima-Infused Cuirass");
+            add("Cinderchain");
+            add("Sine");
+            add("Diamond Static Ring");
+//            add("Raging Wind");
+            add("Diamond Hydro Bracelet");
+            add("Tenuto");
+            add("Divzer");
         }};
         for (Item item : items) {
             if (set.contains(item.name) || set.contains(item.displayName)) return true;
