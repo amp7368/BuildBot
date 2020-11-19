@@ -12,4 +12,6 @@ public class ItemIdIndex {
     public static final int DAMAGE_BONUS = Item.getIdIndex("damageBonus");
     public static final int DAMAGE_BONUS_RAW = Item.getIdIndex("damageBonusRaw");
     public static final int ATTACK_SPEED_BONUS = Item.getIdIndex("attackSpeedBonus");
+    public static final int HEALTH_REGEN = Item.getIdIndex("healthRegen");
+    public static final int HEALTH_REGEN_RAW = Item.getIdIndex("healthRegenRaw");
 }

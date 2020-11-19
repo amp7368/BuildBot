@@ -18,4 +18,9 @@ public class Accessory extends Item {
         super(response, itemType);
         health = response.getInt("health");
     }
+
+    public Accessory(Accessory other) {
+        super(other);
+        this.health = other.health;
+    }
 }

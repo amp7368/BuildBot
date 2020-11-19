@@ -10,15 +10,18 @@ import java.util.List;
 
 public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
     public static final String SPELL_COST_RAW_NAME = "spellCostRaw";
+    public static final String SPELL_COST_PERC_NAME = "spellCostPct";
     public static final int INTELLIGENCE_POINTS = Item.getIdIndex("intelligencePoints");
     private final int cost;
     private final Spell spell;
-    private final int idIndex;
+    private final int idIndexRaw;
+    private final int idIndexPerc;
 
     public ConstraintSpellCost(Spell spell, int cost) {
         this.cost = cost;
         this.spell = spell;
-        this.idIndex = Item.getIdIndex(SPELL_COST_RAW_NAME + spell.spellNum);
+        this.idIndexRaw = Item.getIdIndex(SPELL_COST_RAW_NAME + spell.spellNum);
+        this.idIndexPerc = Item.getIdIndex(SPELL_COST_PERC_NAME + spell.spellNum);
     }
 
     @Override
@@ -26,7 +29,7 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
         int addedCostRaw = 0;
         int intelligence = bestSkillsPossible[ElementSkill.WATER.ordinal()] + extraSkillPoints;
         for (Item item : items) {
-            addedCostRaw += item.ids.getOrDefault(idIndex, 0);
+            addedCostRaw += item.ids.getOrDefault(idIndexRaw, 0);
         }
         return BuildMath.getMana(spell, intelligence, addedCostRaw) <= cost;
     }
@@ -38,9 +41,9 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
         for (Item item : items) {
             if (best == null) {
                 best = item;
-                bestVal = best.ids.getOrDefault(idIndex, 0);
+                bestVal = best.ids.getOrDefault(idIndexRaw, 0);
             } else {
-                Integer val = item.ids.getOrDefault(idIndex, 0);
+                Integer val = item.ids.getOrDefault(idIndexRaw, 0);
                 if (val < bestVal) {
                     best = item;
                     bestVal = val;
@@ -52,14 +55,14 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
 
     @Override
     public boolean contributes(Item item) {
-        return item.ids.getOrDefault(idIndex, 0) < 0 ||
+        return item.ids.getOrDefault(idIndexRaw, 0) < 0 ||
                 item.ids.getOrDefault(INTELLIGENCE_POINTS, 0) > 0; // we want negative spell cost
     }
 
     @Override
     public int compare(Item item1, Item item2) {
-        int comparing = item1.ids.getOrDefault(idIndex, 0) -
-                item2.ids.getOrDefault(idIndex, 0);
+        int comparing = item1.ids.getOrDefault(idIndexRaw, 0) -
+                item2.ids.getOrDefault(idIndexRaw, 0);
         if (comparing == 0) {
             comparing = item1.ids.getOrDefault(INTELLIGENCE_POINTS, 0) -
                     item2.ids.getOrDefault(INTELLIGENCE_POINTS, 0);
@@ -74,7 +77,7 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
         ARROW_SHIELD(10, 4, 1, 0, 0.3, 0, 0.3, 0),
         BASH(6, 1, 1.3, 0, 0, .4, 0, 0),
         CHARGE(4, 2, 1.5, 0, 0, 0, 0, 0.4),
-        UPPERCUT(8, 3, 3.5, .25, 0, .15, 0, 0),
+        UPPERCUT(8, 3, 4, .25, 0, .15, 0, 0),
         WAR_SCREAM(5, 4, 0.3, 0, .25, 0, 0, .75),
         HEAL(6, 1, 0, 0, 0, 0, 0, 0),
         TELEPORT(4, 2, 1, 0.4, 0, 0, 0, 0),

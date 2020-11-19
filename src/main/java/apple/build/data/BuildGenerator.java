@@ -398,6 +398,7 @@ public class BuildGenerator {
             double myFinalSpellDmg = mySpellDmg / 100.0;
             double myFinalMainDmg = myMainDmg / 100.0;
             DamageInput input = new DamageInput(myFinalSpellDmg, myFinalMainDmg, mySpellDmgRaw, myMainDmgRaw, mySkills, extraSkillPoints, myElemental, Item.AttackSpeed.toModifier(myAttackSpeed));
+
             if (finalHawkeye)
                 input.setHawkeye(true);
             for (BuildConstraintAdvancedDamage constraint : constraintsAdvancedDamage) {
@@ -448,6 +449,23 @@ public class BuildGenerator {
                     subItems[subIndex] = smallList;
                 } else {
                     subItems[subIndex] = new ArrayList<>(allItems[subIndex]);
+                    if (pieceIndex == 5) {
+                        Iterator<Item> list = subItems[subIndex].iterator();
+                        while (list.hasNext()) {
+                            if (list.next().equals(chosenItem)) {
+                                list.remove();
+                                break;
+                            }
+                        }
+                    } else if (pieceIndex == 4) {
+                        Iterator<Item> list = subItems[subIndex].iterator();
+                        while (list.hasNext()) {
+                            if (list.next().equals(chosenItem)) {
+                                list.remove();
+                                break;
+                            }
+                        }
+                    }
                 }
             }
             subGenerators.add(new BuildGenerator(
@@ -914,15 +932,15 @@ public class BuildGenerator {
 
     private boolean d(List<Item> items) {
         Set<String> set = new HashSet<>() {{
-            add("Nighthawk");
-            add("Anima-Infused Cuirass");
-            add("Cinderchain");
-            add("Sine");
-            add("Diamond Static Ring");
-//            add("Raging Wind");
-            add("Diamond Hydro Bracelet");
-            add("Tenuto");
-            add("Divzer");
+            add("Anamnesis");
+            add("Ornate Shadow Garb");
+            add("Hephaestus-Forged Greaves");
+            add("Virtuoso");
+            add("Moon Pool Circlet");
+            add("Yang");
+            add("Clockwork");
+            add("Diamond Hydro Necklace");
+            add("The Forsaken");
         }};
         for (Item item : items) {
             if (set.contains(item.name) || set.contains(item.displayName)) return true;
