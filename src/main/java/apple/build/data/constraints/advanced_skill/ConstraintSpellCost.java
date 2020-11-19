@@ -27,47 +27,79 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
     @Override
     boolean internalIsValid(int[] bestSkillsPossible, int extraSkillPoints, Collection<Item> items) {
         int addedCostRaw = 0;
+        int addedCostPerc = 0;
         int intelligence = bestSkillsPossible[ElementSkill.WATER.ordinal()] + extraSkillPoints;
         for (Item item : items) {
-            addedCostRaw += item.ids.getOrDefault(idIndexRaw, 0);
+            addedCostRaw += item.getId(idIndexRaw);
+            addedCostPerc += item.getId(idIndexPerc);
         }
-        return BuildMath.getMana(spell, intelligence, addedCostRaw) <= cost;
+        return BuildMath.getMana(spell, intelligence, addedCostRaw, addedCostPerc) <= cost;
     }
 
     @Override
     public @Nullable Item getBest(List<Item> items) {
         Item best = null;
-        int bestVal = 0;
+        int bestRawVal = 0;
+        int bestPercVal = 0;
+        int bestIntelVal = 0;
         for (Item item : items) {
             if (best == null) {
                 best = item;
-                bestVal = best.ids.getOrDefault(idIndexRaw, 0);
+                bestRawVal = best.getId(idIndexRaw);
+                bestPercVal = best.getId(idIndexPerc);
+                bestIntelVal = best.getId(INTELLIGENCE_POINTS);
             } else {
-                Integer val = item.ids.getOrDefault(idIndexRaw, 0);
-                if (val < bestVal) {
+                int rawVal = best.getId(idIndexRaw);
+                int percVal = best.getId(idIndexPerc);
+                int intelVal = best.getId(INTELLIGENCE_POINTS);
+                if (rawVal > bestRawVal) {
                     best = item;
-                    bestVal = val;
+                    bestRawVal = rawVal;
+                }
+                if (percVal > bestPercVal) {
+                    bestPercVal = percVal;
+                }
+                if (intelVal > bestIntelVal) {
+                    bestIntelVal = intelVal;
                 }
             }
         }
-        return best;
+        Item newItem = Item.makeItem(best);
+        newItem.ids.put(idIndexPerc, bestPercVal);
+        newItem.ids.put(INTELLIGENCE_POINTS, bestIntelVal);
+        return newItem;
     }
 
     @Override
     public boolean contributes(Item item) {
-        return item.ids.getOrDefault(idIndexRaw, 0) < 0 ||
-                item.ids.getOrDefault(INTELLIGENCE_POINTS, 0) > 0; // we want negative spell cost
+        return item.getId(idIndexRaw) < 0 ||
+                item.getId(idIndexPerc) < 0 ||
+                item.getId(INTELLIGENCE_POINTS) > 0; // we want negative spell cost
     }
 
+    /**
+     * compares two items with this constraint
+     *
+     * @param item1 the first item to compare
+     * @param item2 the second item to compare
+     * @return positive if first is better, negative if second is better, otherwise 0
+     */
     @Override
     public int compare(Item item1, Item item2) {
-        int comparing = item1.ids.getOrDefault(idIndexRaw, 0) -
-                item2.ids.getOrDefault(idIndexRaw, 0);
-        if (comparing == 0) {
-            comparing = item1.ids.getOrDefault(INTELLIGENCE_POINTS, 0) -
-                    item2.ids.getOrDefault(INTELLIGENCE_POINTS, 0);
+        int perc1 = item1.getId(idIndexPerc);
+        int raw1 = item1.getId(idIndexRaw);
+        int intel1 = item1.getId(INTELLIGENCE_POINTS);
+        int perc2 = item1.getId(idIndexPerc);
+        int raw2 = item1.getId(idIndexRaw);
+        int intel2 = item1.getId(INTELLIGENCE_POINTS);
+        if (perc1 > perc2) {
+            if (raw1 > raw2 && intel1 > intel2) {
+                return 1;
+            }
+        } else if (raw1 < raw2 && intel1 < intel2) {
+            return -1;
         }
-        return comparing;
+        return 0;
     }
 
     public enum Spell {

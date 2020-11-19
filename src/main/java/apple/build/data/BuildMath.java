@@ -1,5 +1,6 @@
 package apple.build.data;
 
+import apple.build.BuildMain;
 import apple.build.data.constraints.advanced_skill.ConstraintSpellCost;
 import apple.build.data.constraints.answers.DamageInput;
 import apple.build.data.constraints.answers.DamageOutput;
@@ -30,13 +31,14 @@ public class BuildMath {
      * gets the mana cost for a particular situation
      * (will give 0 and negatives because i think that gives more info)
      *
-     * @param spell        the spell with mana cost
-     * @param intelligence the intelligence of the player
-     * @param addedCostRaw the added spell cost of the player
+     * @param spell         the spell with mana cost
+     * @param intelligence  the intelligence of the player
+     * @param addedCostRaw  the added spell cost of the player
+     * @param addedCostPerc
      * @return the mana cost
      */
-    public static int getMana(ConstraintSpellCost.Spell spell, int intelligence, int addedCostRaw) {
-        return (int) Math.ceil(spell.mana * (1 - getSkillImprovement(intelligence) / 100) + addedCostRaw);
+    public static int getMana(ConstraintSpellCost.Spell spell, int intelligence, int addedCostRaw, int addedCostPerc) {
+        return (int) Math.floor(Math.ceil(spell.mana * (1 - getSkillImprovement(intelligence) / 100) + addedCostRaw) * (1 + addedCostPerc / 100f));
     }
 
     public static DamageOutput getDamage(ConstraintSpellCost.Spell spell, DamageInput input, Weapon weapon) {
@@ -161,7 +163,7 @@ public class BuildMath {
 
     }
 
-    public static void main(String[] args) throws SQLException, ClassNotFoundException {
+    public static void maain(String[] args) throws SQLException, ClassNotFoundException {
         VerifyDB.initialize();
         List<Item> items = GetDB.getAllItems(Item.ItemType.BOW);
         Weapon item = null;
