@@ -1,6 +1,6 @@
 package apple.build.wynncraft.items;
 
-import apple.build.data.ElementSkill;
+import apple.build.data.enums.ElementSkill;
 import apple.build.sql.GetSql;
 import apple.build.utils.OneToOneMap;
 import apple.build.utils.Pair;

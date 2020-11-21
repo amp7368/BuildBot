@@ -1,6 +1,6 @@
 package apple.build.data.constraints.advanced_defense;
 
-import apple.build.data.ElementSkill;
+import apple.build.data.enums.ElementSkill;
 
 public class ConstraintDefense extends BuildConstraintAdvancedDefense {
     private final int index;

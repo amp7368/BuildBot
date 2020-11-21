@@ -1,6 +1,6 @@
 package apple.build.sql;
 
-import apple.build.data.ElementSkill;
+import apple.build.data.enums.ElementSkill;
 import apple.build.utils.Pair;
 import apple.build.wynncraft.items.Accessory;
 import apple.build.wynncraft.items.Armor;

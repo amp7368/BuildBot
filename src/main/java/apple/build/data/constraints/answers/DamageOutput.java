@@ -14,10 +14,13 @@ public class DamageOutput {
     private final float critChance;
 
     private final double weaponAttackSpeed;
+    private final double raw;
+    private int dps = -1;
 
     public DamageOutput(double neutralLower, double neutralUpper, double[] elementalLower, double[] elementalUpper,
                         double neutralLowerCrit, double neutralUpperCrit, double[] elementalLowerCrit, double[] elementalUpperCrit,
-                        float critChance) {
+                        float critChance, double rawSpell) {
+        this.raw = rawSpell;
         this.neutralLower = (int) neutralLower;
         this.neutralUpper = (int) neutralUpper;
         int length = elementalLower.length;
@@ -38,7 +41,10 @@ public class DamageOutput {
         this.weaponAttackSpeed = -1;
     }
 
-    public DamageOutput(double neutralLower, double neutralUpper, double[] elementalLower, double[] elementalUpper, double neutralLowerCrit, double neutralUpperCrit, double[] elementalLowerCrit, double[] elementalUpperCrit, float critChance, double attackSpeed) {
+    public DamageOutput(double neutralLower, double neutralUpper, double[] elementalLower, double[] elementalUpper,
+                        double neutralLowerCrit, double neutralUpperCrit, double[] elementalLowerCrit, double[] elementalUpperCrit,
+                        float critChance, double rawMain, double attackSpeed) {
+        this.raw = rawMain;
         this.neutralLower = (int) neutralLower;
         this.neutralUpper = (int) neutralUpper;
         int length = elementalLower.length;
@@ -61,21 +67,23 @@ public class DamageOutput {
     }
 
     public int dps() {
-        double damageNormal = neutralLower + neutralUpper;
-        double damageCrit = neutralLowerCrit + neutralUpperCrit;
-        for (int i = 0; i < elementalLower.length; i++) {
-            damageNormal += elementalLower[i] + elementalUpper[i];
-            damageCrit += elementalLowerCrit[i] + elementalUpperCrit[i];
-        }
+        if (dps == -1) {
+            double damageNormal = neutralLower + neutralUpper;
+            double damageCrit = neutralLowerCrit + neutralUpperCrit;
+            for (int i = 0; i < elementalLower.length; i++) {
+                damageNormal += elementalLower[i] + elementalUpper[i];
+                damageCrit += elementalLowerCrit[i] + elementalUpperCrit[i];
+            }
 
-        damageNormal /= 2;
-        damageCrit /= 2;
-
-        double dmg = ((damageNormal * (1 - critChance)) + (damageCrit * (critChance)));
-        if (weaponAttackSpeed == -1) {
-            return (int) dmg;
-        } else {
-            return (int) (dmg * weaponAttackSpeed);
+            damageNormal /= 2;
+            damageCrit /= 2;
+            double dmg = ((damageNormal * (1 - critChance)) + (damageCrit * (critChance)))+raw;
+            if (weaponAttackSpeed == -1) {
+                dps = (int) dmg;
+            } else {
+                dps = (int) (dmg * weaponAttackSpeed);
+            }
         }
+        return dps;
     }
 }

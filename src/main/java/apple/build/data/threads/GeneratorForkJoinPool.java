@@ -8,6 +8,7 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -46,7 +47,7 @@ public class GeneratorForkJoinPool {
         this.threadsToUse = threadsToUse;
         int myRealThreadSize = Math.min(generatorSize, myThreadsSize);
         float myThreadsToGive = threadsToUse - myRealThreadSize;
-        for (int i = 0; i < myThreadsSize + 1 && !generatorsToAdd.isEmpty(); i++) {
+        for (int i = -1; i < myThreadsSize && !generatorsToAdd.isEmpty(); i++) {
             Pair<BuildGenerator, Float> addMe = generatorsToAdd.remove();
             float leftToDoMultiplier = ((float) generatorSize) / myRealThreadSize;
             float threadToGiveThis = Math.max(1, myThreadsToGive * addMe.getValue() / sizeLeftInThousands.get() * leftToDoMultiplier);
@@ -61,11 +62,10 @@ public class GeneratorForkJoinPool {
         while (!generatorsToAdd.isEmpty() || !tasksToJoin.isEmpty()) {
             ForkJoinTask<?> join;
             while ((join = tasksToJoin.poll()) != null) {
-                join.join();
+                join.join(); // if this throws an error, reduce the threads to 1 to find where the actual error is. it's not here
             }
             synchronized (this) {
             }
-            ;
         }
     }
 

@@ -7,6 +7,7 @@ import apple.build.data.constraints.answers.DamageInput;
 import apple.build.data.constraints.answers.SkillReqAnswer;
 import apple.build.data.constraints.filter.BuildConstraintExclusion;
 import apple.build.data.constraints.general.BuildConstraintGeneral;
+import apple.build.data.enums.ElementSkill;
 import apple.build.data.threads.GeneratorForkJoinPool;
 import apple.build.wynncraft.items.Item;
 import apple.build.wynncraft.items.ItemIdIndex;
@@ -26,7 +27,7 @@ public class BuildGenerator {
     private final List<BuildConstraintAdvancedDamage> constraintsAdvancedDamage;
     private final List<BuildConstraintAdvancedDefense> constraintsAdvancedDefense;
     private final List<Build> extraBuilds = new ArrayList<>();
-    private static final int THREADS_TO_START = 50;
+    private static final int THREADS_TO_START = 70;
     private static final int MAX_THREADS_AT_ONCE = 2;
 
     /**
@@ -92,7 +93,7 @@ public class BuildGenerator {
         filterOnAdvancedSkillConstraints();
         if (isFail()) return;
 //        filterOnTranslationConstraints();
-//        if (isFail()) return;
+//        if (isFail()) return; todo redo this when you finish more filters
         breakApart();
         AtomicInteger i = new AtomicInteger();
         long test = System.currentTimeMillis();
@@ -100,15 +101,8 @@ public class BuildGenerator {
         if (subGenerators.isEmpty()) return;
         new GeneratorForkJoinPool(subGenerators, (generator, threads) -> {
             generator.generate(archetype, 9, threads);
-            if (i.get() >= 30) {
-                int a = 3;
-            }
             System.out.println("time " + (System.currentTimeMillis() - test) + " | " + i.getAndIncrement() + "/" + subGenerators.size());
         }, MAX_THREADS_AT_ONCE, THREADS_TO_START).waitForCompletion();
-//        subGenerators.parallelStream().forEach(generator -> {
-//            generator.generate(archetype, 9);
-//            System.out.println("time " + (System.currentTimeMillis() - test) + " | " + i.getAndIncrement() + "/" + subGenerators.size());
-//        });
         subGenerators.removeIf(generator -> generator.size().equals(BigInteger.ZERO));
         List<Build> builds = getBuilds();
         finalLayerFilter(builds);
@@ -122,6 +116,7 @@ public class BuildGenerator {
      * filters item pool as much as possible, then generates all possible builds
      */
     public void generate(Set<ElementSkill> archetype, int layerToStop, float myThreadsCount) {
+        if (isFail()) return;
         Thread.currentThread().setPriority(Math.min(layer + 2, 10));
         breakApart();
         subGenerators.removeIf(buildGenerator -> buildGenerator.filterLower(archetype, layerToStop));
@@ -241,6 +236,7 @@ public class BuildGenerator {
         int[] elemental = new int[ElementSkill.values().length];
         int attackSpeed = 0;
         int extraSkillPoints = build.extraSkillPoints;
+        int[] extraSkillPerElement = build.extraSkillPerElement;
         for (Item item : build.items) {
             spellDmg += item.getId(ItemIdIndex.SPELL_DAMAGE);
             mainDmg += item.getId(ItemIdIndex.DAMAGE_BONUS);
@@ -259,7 +255,7 @@ public class BuildGenerator {
         for (int i = 0; i < elemental.length; i++) {
             elementalPrecise[i] = elemental[i] / 100d;
         }
-        DamageInput input = new DamageInput(spellDmg / 100d, mainDmg / 100d, spellDmgRaw, mainDmgRaw, skills, extraSkillPoints, elementalPrecise, Item.AttackSpeed.toModifier(attackSpeed));
+        DamageInput input = new DamageInput(spellDmg / 100d, mainDmg / 100d, spellDmgRaw, mainDmgRaw, skills, extraSkillPoints, extraSkillPerElement, elementalPrecise, Item.AttackSpeed.toModifier(attackSpeed));
         if (build.getHawkeye()) {
             input.setHawkeye(true);
         }
@@ -367,6 +363,8 @@ public class BuildGenerator {
         allItems[weaponIndex].removeIf(item -> {
             // make sure it's read only for the arrays
             int extraSkillPoints = Item.SKILLS_FOR_PLAYER;
+            int[] extraSkillsPerElement = new int[elementSize];
+            Arrays.fill(extraSkillsPerElement, Item.SKILLS_PER_ELEMENT);
             int[] mySkills = new int[elementSize];
             double[] myElemental = new double[elementSize];
 
@@ -375,7 +373,9 @@ public class BuildGenerator {
                 int requiredSkill = Math.max(requiredSkills[i], item.getRequiredSkill(elementSkill));
                 int skill = skills[i];
                 if (requiredSkill != 0 && requiredSkill > skill) {
-                    extraSkillPoints -= requiredSkill - skill;
+                    int difference = requiredSkill - skill;
+                    extraSkillPoints -= difference;
+                    extraSkillsPerElement[i] -= difference;
                     mySkills[i] = requiredSkill;
                 } else {
                     mySkills[i] = skill;
@@ -384,6 +384,7 @@ public class BuildGenerator {
                 myElemental[i] = ((double) (elementalDamage[i] + item.getId(elementSkill.damageIdIndex))) / 100d;
                 i++;
             }
+            if (extraSkillPoints < 0) return true; // return a failed skill point test
             int mySpellDmg = finalSpellDmg;
             int mySpellDmgRaw = finalSpellDmgRaw;
             int myMainDmg = finalMainDmg;
@@ -397,7 +398,7 @@ public class BuildGenerator {
             myAttackSpeed += ((Weapon) item).attackSpeed.speed;
             double myFinalSpellDmg = mySpellDmg / 100.0;
             double myFinalMainDmg = myMainDmg / 100.0;
-            DamageInput input = new DamageInput(myFinalSpellDmg, myFinalMainDmg, mySpellDmgRaw, myMainDmgRaw, mySkills, extraSkillPoints, myElemental, Item.AttackSpeed.toModifier(myAttackSpeed));
+            DamageInput input = new DamageInput(myFinalSpellDmg, myFinalMainDmg, mySpellDmgRaw, myMainDmgRaw, mySkills, extraSkillPoints, extraSkillsPerElement, myElemental, Item.AttackSpeed.toModifier(myAttackSpeed));
 
             if (finalHawkeye)
                 input.setHawkeye(true);
@@ -429,7 +430,8 @@ public class BuildGenerator {
         int pieceIndex = -1;
         int pieceCount = -1;
         int length = allItems.length;
-        for (int i = 0; i < length; i++) {
+        int weaponIndex = length - 1;
+        for (int i = 0; i < weaponIndex; i++) {
             int size = allItems[i].size();
             if (size != 1) {
                 if (size < pieceCount || pieceIndex == -1) {
@@ -438,7 +440,12 @@ public class BuildGenerator {
                 }
             }
         }
-        if (pieceIndex == -1) return;
+        if (pieceIndex == -1) {
+            if (allItems[weaponIndex].size() != 1)
+                pieceIndex = weaponIndex;
+            else
+                return;
+        }
         List<Item> items = allItems[pieceIndex];
         for (Item chosenItem : items) {
             List<Item>[] subItems = new List[length];
@@ -449,23 +456,6 @@ public class BuildGenerator {
                     subItems[subIndex] = smallList;
                 } else {
                     subItems[subIndex] = new ArrayList<>(allItems[subIndex]);
-                    if (pieceIndex == 5) {
-                        Iterator<Item> list = subItems[subIndex].iterator();
-                        while (list.hasNext()) {
-                            if (list.next().equals(chosenItem)) {
-                                list.remove();
-                                break;
-                            }
-                        }
-                    } else if (pieceIndex == 4) {
-                        Iterator<Item> list = subItems[subIndex].iterator();
-                        while (list.hasNext()) {
-                            if (list.next().equals(chosenItem)) {
-                                list.remove();
-                                break;
-                            }
-                        }
-                    }
                 }
             }
             subGenerators.add(new BuildGenerator(
@@ -561,7 +551,7 @@ public class BuildGenerator {
             if (response.valid) {
                 int[] realSkills = convertFromHardcodeSkills(response);
                 group3.add(weapon);
-                build.addOrdering(new Item[0], group3, realSkills, response.extraSkillPoints);
+                build.addOrdering(new Item[0], group3, realSkills, response.extraSkillPoints, response.extraSkillPerElement);
                 return false;
             }
         }
@@ -586,7 +576,7 @@ public class BuildGenerator {
                 if (response.valid) {
                     int[] realSkills = convertFromHardcodeSkills(response);
                     group3.add(weapon);
-                    build.addOrdering(items, group3, realSkills, response.extraSkillPoints);
+                    build.addOrdering(items, group3, realSkills, response.extraSkillPoints, response.extraSkillPerElement);
                     return false;
                 }
                 c[i]++;
@@ -635,7 +625,7 @@ public class BuildGenerator {
         for (int group2Index = 0; group2Index < group2.length; group2Index++) {
             Item item = group2[group2Index];
             extraSkillPoints = helperPassesSkillReqSecondPass(item, mySkills, extraSkillPerElement, extraSkillPoints);
-            if (extraSkillPoints < 0) return new SkillReqAnswer(false, null, 0);
+            if (extraSkillPoints < 0) return new SkillReqAnswer(false, null, 0, null);
             int i = 0;
             boolean badSkills = false;
             for (ElementSkill elementSkill : ElementSkill.values()) {
@@ -647,12 +637,12 @@ public class BuildGenerator {
                 // check all the previous items
                 for (i = 0; i < group2Index; i++) {
                     extraSkillPoints = helperPassesSkillReqSecondPass(group2[i], mySkills, extraSkillPerElement, extraSkillPoints);
-                    if (extraSkillPoints < 0) return new SkillReqAnswer(false, null, 0);
+                    if (extraSkillPoints < 0) return new SkillReqAnswer(false, null, 0, null);
                 }
             }
         }
         extraSkillPoints = helperPassesSkillReqSecondPass(weapon, mySkills, extraSkillPerElement, extraSkillPoints);
-        if (extraSkillPoints < 0) return new SkillReqAnswer(false, null, 0);
+        if (extraSkillPoints < 0) return new SkillReqAnswer(false, null, 0, null);
         int i = 0;
         boolean badSkills = false;
         for (ElementSkill elementSkill : ElementSkill.values()) {
@@ -662,19 +652,19 @@ public class BuildGenerator {
         }
         for (Item item : group3) {
             extraSkillPoints = helperPassesSkillReqSecondPass(item, mySkills, extraSkillPerElement, extraSkillPoints);
-            if (extraSkillPoints < 0) return new SkillReqAnswer(false, null, 0);
+            if (extraSkillPoints < 0) return new SkillReqAnswer(false, null, 0, null);
         }
         if (badSkills) {
             // check all the previous items
             for (i = 0; i < group2.length; i++) {
                 extraSkillPoints = helperPassesSkillReqSecondPass(group2[i], mySkills, extraSkillPerElement, extraSkillPoints);
-                if (extraSkillPoints < 0) return new SkillReqAnswer(false, null, 0);
+                if (extraSkillPoints < 0) return new SkillReqAnswer(false, null, 0, null);
             }
         }
         for (int skill : extraSkillPerElement) {
-            if (skill < 0) return new SkillReqAnswer(false, null, 0);
+            if (skill < 0) return new SkillReqAnswer(false, null, 0, null);
         }
-        return new SkillReqAnswer(true, mySkills, extraSkillPoints);
+        return new SkillReqAnswer(true, mySkills, extraSkillPoints, extraSkillPerElement);
     }
 
     private int helperPassesSkillReqSecondPass(Item item, int[] mySkills, int[] extraSkillPerElement, int extraSkillPoints) {
@@ -892,6 +882,7 @@ public class BuildGenerator {
     }
 
     private boolean isFail() {
+        if (allItems.length == 0) return true;
         for (List<Item> i : allItems) {
             if (i.isEmpty()) {
                 return true;
@@ -932,15 +923,15 @@ public class BuildGenerator {
 
     private boolean d(List<Item> items) {
         Set<String> set = new HashSet<>() {{
-            add("Anamnesis");
-            add("Ornate Shadow Garb");
-            add("Hephaestus-Forged Greaves");
-            add("Virtuoso");
-            add("Moon Pool Circlet");
-            add("Yang");
-            add("Clockwork");
-            add("Diamond Hydro Necklace");
-            add("The Forsaken");
+            add("Nighthawk");
+            add("Anima-Infused Cuirass");
+            add("Cinderchain");
+            add("Sine");
+            add("Diamond Static Ring");
+//            add("Yang");
+            add("Diamond Hydro Bracelet");
+            add("Tenuto");
+            add("Divzer");
         }};
         for (Item item : items) {
             if (set.contains(item.name) || set.contains(item.displayName)) return true;

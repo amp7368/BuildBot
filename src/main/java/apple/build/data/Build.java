@@ -1,7 +1,6 @@
 package apple.build.data;
 
 import apple.build.wynncraft.items.Item;
-import apple.build.wynncraft.items.Weapon;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -12,13 +11,7 @@ public class Build {
     public final List<Integer> ordering = new ArrayList<>();
     public int[] skills = null;
     public int extraSkillPoints = -1;
-
-    public Build(List<Item>[] allItems) {
-        items = new ArrayList<>();
-        for (List<Item> allItem : allItems) {
-            items.add(allItem.get(0));
-        }
-    }
+    public int[] extraSkillPerElement = null;
 
     public Build(List<Item> chosen) {
         items = chosen;
@@ -61,8 +54,11 @@ public class Build {
         }).collect(Collectors.joining(", "));
     }
 
-    public void addOrdering(Item[] group2, List<Item> group3, int[] mySkills, int extraSkillPoints) {
+    public void addOrdering(Item[] group2, List<Item> group3, int[] mySkills, int extraSkillPoints, int[] extraSkillPerElement) {
         int itemsFound = 0;
+        this.extraSkillPoints = extraSkillPoints;
+        this.extraSkillPerElement = extraSkillPerElement;
+        this.skills = mySkills;
         int itemsToFind = items.size() - group2.length - group3.size();
         if (itemsToFind != 0) {
             for (int i = 0; i < items.size(); i++) {
@@ -101,8 +97,6 @@ public class Build {
                 }
             }
         }
-        this.extraSkillPoints = extraSkillPoints;
-        this.skills = mySkills;
     }
 
     public boolean getHawkeye() {
