@@ -2,7 +2,7 @@ package apple.build;
 
 import apple.build.data.Build;
 import apple.build.data.BuildGenerator;
-import apple.build.data.constraints.advanced_defense.ConstraintDefense;
+import apple.build.data.constraints.general.ConstraintDefense;
 import apple.build.data.enums.Spell;
 import apple.build.data.constraints.filter.BuildConstraintExclusion;
 import apple.build.data.enums.ElementSkill;
@@ -92,7 +92,7 @@ public class BuildMain {
 //        weapon.removeIf(item -> !item.name.equals("Ignis"));
 
         long start = System.currentTimeMillis();
-        BuildGenerator builds = test();
+        BuildGenerator builds = benchmark();
         finish(builds, start);
     }
 
@@ -123,10 +123,14 @@ public class BuildMain {
     }
 
     /**
+     * times:
+     * nothing === Total time: 64572 || Size: 3227
+     * defense === Total time: 65015 || Size: 1
+     * defenseOptimized ===
      *
      * @return https://wynndata.tk/s/ykeag2
      */
-    private static BuildGenerator moewHighDmgDivzer() {
+    private static BuildGenerator benchmark() {
         List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, bows};
         BuildGenerator builds = new BuildGenerator(allItems);
         builds.addConstraint(new ConstraintHpr(0));
@@ -135,9 +139,14 @@ public class BuildMain {
         builds.addConstraint(new ConstraintId("damageBonusRaw", 1745));
         builds.addConstraint(new ConstraintId("bonusThunderDamage", 102));
         builds.addConstraint(new ConstraintId("spellDamage", 68));
-        builds.addConstraint(new ConstraintId("spellDamageRaw",835));
+        builds.addConstraint(new ConstraintId("spellDamageRaw", 835));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.EARTH, -100));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.THUNDER, 564));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.WATER, 216));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.FIRE, 456));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.AIR, 0));
         builds.addConstraint(new ConstraintMainDamage(4600));
-        builds.addConstraint(new ConstraintSpellDamage(Spell.ARROW_STORM,47122));
+        builds.addConstraint(new ConstraintSpellDamage(Spell.ARROW_STORM, 47122));
         builds.addConstraint(new ConstraintSpellCost(Spell.ARROW_STORM, 1));
         builds.addConstraint(new ConstraintHp(12500));
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
@@ -162,6 +171,11 @@ public class BuildMain {
         builds.addConstraint(new ConstraintId("manaSteal", 11));
         builds.addConstraint(new ConstraintId("bonusThunderDamage", 172));
         builds.addConstraint(new ConstraintId("spellDamage", 83));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.EARTH, -250));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.THUNDER, 275));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.WATER, -190));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.FIRE, 180));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.AIR, 0));
         builds.addConstraint(new ConstraintSpellCost(Spell.ARROW_STORM, 2));
         builds.addConstraint(new ConstraintSpellCost(Spell.BOMB_ARROW, 3));
         builds.addConstraint(new ConstraintSpellCost(Spell.ARROW_SHIELD, 4));

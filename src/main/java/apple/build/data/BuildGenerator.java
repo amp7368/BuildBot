@@ -25,7 +25,6 @@ public class BuildGenerator {
     private final List<BuildConstraintExclusion> constraintsExclusion;
     private final List<BuildConstraintAdvancedSkills> constraintsAdvancedSkill;
     private final List<BuildConstraintAdvancedDamage> constraintsAdvancedDamage;
-    private final List<BuildConstraintAdvancedDefense> constraintsAdvancedDefense;
     private final List<Build> extraBuilds = new ArrayList<>();
     private static final int THREADS_TO_START = 70;
     private static final int MAX_THREADS_AT_ONCE = 2;
@@ -42,21 +41,18 @@ public class BuildGenerator {
         this.constraintsAdvancedSkill = new ArrayList<>();
         this.constraintsAdvancedDamage = new ArrayList<>();
         this.constraintsExclusion = new ArrayList<>();
-        this.constraintsAdvancedDefense = new ArrayList<>();
     }
 
     private BuildGenerator(List<Item>[] subItems, List<BuildConstraintGeneral> constraints,
                            List<BuildConstraintAdvancedSkills> constraintsAdvancedSkill,
                            List<BuildConstraintAdvancedDamage> constraintsAdvancedDamage,
                            List<BuildConstraintExclusion> constraintsExclusion,
-                           List<BuildConstraintAdvancedDefense> constraintsAdvancedDefense,
                            int layer) {
         this.allItems = subItems;
         this.constraints = constraints;
         this.constraintsAdvancedSkill = constraintsAdvancedSkill;
         this.constraintsAdvancedDamage = constraintsAdvancedDamage;
         this.constraintsExclusion = constraintsExclusion;
-        this.constraintsAdvancedDefense = constraintsAdvancedDefense;
         this.layer = layer;
     }
 
@@ -70,10 +66,6 @@ public class BuildGenerator {
 
     public void addConstraint(BuildConstraintAdvancedDamage constraint) {
         this.constraintsAdvancedDamage.add(constraint);
-    }
-
-    public void addConstraint(BuildConstraintAdvancedDefense constraint) {
-        this.constraintsAdvancedDefense.add(constraint);
     }
 
     public void addConstraint(BuildConstraintExclusion buildConstraintExclusion) {
@@ -196,34 +188,10 @@ public class BuildGenerator {
         builds.removeIf(build -> {
             if (filterOnSkillReqsSecondPass(build)) return true;
             if (filterWeaponOnAdvancedDamageConstraintsSecondPass(build)) return true;
-            if (filterOnDefense(build)) return true;
             if (filterOnConstraints(build)) return true;
             if (filterOnExclusion(build)) return true;
             return false;
         });
-    }
-
-
-    private boolean filterOnDefense(Build build) {
-        int length = ElementSkill.values().length;
-        int[] defensePerc = new int[length];
-        int[] defenseRaw = new int[length];
-        int i = 0;
-        for (ElementSkill elementSkill : ElementSkill.values()) {
-            for (Item item : build.items) {
-                defenseRaw[i] += item.getId(elementSkill.defenseRawIndex);
-                defensePerc[i] += item.getId(elementSkill.defensePercIndex);
-            }
-            i++;
-        }
-        for (i = 0; i < length; i++) {
-            defenseRaw[i] = (int) (defenseRaw[i] + Math.abs(defenseRaw[i]) * defensePerc[i] / 100d);
-        }
-        for (BuildConstraintAdvancedDefense constraint : constraintsAdvancedDefense) {
-            if (!constraint.isValid(defenseRaw))
-                return true;
-        }
-        return false;
     }
 
 
@@ -464,7 +432,6 @@ public class BuildGenerator {
                     constraintsAdvancedSkill,
                     constraintsAdvancedDamage,
                     constraintsExclusion,
-                    constraintsAdvancedDefense,
                     layer + 1));
         }
         allItems = new List[0];
