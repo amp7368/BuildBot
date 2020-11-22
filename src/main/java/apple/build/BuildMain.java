@@ -143,8 +143,8 @@ public class BuildMain {
         builds.addConstraint(new ConstraintDefense(ElementSkill.EARTH, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.THUNDER, 564));
         builds.addConstraint(new ConstraintDefense(ElementSkill.WATER, 216));
-        builds.addConstraint(new ConstraintDefense(ElementSkill.FIRE, 456));
-        builds.addConstraint(new ConstraintDefense(ElementSkill.AIR, 0));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.FIRE, 0));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.AIR, -100));
         builds.addConstraint(new ConstraintMainDamage(4600));
         builds.addConstraint(new ConstraintSpellDamage(Spell.ARROW_STORM, 47122));
         builds.addConstraint(new ConstraintSpellCost(Spell.ARROW_STORM, 1));

@@ -26,8 +26,12 @@ public class BuildGenerator {
     private final List<BuildConstraintAdvancedSkills> constraintsAdvancedSkill;
     private final List<BuildConstraintAdvancedDamage> constraintsAdvancedDamage;
     private final List<Build> extraBuilds = new ArrayList<>();
-    private static final int THREADS_TO_START = 70;
+    private static final int THREADS_TO_START = 50;
     private static final int MAX_THREADS_AT_ONCE = 2;
+    // there is only one place where this is updated so it's fine that this isn't atomic
+    // also it's one way from false to true
+    private static boolean onLastTasks = false;
+    public static AtomicInteger topLayerIndex = new AtomicInteger();
 
     /**
      * makes a generator for every build possible with the given items
@@ -87,14 +91,16 @@ public class BuildGenerator {
 //        filterOnTranslationConstraints();
 //        if (isFail()) return; todo redo this when you finish more filters
         breakApart();
-        AtomicInteger i = new AtomicInteger();
         long test = System.currentTimeMillis();
         subGenerators.removeIf(buildGenerator -> buildGenerator.filterLower(archetype, 9));
         if (subGenerators.isEmpty()) return;
+        int indexToDefineLast = (int) (subGenerators.size() * .9);
         new GeneratorForkJoinPool(subGenerators, (generator, threads) -> {
             generator.generate(archetype, 9, threads);
-            System.out.println("time " + (System.currentTimeMillis() - test) + " | " + i.getAndIncrement() + "/" + subGenerators.size());
-        }, MAX_THREADS_AT_ONCE, THREADS_TO_START).waitForCompletion();
+            int iValue = topLayerIndex.getAndIncrement();
+            if (iValue == indexToDefineLast) onLastTasks = true; // this okay even though it's threaded
+            System.out.println("time " + (System.currentTimeMillis() - test) + " | " + iValue + "/" + subGenerators.size());
+        }, MAX_THREADS_AT_ONCE, THREADS_TO_START, layer).waitForCompletion();
         subGenerators.removeIf(generator -> generator.size().equals(BigInteger.ZERO));
         List<Build> builds = getBuilds();
         finalLayerFilter(builds);
@@ -114,15 +120,20 @@ public class BuildGenerator {
         subGenerators.removeIf(buildGenerator -> buildGenerator.filterLower(archetype, layerToStop));
         if (subGenerators.isEmpty()) return;
         if (myThreadsCount == 1) {
-            for (BuildGenerator buildGenerator : subGenerators) {
-                buildGenerator.generate(archetype, layerToStop, myThreadsCount);
+            if (onLastTasks) {
+                // todo maybe change this back
+                subGenerators.forEach(buildGenerator -> buildGenerator.generate(archetype, layerToStop, myThreadsCount));
+            } else {
+                for (BuildGenerator buildGenerator : subGenerators) {
+                    buildGenerator.generate(archetype, layerToStop, myThreadsCount);
+                }
             }
         } else {
             int maxThreadsAtOnceHere = MAX_THREADS_AT_ONCE + layer;
             if (myThreadsCount > maxThreadsAtOnceHere) {
-                new GeneratorForkJoinPool(subGenerators, (generator, threads) -> generator.generate(archetype, 9, threads), maxThreadsAtOnceHere, myThreadsCount).waitForCompletion();
+                new GeneratorForkJoinPool(subGenerators, (generator, threads) -> generator.generate(archetype, 9, threads), maxThreadsAtOnceHere, myThreadsCount, layer).waitForCompletion();
             } else {
-                new GeneratorForkJoinPool(subGenerators, (generator, threads) -> generator.generate(archetype, 9, threads), Math.max(1, (int) myThreadsCount), myThreadsCount).waitForCompletion();
+                new GeneratorForkJoinPool(subGenerators, (generator, threads) -> generator.generate(archetype, 9, threads), Math.max(1, (int) myThreadsCount), myThreadsCount, layer).waitForCompletion();
             }
         }
 
@@ -774,6 +785,8 @@ public class BuildGenerator {
         }
     }
 
+    private static final Object test = new Object();
+
     /**
      * filters item pool based on if the item is possible given that all the other items would be optimal for the constraint
      */
@@ -792,12 +805,14 @@ public class BuildGenerator {
                     return;
             }
         }
+
     }
 
     private boolean filterOnConstraints(Build build) {
         for (BuildConstraintGeneral constraint : constraints) {
-            if (!constraint.isValid(build.items))
+            if (!constraint.isValid(build.items)) {
                 return true;
+            }
         }
         return false;
     }

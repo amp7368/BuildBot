@@ -1,5 +1,7 @@
 package apple.build.data.constraints.general;
 
+import apple.build.data.Build;
+import apple.build.data.BuildGenerator;
 import apple.build.data.enums.ElementSkill;
 import apple.build.wynncraft.items.Item;
 import org.jetbrains.annotations.Nullable;
@@ -18,6 +20,8 @@ public class ConstraintDefense extends BuildConstraintGeneral {
         this.val = val;
     }
 
+    private static final Object test = new Object();
+
     @Override
     protected boolean internalIsValid(Collection<Item> items) {
         int raw = 0;
@@ -26,7 +30,11 @@ public class ConstraintDefense extends BuildConstraintGeneral {
             perc += item.getId(percIndex);
             raw += item.getId(rawIndex);
         }
-        return raw * perc / 100d >= val;
+//        synchronized (test){
+        if (BuildGenerator.topLayerIndex.get() > 30)
+            System.out.println(raw * (1 + perc / 100f));
+        return raw * (1 + perc / 100f) >= val;
+//        }
     }
 
     @Override

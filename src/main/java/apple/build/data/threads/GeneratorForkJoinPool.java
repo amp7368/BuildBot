@@ -24,9 +24,10 @@ public class GeneratorForkJoinPool {
     private final Queue<Pair<BuildGenerator, Float>> generatorsToAdd;
     private final int myThreadsSize;
     private final float threadsToUse;
-
-    public GeneratorForkJoinPool(List<BuildGenerator> subGeneratorsRaw, BiConsumer<BuildGenerator, Float> todo, int myThreadsSize, float threadsToUse) {
+    private final int layer;
+    public GeneratorForkJoinPool(List<BuildGenerator> subGeneratorsRaw, BiConsumer<BuildGenerator, Float> todo, int myThreadsSize, float threadsToUse,int layer) {
         int generatorSize = subGeneratorsRaw.size();
+        this.layer = layer;
         List<Pair<BuildGenerator, BigInteger>> subGenerators = new ArrayList<>(generatorSize);
         for (BuildGenerator generator : subGeneratorsRaw)
             subGenerators.add(new Pair<>(generator, generator.size()));
@@ -62,6 +63,9 @@ public class GeneratorForkJoinPool {
         while (!generatorsToAdd.isEmpty() || !tasksToJoin.isEmpty()) {
             ForkJoinTask<?> join;
             while ((join = tasksToJoin.poll()) != null) {
+                if (layer ==0) {
+                    int a = 3;
+                }
                 join.join(); // if this throws an error, reduce the threads to 1 to find where the actual error is. it's not here
             }
             synchronized (this) {
@@ -100,6 +104,7 @@ public class GeneratorForkJoinPool {
         public void run() {
             todo.accept(subGenerator, threads);
             finished();
+
         }
     }
 }

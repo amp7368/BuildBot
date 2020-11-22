@@ -324,8 +324,11 @@ public class Item {
         return skillsLeft < 0;
     }
 
-    public int getId(int idName) {
-        return ids.getOrDefault(idName, 0);
+    public int getId(int idIndex) {
+        if(idIndex == 0){
+            int a =3;
+        }
+        return ids.getOrDefault(idIndex, 0);
     }
 
     public int getRequiredSkill(ElementSkill elementSkill) {
