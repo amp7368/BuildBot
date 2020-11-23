@@ -103,7 +103,7 @@ public class BuildGenerator {
         subGenerators.removeIf(generator -> generator.size().equals(BigInteger.ZERO));
         List<Build> builds = getBuilds();
         finalLayerFilter(builds);
-        extraBuilds.addAll(builds);
+        extraBuilds.addAll(new HashSet<>(builds));
         subGenerators = Collections.emptyList();
         allItems = new List[0];
     }

@@ -139,8 +139,8 @@ public class BuildMain {
         BuildGenerator builds = new BuildGenerator(allItems);
         builds.addConstraint(new ConstraintHpr(0));
         builds.addConstraint(new ConstraintId("manaSteal", 14));
-        builds.addConstraint(new ConstraintId("attackSpeedBonus", -4));
-        builds.addConstraint(new ConstraintId("damageBonusRaw", 1745));
+//        builds.addConstraint(new ConstraintId("attackSpeedBonus", -4));
+//        builds.addConstraint(new ConstraintId("damageBonusRaw", 1745));
         builds.addConstraint(new ConstraintId("bonusThunderDamage", 102));
         builds.addConstraint(new ConstraintId("spellDamage", 68));
         builds.addConstraint(new ConstraintId("spellDamageRaw", 835));
