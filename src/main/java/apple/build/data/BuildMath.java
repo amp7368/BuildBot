@@ -16,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class BuildMath {
     private static final int MAX_SKILL_POINT_ALLOCATION = 150;
@@ -191,8 +192,15 @@ public class BuildMath {
                 getSkillImprovement(input.dexterity) / 100, rawSpell);
     }
 
+    private static final AtomicInteger test = new AtomicInteger();
+
     private static int[] findMaximum(double[] elementEffectiveness, int[] skills, int extraSkillPoints, int[] extraSkillsPerElement) {
-        if (extraSkillPoints == 0) return skills;
+        int id = test.getAndIncrement();
+//        System.out.println(id + " enter");
+        if (extraSkillPoints == 0) {
+//            System.out.println(id + " exit");
+            return skills;
+        }
         int varCount = 0;
         for (double effectiveness : elementEffectiveness) {
             if (effectiveness != 0) varCount++;
@@ -240,6 +248,7 @@ public class BuildMath {
                         newSkills[i] = skillsWithoutZero[skillsToWithoutZero[i]];
                     }
                 }
+//                System.out.println(id + " exit");
                 return newSkills;
             }
             extraToEach = extraLeft / toDistribute;
@@ -261,7 +270,6 @@ public class BuildMath {
             double extraBonus = elementEffectivenessWithoutZero[i] * getSkillImprovement(skillsWithoutZero[i]);
             currentIdBonus[i] = extraBonus;
         }
-
         // keep taking baby steps on the graph until you reach a maxima
         while (true) {
             int removeFromMeIndex = 0;
@@ -277,8 +285,6 @@ public class BuildMath {
             }
             double[] idBonus = new double[varCount];
             for (int i = 0; i < varCount; i++) {
-                if (i == removeFromMeIndex || skillsWithoutZero[i] == extraSkillsPerElementWithoutZero[i])
-                    continue;
                 idBonus[i] = elementEffectivenessWithoutZero[i] * getSkillImprovement(skillsWithoutZero[i] + 1);
             }
             double topDifferenceVal = -1;
@@ -306,6 +312,7 @@ public class BuildMath {
                 newSkills[i] = skillsWithoutZero[skillsToWithoutZero[i]];
             }
         }
+//        System.out.println(id + " exit");
         return newSkills;
     }
 

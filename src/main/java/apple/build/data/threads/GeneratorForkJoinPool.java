@@ -25,7 +25,8 @@ public class GeneratorForkJoinPool {
     private final int myThreadsSize;
     private final float threadsToUse;
     private final int layer;
-    public GeneratorForkJoinPool(List<BuildGenerator> subGeneratorsRaw, BiConsumer<BuildGenerator, Float> todo, int myThreadsSize, float threadsToUse,int layer) {
+
+    public GeneratorForkJoinPool(List<BuildGenerator> subGeneratorsRaw, BiConsumer<BuildGenerator, Float> todo, int myThreadsSize, float threadsToUse, int layer) {
         int generatorSize = subGeneratorsRaw.size();
         this.layer = layer;
         List<Pair<BuildGenerator, BigInteger>> subGenerators = new ArrayList<>(generatorSize);
@@ -42,7 +43,7 @@ public class GeneratorForkJoinPool {
         subGeneratorsPercs.sort((b1, b2) -> b2.getValue().compareTo(b1.getValue()));
 
         this.generatorsToAdd = new ConcurrentLinkedDeque<>(subGeneratorsPercs);
-        this.pool = new ForkJoinPool(myThreadsSize);
+        this.pool = new ForkJoinPool(myThreadsSize); //this throws an exception if myThreadsSize = 0
         this.todo = todo;
         this.myThreadsSize = myThreadsSize;
         this.threadsToUse = threadsToUse;
@@ -59,18 +60,21 @@ public class GeneratorForkJoinPool {
         }
     }
 
+
     public void waitForCompletion() {
-        while (!generatorsToAdd.isEmpty() || !tasksToJoin.isEmpty()) {
+        boolean notDone;
+        do {
             ForkJoinTask<?> join;
             while ((join = tasksToJoin.poll()) != null) {
-                if (layer ==0) {
+                if (layer == 0) {
                     int a = 3;
                 }
                 join.join(); // if this throws an error, reduce the threads to 1 to find where the actual error is. it's not here
             }
             synchronized (this) {
+                notDone = !generatorsToAdd.isEmpty() || !tasksToJoin.isEmpty();
             }
-        }
+        } while (notDone);
     }
 
     private void finished() {
@@ -104,7 +108,6 @@ public class GeneratorForkJoinPool {
         public void run() {
             todo.accept(subGenerator, threads);
             finished();
-
         }
     }
 }

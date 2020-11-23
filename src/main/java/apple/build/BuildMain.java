@@ -16,7 +16,9 @@ import apple.build.sql.GetDB;
 import apple.build.sql.VerifyDB;
 import apple.build.wynncraft.items.Item;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -24,20 +26,22 @@ public class BuildMain {
 
     public static final double NEGATIVE_MAX_ROLL = 0.7;
     public static final double POSITIVE_MAX_ROLL = 1.3;
-    private static List<Item> helmets;
-    private static List<Item> chestplates;
-    private static List<Item> leggings;
-    private static List<Item> boots;
-    private static List<Item> rings;
-    private static List<Item> bracelets;
-    private static List<Item> necklaces;
-    private static List<Item> bows;
-    private static List<Item> spears;
-    private static List<Item> daggers;
-    private static List<Item> wands;
-    private static List<Item> reliks;
+    public static List<Item> helmets;
+    public static List<Item> chestplates;
+    public static List<Item> leggings;
+    public static List<Item> boots;
+    public static List<Item> rings;
+    public static List<Item> bracelets;
+    public static List<Item> necklaces;
+    public static List<Item> bows;
+    public static List<Item> spears;
+    public static List<Item> daggers;
+    public static List<Item> wands;
+    public static List<Item> reliks;
 
     public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException {
+//        PrintStream out = new PrintStream(new File("data/out.out"));
+//        System.setOut(out);
         System.out.println("Starting BuildBot");
         initialize();
         System.out.println("Opened database successfully");
@@ -126,7 +130,7 @@ public class BuildMain {
      * times:
      * nothing === Total time: 64572 || Size: 3227
      * defense === Total time: 65015 || Size: 1
-     * defenseOptimized ===
+     * defenseOptimized === Total time: 13541 || Size: 3
      *
      * @return https://wynndata.tk/s/ykeag2
      */
@@ -141,9 +145,9 @@ public class BuildMain {
         builds.addConstraint(new ConstraintId("spellDamage", 68));
         builds.addConstraint(new ConstraintId("spellDamageRaw", 835));
         builds.addConstraint(new ConstraintDefense(ElementSkill.EARTH, -100));
-        builds.addConstraint(new ConstraintDefense(ElementSkill.THUNDER, 564));
-        builds.addConstraint(new ConstraintDefense(ElementSkill.WATER, 216));
-        builds.addConstraint(new ConstraintDefense(ElementSkill.FIRE, 0));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.THUNDER, -100));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.WATER, -100));
+        builds.addConstraint(new ConstraintDefense(ElementSkill.FIRE, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.AIR, -100));
         builds.addConstraint(new ConstraintMainDamage(4600));
         builds.addConstraint(new ConstraintSpellDamage(Spell.ARROW_STORM, 47122));

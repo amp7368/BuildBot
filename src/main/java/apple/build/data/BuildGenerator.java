@@ -1,7 +1,6 @@
 package apple.build.data;
 
 import apple.build.data.constraints.advanced_damage.BuildConstraintAdvancedDamage;
-import apple.build.data.constraints.advanced_defense.BuildConstraintAdvancedDefense;
 import apple.build.data.constraints.advanced_skill.BuildConstraintAdvancedSkills;
 import apple.build.data.constraints.answers.DamageInput;
 import apple.build.data.constraints.answers.SkillReqAnswer;
@@ -16,6 +15,7 @@ import apple.build.wynncraft.items.Weapon;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class BuildGenerator {
     private final int layer;
@@ -91,7 +91,7 @@ public class BuildGenerator {
 //        filterOnTranslationConstraints();
 //        if (isFail()) return; todo redo this when you finish more filters
         breakApart();
-        long test = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
         subGenerators.removeIf(buildGenerator -> buildGenerator.filterLower(archetype, 9));
         if (subGenerators.isEmpty()) return;
         int indexToDefineLast = (int) (subGenerators.size() * .9);
@@ -99,7 +99,7 @@ public class BuildGenerator {
             generator.generate(archetype, 9, threads);
             int iValue = topLayerIndex.getAndIncrement();
             if (iValue == indexToDefineLast) onLastTasks = true; // this okay even though it's threaded
-            System.out.println("time " + (System.currentTimeMillis() - test) + " | " + iValue + "/" + subGenerators.size());
+            System.out.println("time " + (System.currentTimeMillis() - start) + " | " + iValue + "/" + subGenerators.size());
         }, MAX_THREADS_AT_ONCE, THREADS_TO_START, layer).waitForCompletion();
         subGenerators.removeIf(generator -> generator.size().equals(BigInteger.ZERO));
         List<Build> builds = getBuilds();
@@ -114,15 +114,18 @@ public class BuildGenerator {
      * filters item pool as much as possible, then generates all possible builds
      */
     public void generate(Set<ElementSkill> archetype, int layerToStop, float myThreadsCount) {
-        if (isFail()) return;
+        if (isFail()) {
+            return;
+        }
         Thread.currentThread().setPriority(Math.min(layer + 2, 10));
         breakApart();
         subGenerators.removeIf(buildGenerator -> buildGenerator.filterLower(archetype, layerToStop));
-        if (subGenerators.isEmpty()) return;
-        if (myThreadsCount == 1) {
+        if (subGenerators.isEmpty()) {
+            return;
+        }
+        if (myThreadsCount <= 1) {
             if (onLastTasks) {
-                // todo maybe change this back
-                subGenerators.forEach(buildGenerator -> buildGenerator.generate(archetype, layerToStop, myThreadsCount));
+                subGenerators.parallelStream().forEach(buildGenerator -> buildGenerator.generate(archetype, layerToStop, myThreadsCount));
             } else {
                 for (BuildGenerator buildGenerator : subGenerators) {
                     buildGenerator.generate(archetype, layerToStop, myThreadsCount);
@@ -145,6 +148,7 @@ public class BuildGenerator {
             subGenerators = Collections.emptyList();
         }
     }
+
 
     private boolean filterLower(Set<ElementSkill> archetype, int layerToStop) {
         if (size().compareTo(BigInteger.valueOf(100)) < 0 || layer == layerToStop) {
@@ -785,7 +789,6 @@ public class BuildGenerator {
         }
     }
 
-    private static final Object test = new Object();
 
     /**
      * filters item pool based on if the item is possible given that all the other items would be optimal for the constraint
