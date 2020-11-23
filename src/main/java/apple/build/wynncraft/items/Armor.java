@@ -24,4 +24,10 @@ public class Armor extends Item {
         this.armorType = response.getString("armorType");
         this.health = response.getInt("health");
     }
+
+    public Armor(Armor other) {
+        super(other);
+        this.health = other.health;
+        this.armorType = other.armorType;
+    }
 }

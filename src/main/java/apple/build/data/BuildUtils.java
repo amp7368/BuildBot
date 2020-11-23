@@ -1,5 +1,6 @@
 package apple.build.data;
 
+import apple.build.data.enums.ElementSkill;
 import apple.build.utils.Pretty;
 import apple.build.wynncraft.items.Item;
 

@@ -1,8 +1,9 @@
 package apple.build.utils;
 
-public class Pair<K,V> {
+public class Pair<K, V> {
     private K key;
     private V value;
+
     public Pair(K key, V value) {
         this.key = key;
         this.value = value;
@@ -22,6 +23,16 @@ public class Pair<K,V> {
 
     public void setValue(V value) {
         this.value = value;
+    }
+
+    @Override
+    public int hashCode() {
+        return (int) (((long) key.hashCode() + (long) value.hashCode()) % Integer.MAX_VALUE);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof Pair && key.equals(((Pair<?, ?>) obj).key) && value.equals(((Pair<?, ?>) obj).value);
     }
 }
 

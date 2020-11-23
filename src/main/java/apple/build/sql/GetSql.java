@@ -1,6 +1,6 @@
 package apple.build.sql;
 
-import apple.build.data.ElementSkill;
+import apple.build.data.enums.ElementSkill;
 import apple.build.utils.Pair;
 import apple.build.wynncraft.items.Accessory;
 import apple.build.wynncraft.items.Armor;
@@ -158,6 +158,6 @@ public class GetSql {
     }
 
     public static String getAllIds(String item) {
-        return String.format("SELECT * FROM ids WHERE name = '%s'", item);
+        return String.format("SELECT * FROM ids WHERE name = '%s'", convertToSql(item));
     }
 }

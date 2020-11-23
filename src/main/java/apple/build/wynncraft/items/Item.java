@@ -1,6 +1,7 @@
 package apple.build.wynncraft.items;
 
-import apple.build.data.ElementSkill;
+import apple.build.data.enums.ElementSkill;
+import apple.build.sql.GetSql;
 import apple.build.utils.OneToOneMap;
 import apple.build.utils.Pair;
 import org.jetbrains.annotations.Nullable;
@@ -9,19 +10,22 @@ import org.json.JSONObject;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class Item {
     public static final int SKILLS_FOR_PLAYER = 200;
+    public static final int SKILLS_PER_ELEMENT = 100;
     private static final Set<String> UNROLLABLE = new HashSet<>() {{
         add("thunderDefense");
         add("airDefense");
         add("earthDefense");
         add("waterDefense");
         add("fireDefense");
+        add("dexterityPoints");
+        add("agilityPoints");
+        add("strengthPoints");
+        add("defensePoints");
+        add("intelligencePoints");
     }};
     private static final OneToOneMap<String, Integer> idNameToUid = new OneToOneMap<>();
     private static int currentUid = 0;
@@ -47,10 +51,35 @@ public class Item {
     public final ItemType type;
     public final int level;
 
+    protected Item(Item other) {
+        this.ids.putAll(other.ids);
+        this.name = other.name;
+        this.displayName = other.displayName;
+        this.tier = other.tier;
+        this.strength = other.strength;
+        this.dexterity = other.dexterity;
+        this.intelligence = other.intelligence;
+        this.agility = other.agility;
+        this.defense = other.defense;
+        this.sockets = other.sockets;
+        this.dropType = other.dropType;
+        this.restrictions = other.restrictions;
+        this.set = other.set;
+        this.addedLore = other.addedLore;
+        this.material = other.material;
+        this.quest = other.quest;
+        this.classRequirement = other.classRequirement;
+        this.majorIds = Arrays.copyOf(other.majorIds, other.majorIds.length);
+        this.identified = other.identified;
+        this.type = other.type;
+        this.level = other.level;
+    }
+
     public Item(Map<String, Integer> ids, String name, String displayName, int level, int strength, int dexterity, int intelligence, int agility, int defense, String tier, Integer sockets, String dropType,
                 @Nullable String restrictions, @Nullable String set, @Nullable String addedLore, @Nullable String material,
                 @Nullable String quest, @Nullable ClassType classRequirement, String[] majorIds, boolean identified, ItemType type) {
         for (Map.Entry<String, Integer> entry : ids.entrySet()) {
+
             Integer uid = idNameToUid.getFromKey(entry.getKey());
             if (uid == null) {
                 uid = currentUid++;
@@ -58,6 +87,7 @@ public class Item {
             }
             this.ids.put(uid, entry.getValue());
         }
+
         this.name = name;
         this.displayName = displayName;
         this.level = level;
@@ -81,8 +111,8 @@ public class Item {
     }
 
     public Item(ResultSet response, ItemType itemType) throws SQLException {
-        this.name = response.getString("name");
-        this.displayName = response.getString("displayName");
+        this.name = GetSql.convertFromSql(response.getString("name"));
+        this.displayName = GetSql.convertFromSql(response.getString("displayName"));
         this.tier = response.getString("tier");
         this.sockets = response.getInt("sockets");
         this.strength = response.getInt("strength");
@@ -93,9 +123,9 @@ public class Item {
         this.dropType = response.getString("dropType");
         this.restrictions = response.getString("restrictions");
         this.set = response.getString("setString");
-        this.addedLore = response.getString("addedLore");
+        this.addedLore = GetSql.convertFromSql(response.getString("addedLore"));
         this.material = response.getString("material");
-        this.quest = response.getString("quest");
+        this.quest = GetSql.convertFromSql(response.getString("quest"));
         String classRequirementTemp = response.getString("classRequirement");
         this.classRequirement = classRequirementTemp == null ? null : ClassType.valueOf(classRequirementTemp);
         String majorIdsTemp = response.getString("majorIds");
@@ -103,6 +133,17 @@ public class Item {
         this.identified = response.getBoolean("identified");
         this.level = response.getInt("level");
         this.type = itemType;
+    }
+
+    public static Item makeItem(Item other) {
+        if (other instanceof Accessory) {
+            return new Accessory((Accessory) other);
+        } else if (other instanceof Armor) {
+            return new Armor((Armor) other);
+        } else if (other instanceof Weapon) {
+            return new Weapon((Weapon) other);
+        }
+        return new Item(other);
     }
 
     public static Item makeItem(Map<String, Object> itemMap) {
@@ -226,6 +267,7 @@ public class Item {
         return idNameToUid.getFromVal(index);
     }
 
+
     public void addIds(ResultSet response) throws SQLException {
         if (!response.isClosed())
             while (response.next()) {
@@ -282,8 +324,11 @@ public class Item {
         return skillsLeft < 0;
     }
 
-    public int getId(int idName) {
-        return ids.getOrDefault(idName, 0);
+    public int getId(int idIndex) {
+        if(idIndex == 0){
+            int a =3;
+        }
+        return ids.getOrDefault(idIndex, 0);
     }
 
     public int getRequiredSkill(ElementSkill elementSkill) {

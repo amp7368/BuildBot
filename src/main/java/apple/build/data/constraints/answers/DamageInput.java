@@ -1,6 +1,6 @@
 package apple.build.data.constraints.answers;
 
-import apple.build.data.ElementSkill;
+import apple.build.data.enums.ElementSkill;
 
 public class DamageInput {
     public final double spellDamage;
@@ -12,12 +12,14 @@ public class DamageInput {
     public final int[] skills;
     public final double[] elemental;
     public final double attackSpeedModifier;
+    public final int extraSkillPoints;
+    public final int[] extraSkillsPerElement;
+    public boolean hawkeye = false;
 
-    public DamageInput(double spellDamage, double mainDamage, int spellDamageRaw, int mainDamageRaw, int[] skills, int extraSkillPoints, double[] elemental, double attackSpeedModifier) {
+    public DamageInput(double spellDamage, double mainDamage, int spellDamageRaw, int mainDamageRaw, int[] skills, int extraSkillPoints, int[] extraSkillPerElement, double[] elemental, double attackSpeedModifier) {
         this.spellDamage = spellDamage;
-        for (int i = 0; i < skills.length; i++) {
-            skills[i] = Math.max(0, skills[i] + extraSkillPoints); // we have to include extra skill points as if it was added to all of them just because we don't know where to assign them
-        }
+        this.extraSkillPoints = extraSkillPoints;
+        this.extraSkillsPerElement = extraSkillPerElement;
         int i = 0;
         int strength = 0;
         int dexterity = 0;
@@ -38,5 +40,9 @@ public class DamageInput {
         this.skills = skills;
         this.elemental = elemental;
         this.attackSpeedModifier = attackSpeedModifier;
+    }
+
+    public void setHawkeye(boolean hawkeye) {
+        this.hawkeye = hawkeye;
     }
 }
