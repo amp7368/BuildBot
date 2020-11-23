@@ -2,6 +2,7 @@ package apple.build;
 
 import apple.build.data.Build;
 import apple.build.data.BuildGenerator;
+import apple.build.data.constraints.general.ConstraintJoinedId;
 import apple.build.data.constraints.general.ConstraintDefense;
 import apple.build.data.enums.Spell;
 import apple.build.data.constraints.filter.BuildConstraintExclusion;
@@ -16,9 +17,7 @@ import apple.build.sql.GetDB;
 import apple.build.sql.VerifyDB;
 import apple.build.wynncraft.items.Item;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -141,15 +140,16 @@ public class BuildMain {
         builds.addConstraint(new ConstraintId("manaSteal", 14));
 //        builds.addConstraint(new ConstraintId("attackSpeedBonus", -4));
 //        builds.addConstraint(new ConstraintId("damageBonusRaw", 1745));
-        builds.addConstraint(new ConstraintId("bonusThunderDamage", 102));
-        builds.addConstraint(new ConstraintId("spellDamage", 68));
+//        builds.addConstraint(new ConstraintId("bonusThunderDamage", 102));
+//        builds.addConstraint(new ConstraintId("spellDamage", 68));
+        builds.addConstraint(new ConstraintJoinedId(Arrays.asList("bonusThunderDamage", "spellDamage"),170));
         builds.addConstraint(new ConstraintId("spellDamageRaw", 835));
         builds.addConstraint(new ConstraintDefense(ElementSkill.EARTH, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.THUNDER, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.WATER, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.FIRE, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.AIR, -100));
-        builds.addConstraint(new ConstraintMainDamage(4600));
+//        builds.addConstraint(new ConstraintMainDamage(4600));
         builds.addConstraint(new ConstraintSpellDamage(Spell.ARROW_STORM, 47122));
         builds.addConstraint(new ConstraintSpellCost(Spell.ARROW_STORM, 1));
         builds.addConstraint(new ConstraintHp(12500));

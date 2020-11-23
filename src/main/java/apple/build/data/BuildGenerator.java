@@ -30,7 +30,7 @@ public class BuildGenerator {
     // there is only one place where this is updated so it's fine that this isn't atomic
     // also it's one way from false to true
     private static boolean onLastTasks = false;
-    public static AtomicInteger topLayerIndex = new AtomicInteger();
+    public static AtomicInteger topLayerIndex = new AtomicInteger(1);
 
     /**
      * makes a generator for every build possible with the given items
