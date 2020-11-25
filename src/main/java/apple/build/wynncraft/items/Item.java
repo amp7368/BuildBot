@@ -1,7 +1,7 @@
 package apple.build.wynncraft.items;
 
 import apple.build.data.enums.ElementSkill;
-import apple.build.sql.GetSql;
+import apple.build.sql.itemdb.GetItemSql;
 import apple.build.utils.OneToOneMap;
 import apple.build.utils.Pair;
 import org.jetbrains.annotations.Nullable;
@@ -111,8 +111,8 @@ public class Item {
     }
 
     public Item(ResultSet response, ItemType itemType) throws SQLException {
-        this.name = GetSql.convertFromSql(response.getString("name"));
-        this.displayName = GetSql.convertFromSql(response.getString("displayName"));
+        this.name = GetItemSql.convertFromSql(response.getString("name"));
+        this.displayName = GetItemSql.convertFromSql(response.getString("displayName"));
         this.tier = response.getString("tier");
         this.sockets = response.getInt("sockets");
         this.strength = response.getInt("strength");
@@ -123,9 +123,9 @@ public class Item {
         this.dropType = response.getString("dropType");
         this.restrictions = response.getString("restrictions");
         this.set = response.getString("setString");
-        this.addedLore = GetSql.convertFromSql(response.getString("addedLore"));
+        this.addedLore = GetItemSql.convertFromSql(response.getString("addedLore"));
         this.material = response.getString("material");
-        this.quest = GetSql.convertFromSql(response.getString("quest"));
+        this.quest = GetItemSql.convertFromSql(response.getString("quest"));
         String classRequirementTemp = response.getString("classRequirement");
         this.classRequirement = classRequirementTemp == null ? null : ClassType.valueOf(classRequirementTemp);
         String majorIdsTemp = response.getString("majorIds");

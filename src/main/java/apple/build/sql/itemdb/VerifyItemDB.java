@@ -1,11 +1,11 @@
-package apple.build.sql;
+package apple.build.sql.itemdb;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public class VerifyDB {
+public class VerifyItemDB {
     public static final Object syncDB = new Object();
     private static final String DATABASE_NAME = "data/items.db";
     private static final String TABLE_CONTENTS =
@@ -71,20 +71,20 @@ public class VerifyDB {
             "bow",
             "relik"
     };
-    protected static Connection database;
+    protected static Connection databaseItem;
 
     public static void initialize() throws ClassNotFoundException, SQLException {
         synchronized (syncDB) {
             Class.forName("org.sqlite.JDBC");
             // never close this because we're always using it
-            database = DriverManager.getConnection("jdbc:sqlite:" + DATABASE_NAME);
+            databaseItem = DriverManager.getConnection("jdbc:sqlite:" + DATABASE_NAME);
             verify();
         }
     }
 
     public static void verify() throws SQLException {
         synchronized (syncDB) {
-            Statement statement = database.createStatement();
+            Statement statement = databaseItem.createStatement();
             for (String tableName : ARMOR_TABLE_NAMES) {
                 String buildTableSql = "CREATE TABLE IF NOT EXISTS " + tableName + "(" + TABLE_CONTENTS + ", " + ARMOR_TABLE_CONTENTS + " );";
                 statement.execute(buildTableSql);

@@ -6,7 +6,7 @@ import apple.build.data.constraints.answers.DamageOutput;
 import apple.build.data.enums.ElementSkill;
 import apple.build.data.enums.Powder;
 import apple.build.data.enums.Spell;
-import apple.build.sql.GetDB;
+import apple.build.sql.itemdb.GetItemDB;
 import apple.build.utils.Pair;
 import apple.build.wynncraft.items.Item;
 import apple.build.wynncraft.items.Weapon;
@@ -432,7 +432,7 @@ public class BuildMath {
 
     public static void main(String[] args) throws SQLException, ClassNotFoundException {
         BuildMain.initialize();
-        List<Item> items = GetDB.getAllItems(Item.ItemType.BOW);
+        List<Item> items = GetItemDB.getAllItems(Item.ItemType.BOW);
         Weapon item = null;
         for (Item i : items) {
             if (i.name.equals("Divzer"))

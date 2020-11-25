@@ -211,7 +211,8 @@ public class BuildGenerator {
 
     private boolean filterOnConstraintsAdvancedSkill(Build build) {
         for (BuildConstraintAdvancedSkills constaint : constraintsAdvancedSkill) {
-            if(!constaint.isValid(build.skills, build.extraSkillPoints, build.extraSkillPerElement, build.items)) return true;
+            if (!constaint.isValid(build.skills, build.extraSkillPoints, build.extraSkillPerElement, build.items))
+                return true;
         }
         return false;
     }
@@ -932,5 +933,21 @@ public class BuildGenerator {
             if (set.contains(item.name) || set.contains(item.displayName)) return true;
         }
         return false;
+    }
+
+    public Set<Item>[] getItemsInBuilds() {
+        List<Build> builds = getBuilds();
+        if (builds.size() != 0) {
+            Set<Item>[] items = new HashSet[builds.get(0).items.size()];
+            for (int i = 0; i < items.length; i++)
+                items[i] = new HashSet<>();
+            for (Build build : builds) {
+                for (int i = 0; i < items.length; i++) {
+                    items[i].add(build.items.get(i));
+                }
+            }
+            return items;
+        }
+        return null;
     }
 }

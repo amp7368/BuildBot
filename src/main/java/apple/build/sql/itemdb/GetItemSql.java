@@ -1,4 +1,4 @@
-package apple.build.sql;
+package apple.build.sql.itemdb;
 
 import apple.build.data.enums.ElementSkill;
 import apple.build.utils.Pair;
@@ -8,7 +8,7 @@ import apple.build.wynncraft.items.Item;
 import apple.build.wynncraft.items.Weapon;
 import org.jetbrains.annotations.Nullable;
 
-public class GetSql {
+public class GetItemSql {
 
     @Nullable
     private static String convertToNullable(@Nullable String s) {
