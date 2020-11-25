@@ -13,6 +13,7 @@ public enum ElementSkill {
     public int damageIdIndex;
     public int defenseRawIndex;
     public int defensePercIndex;
+    public int index;
 
     ElementSkill(String skill) {
         this.skill = skill;

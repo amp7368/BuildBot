@@ -75,7 +75,7 @@ public class ConstraintHpr extends BuildConstraintGeneral {
                 return 1;
             }
             return 0;
-        }else{
+        } else {
             if (hprRawVal1 < hprRawVal2) {
                 // 2 is better
                 return -1;

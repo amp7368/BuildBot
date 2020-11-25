@@ -15,7 +15,6 @@ import apple.build.wynncraft.items.Weapon;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class BuildGenerator {
     private final int layer;
@@ -31,7 +30,7 @@ public class BuildGenerator {
     // there is only one place where this is updated so it's fine that this isn't atomic
     // also it's one way from false to true
     private static boolean onLastTasks = false;
-    public static AtomicInteger topLayerIndex = new AtomicInteger();
+    public static AtomicInteger topLayerIndex = new AtomicInteger(1);
 
     /**
      * makes a generator for every build possible with the given items
@@ -104,7 +103,7 @@ public class BuildGenerator {
         subGenerators.removeIf(generator -> generator.size().equals(BigInteger.ZERO));
         List<Build> builds = getBuilds();
         finalLayerFilter(builds);
-        extraBuilds.addAll(builds);
+        extraBuilds.addAll(new HashSet<>(builds));
         subGenerators = Collections.emptyList();
         allItems = new List[0];
     }
@@ -204,9 +203,17 @@ public class BuildGenerator {
             if (filterOnSkillReqsSecondPass(build)) return true;
             if (filterWeaponOnAdvancedDamageConstraintsSecondPass(build)) return true;
             if (filterOnConstraints(build)) return true;
+            if (filterOnConstraintsAdvancedSkill(build)) return true;
             if (filterOnExclusion(build)) return true;
             return false;
         });
+    }
+
+    private boolean filterOnConstraintsAdvancedSkill(Build build) {
+        for (BuildConstraintAdvancedSkills constaint : constraintsAdvancedSkill) {
+            if(!constaint.isValid(build.skills, build.extraSkillPoints, build.extraSkillPerElement, build.items)) return true;
+        }
+        return false;
     }
 
 
@@ -836,12 +843,15 @@ public class BuildGenerator {
             }
         }
         int extraPoints = Item.SKILLS_FOR_PLAYER;
+        int[] skillsExtraPerElement = new int[elementSize];
+        Arrays.fill(skillsExtraPerElement, Item.SKILLS_PER_ELEMENT);
         for (int i = 0; i < skillsAll.length; i++) {
             if (requiredSkillsAll[i] != 0) {
-                int sub = requiredSkillsAll[i] - skillsAll[i];
-                if (sub > 0) {
+                int diff = requiredSkillsAll[i] - skillsAll[i];
+                if (diff > 0) {
                     skillsAll[i] = requiredSkillsAll[i];
-                    extraPoints -= sub;
+                    skillsExtraPerElement[i] -= diff;
+                    extraPoints -= diff;
                 }
             }
         }
@@ -859,7 +869,7 @@ public class BuildGenerator {
                         bestItems.add(bestItem);
                     }
                 }
-                allItems[optimizingIndex].removeIf(item -> !constraint.isValid(skillsAll, finalExtraPoints, bestItems, item));
+                allItems[optimizingIndex].removeIf(item -> !constraint.isValid(skillsAll, finalExtraPoints, skillsExtraPerElement, bestItems, item));
                 if (allItems[optimizingIndex].isEmpty())
                     return;
             }

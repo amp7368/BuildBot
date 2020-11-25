@@ -26,10 +26,10 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
     }
 
     @Override
-    boolean internalIsValid(int[] bestSkillsPossible, int extraSkillPoints, Collection<Item> items) {
+    boolean internalIsValid(int[] skills, int extraSkillPoints, int[] extraSkillPerElement, Collection<Item> items) {
         int addedCostRaw = 0;
         int addedCostPerc = 0;
-        int intelligence = bestSkillsPossible[ElementSkill.WATER.ordinal()] + extraSkillPoints;
+        int intelligence = ElementSkill.WATER.getSkill(skills) + Math.min(ElementSkill.WATER.getSkill(extraSkillPerElement), extraSkillPoints);
         for (Item item : items) {
             addedCostRaw += item.getId(idIndexRaw);
             addedCostPerc += item.getId(idIndexPerc);

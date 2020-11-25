@@ -3,14 +3,20 @@ package apple.build.data.constraints.general;
 import apple.build.wynncraft.items.Item;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 
-public class ConstraintId extends BuildConstraintGeneral {
-    private final int name;
+public class ConstraintJoinedId extends BuildConstraintGeneral {
+    private final List<Integer> names;
     private final int value;
 
-    public ConstraintId(String name, int value) {
-        this.name = Item.getIdIndex(name);
+    public ConstraintJoinedId(List<String> names, int value) {
+        this.names = new ArrayList<>(names.size());
+        for (String n : names) {
+            this.names.add(Item.getIdIndex(n));
+        }
         this.value = value;
     }
 
@@ -25,7 +31,8 @@ public class ConstraintId extends BuildConstraintGeneral {
     protected boolean internalIsValid(Collection<Item> items) {
         int actualVal = 0;
         for (Item item : items) {
-            actualVal += item.ids.getOrDefault(name, 0);
+            for (int name : names)
+                actualVal += item.getId(name);
             if (actualVal >= value) return true;
         }
         return false;
@@ -41,25 +48,37 @@ public class ConstraintId extends BuildConstraintGeneral {
     @Override
     public Item getBest(List<Item> items) {
         Item best = null;
-        int bestVal = 0;
+        int[] bestVal = new int[names.size()];
         for (Item item : items) {
             if (best == null) {
                 best = item;
-                bestVal = best.getId(name);
+                int i = 0;
+                for (int name : names) {
+                    bestVal[i++] = best.getId(name);
+                }
             } else {
-                int val = item.getId(name);
-                if (val > bestVal) {
-                    best = item;
-                    bestVal = val;
+                int i = 0;
+                for (int name : names) {
+                    int val = item.getId(name);
+                    if (val > bestVal[i]) {
+                        if (i == 0) best = item;
+                        bestVal[i] = val;
+                    }
+                    i++;
                 }
             }
         }
+        best = Item.makeItem(best);
+        for (int i = 1; i < bestVal.length; i++)
+            best.ids.put(names.get(i), bestVal[i]);
         return best;
     }
 
     @Override
     public boolean contributes(Item item) {
-        return item.getId(name) > 0;
+        for (int name : names)
+            if (item.getId(name) > 0) return true;
+        return false;
     }
 
     /**
@@ -71,7 +90,12 @@ public class ConstraintId extends BuildConstraintGeneral {
      */
     @Override
     public int compare(Item item1, Item item2) {
-        return item1.getId(name) - item2.getId(name);
+        int total1 = 0;
+        int total2 = 0;
+        for (int name : names) {
+            total1 += item1.getId(name);
+            total2 += item2.getId(name);
+        }
+        return total1 - total2;
     }
-
 }
