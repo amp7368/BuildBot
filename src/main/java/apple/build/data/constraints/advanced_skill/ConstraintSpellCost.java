@@ -1,9 +1,12 @@
 package apple.build.data.constraints.advanced_skill;
 
 import apple.build.data.BuildMath;
+import apple.build.data.constraints.ConstraintSimplified;
+import apple.build.data.constraints.ConstraintType;
 import apple.build.data.enums.ElementSkill;
 import apple.build.data.enums.Spell;
 import apple.build.wynncraft.items.Item;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
@@ -37,7 +40,6 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
         return BuildMath.getMana(spell, intelligence, addedCostRaw, addedCostPerc) <= cost;
     }
 
-    @Override
     public @Nullable Item getBest(List<Item> items) {
         Item best = null;
         int bestRawVal = 0;
@@ -71,7 +73,6 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
         return newItem;
     }
 
-    @Override
     public boolean contributes(Item item) {
         return item.getId(idIndexRaw) < 0 ||
                 item.getId(idIndexPerc) < 0 ||
@@ -85,7 +86,6 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
      * @param item2 the second item to compare
      * @return positive if first is better, negative if second is better, otherwise 0
      */
-    @Override
     public int compare(Item item1, Item item2) {
         int perc1 = item1.getId(idIndexPerc);
         int raw1 = item1.getId(idIndexRaw);
@@ -103,4 +103,16 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
         return 0;
     }
 
+    @Override
+    public @NotNull ConstraintType getType() {
+        return ConstraintType.TEXT_VAL;
+    }
+
+    @Override
+    public @NotNull ConstraintSimplified getSimplified() {
+        ConstraintSimplified simple = new ConstraintSimplified(ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_SPELL_COST);
+        simple.text = spell.name();
+        simple.val = cost;
+        return simple;
+    }
 }

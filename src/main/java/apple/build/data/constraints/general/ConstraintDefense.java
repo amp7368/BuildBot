@@ -1,7 +1,10 @@
 package apple.build.data.constraints.general;
 
+import apple.build.data.constraints.ConstraintSimplified;
+import apple.build.data.constraints.ConstraintType;
 import apple.build.data.enums.ElementSkill;
 import apple.build.wynncraft.items.Item;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
@@ -11,10 +14,12 @@ public class ConstraintDefense extends BuildConstraintGeneral {
     private final int val;
     private final int percIndex;
     private final int rawIndex;
+    private final ElementSkill name;
 
     public ConstraintDefense(ElementSkill name, int val) {
-        percIndex = name.defensePercIndex;
-        rawIndex = name.defenseRawIndex;
+        this.percIndex = name.defensePercIndex;
+        this.rawIndex = name.defenseRawIndex;
+        this.name = name;
         this.val = val;
     }
 
@@ -87,5 +92,18 @@ public class ConstraintDefense extends BuildConstraintGeneral {
             }
             return 0;
         }
+    }
+
+    @Override
+    public @NotNull ConstraintType getType() {
+        return ConstraintType.TEXT_VAL;
+    }
+
+    @Override
+    public @NotNull ConstraintSimplified getSimplified() {
+        ConstraintSimplified simple = new ConstraintSimplified(ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_HP);
+        simple.text = name.name();
+        simple.val= val;
+        return simple;
     }
 }

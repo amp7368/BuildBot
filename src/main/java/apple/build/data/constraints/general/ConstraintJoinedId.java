@@ -1,12 +1,16 @@
 package apple.build.data.constraints.general;
 
+import apple.build.data.constraints.ConstraintSimplified;
+import apple.build.data.constraints.ConstraintType;
 import apple.build.wynncraft.items.Item;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ConstraintJoinedId extends BuildConstraintGeneral {
     private final List<Integer> names;
@@ -97,5 +101,21 @@ public class ConstraintJoinedId extends BuildConstraintGeneral {
             total2 += item2.getId(name);
         }
         return total1 - total2;
+    }
+
+    @Override
+    public @NotNull ConstraintType getType() {
+        return ConstraintType.TEXT_VAL;
+    }
+
+    /**
+     * @return the database ready version of this constraint
+     */
+    @NotNull
+    public ConstraintSimplified getSimplified() {
+        ConstraintSimplified simple = new ConstraintSimplified(ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_JOINED_ID);
+        simple.text = names.stream().map(Item::getIdName).collect(Collectors.joining(","));
+        simple.val = value;
+        return simple;
     }
 }

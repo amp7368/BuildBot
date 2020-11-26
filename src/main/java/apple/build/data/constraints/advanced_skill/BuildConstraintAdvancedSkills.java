@@ -1,7 +1,10 @@
 package apple.build.data.constraints.advanced_skill;
 
 import apple.build.data.constraints.BuildConstraint;
+import apple.build.data.constraints.ConstraintSimplified;
+import apple.build.data.constraints.ConstraintType;
 import apple.build.wynncraft.items.Item;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,4 +46,16 @@ public abstract class BuildConstraintAdvancedSkills implements BuildConstraint {
      * @return true if it satisfies, otherwise false
      */
     abstract boolean internalIsValid(int[] bestSkillsPossible, int extraSkillPoints, int[] extraSkillPerElement, Collection<Item> items);
+
+    /**
+     * @return what type this is
+     */
+    @NotNull
+    public abstract ConstraintType getType();
+
+    /**
+     * @return the database ready version of this constraint
+     */
+    @NotNull
+    public abstract ConstraintSimplified getSimplified();
 }

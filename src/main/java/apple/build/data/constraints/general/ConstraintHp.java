@@ -1,9 +1,12 @@
 package apple.build.data.constraints.general;
 
+import apple.build.data.constraints.ConstraintSimplified;
+import apple.build.data.constraints.ConstraintType;
 import apple.build.wynncraft.items.Accessory;
 import apple.build.wynncraft.items.Armor;
 import apple.build.wynncraft.items.Item;
 import apple.build.wynncraft.items.ItemIdIndex;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
@@ -63,5 +66,17 @@ public class ConstraintHp extends BuildConstraintGeneral {
     @Override
     public int compare(Item item1, Item item2) {
         return getEhp(item1) - getEhp(item2);
+    }
+
+    @Override
+    public @NotNull ConstraintType getType() {
+        return ConstraintType.SIMPLE;
+    }
+
+    @Override
+    public @NotNull ConstraintSimplified getSimplified() {
+        ConstraintSimplified simple = new ConstraintSimplified(ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_HP);
+        simple.val = ehp;
+        return simple;
     }
 }

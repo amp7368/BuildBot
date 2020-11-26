@@ -9,12 +9,14 @@ import apple.build.data.constraints.general.ConstraintHpr;
 import apple.build.data.constraints.general.ConstraintId;
 import apple.build.data.enums.ElementSkill;
 import apple.build.data.enums.Spell;
+import apple.build.sql.indexdb.InsertIndexDB;
 import apple.build.wynncraft.items.Item;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -48,7 +50,7 @@ public class Preindexing {
         add(ElementSkill.AIR);
     }};
 
-    public static void preIndex() throws IOException {
+    public static void preIndex() {
         helmets.removeIf(item -> item.level < 80);
         chestplates.removeIf(item -> item.level < 80);
         leggings.removeIf(item -> item.level < 80);
@@ -56,7 +58,7 @@ public class Preindexing {
         List[] bowItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, wands};
         List<Set<ElementSkill>> archetypes = Arrays.asList(EWF, EWA, TWF, TWA, WFA);
         for (Set<ElementSkill> archetype : archetypes) {
-            BuildGenerator builds = new BuildGenerator(bowItems);
+            BuildGenerator builds = new BuildGenerator(bowItems,archetype);
             builds.addConstraint(new ConstraintHpr(0));
             builds.addConstraint(new ConstraintId("speed", 0));
             builds.addConstraint(new ConstraintId("manaRegen", 12));
@@ -65,20 +67,20 @@ public class Preindexing {
             builds.addConstraint(new ConstraintHp(11000));
             for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
                 builds.addConstraint(exclusion);
-            builds.generate(archetype);
-            Set<Item>[] items = builds.getItemsInBuilds();
-            if (items == null) continue;
-            File file = new File("searches/" + archetype.stream().map(Enum::name).collect(Collectors.joining(""))+".search");
-            file.createNewFile();
-            BufferedWriter writer = new BufferedWriter(new FileWriter(file));
-            writeItems(writer, items);
-            writer.close();
+            builds.generate();
+            try {
+                InsertIndexDB.insertResults(builds);
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
         }
     }
 
-    private static void writeItems(BufferedWriter writer, Set<Item>[] items) throws IOException {
-        for (Set<Item> item : items) {
-            writer.write(item.stream().map(Item::toString).collect(Collectors.joining(",")) + "\n");
+    public static void saveResult(BuildGenerator generator) {
+        try {
+            InsertIndexDB.insertResults(generator);
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
         }
     }
 }

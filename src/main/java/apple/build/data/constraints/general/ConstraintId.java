@@ -1,9 +1,13 @@
 package apple.build.data.constraints.general;
 
+import apple.build.data.constraints.ConstraintSimplified;
+import apple.build.data.constraints.ConstraintType;
 import apple.build.wynncraft.items.Item;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ConstraintId extends BuildConstraintGeneral {
     private final int name;
@@ -74,4 +78,19 @@ public class ConstraintId extends BuildConstraintGeneral {
         return item1.getId(name) - item2.getId(name);
     }
 
+    @Override
+    public @NotNull ConstraintType getType() {
+        return ConstraintType.TEXT_VAL;
+    }
+
+    /**
+     * @return the database ready version of this constraint
+     */
+    @NotNull
+    public ConstraintSimplified getSimplified() {
+        ConstraintSimplified simple = new ConstraintSimplified(ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_ID);
+        simple.text = Item.getIdName(name);
+        simple.val = value;
+        return simple;
+    }
 }

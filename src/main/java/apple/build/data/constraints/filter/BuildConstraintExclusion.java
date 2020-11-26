@@ -1,6 +1,9 @@
 package apple.build.data.constraints.filter;
 
+import apple.build.data.constraints.ConstraintSimplified;
+import apple.build.data.constraints.ConstraintType;
 import apple.build.wynncraft.items.Item;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
@@ -14,10 +17,13 @@ public class BuildConstraintExclusion {
     }
 
     private final Set<String> excluded;
+    private final String type;
 
     public BuildConstraintExclusion(BuildConstraintExclusionTypes type) {
         this.excluded = new HashSet<>(type.exclusion);
+        this.type = type.name();
     }
+
 
     public void filter(List<Item> itemsToFilter, List<Item> knownItems) {
         for (Item item : knownItems) {
@@ -59,5 +65,23 @@ public class BuildConstraintExclusion {
         BuildConstraintExclusionTypes(List<String> exclusion) {
             this.exclusion = exclusion;
         }
+    }
+
+    /**
+     * @return what type this is
+     */
+    @NotNull
+    public ConstraintType getType() {
+        return ConstraintType.TEXT;
+    }
+
+    /**
+     * @return the database ready version of this constraint
+     */
+    @NotNull
+    public ConstraintSimplified getSimplified() {
+        ConstraintSimplified simple = new ConstraintSimplified(ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_EXCLUSION);
+        simple.text = this.type;
+        return simple;
     }
 }

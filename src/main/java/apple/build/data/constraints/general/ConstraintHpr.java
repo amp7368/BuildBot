@@ -1,7 +1,10 @@
 package apple.build.data.constraints.general;
 
+import apple.build.data.constraints.ConstraintSimplified;
+import apple.build.data.constraints.ConstraintType;
 import apple.build.wynncraft.items.Item;
 import apple.build.wynncraft.items.ItemIdIndex;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
@@ -82,5 +85,19 @@ public class ConstraintHpr extends BuildConstraintGeneral {
             }
             return 0;
         }
+    }
+
+    @Override
+    public @NotNull ConstraintType getType() {
+        return ConstraintType.SIMPLE;
+    }
+    /**
+     * @return the database ready version of this constraint
+     */
+    @NotNull
+    public ConstraintSimplified getSimplified() {
+        ConstraintSimplified simple = new ConstraintSimplified(ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_HPR);
+        simple.val = hpr;
+        return simple;
     }
 }

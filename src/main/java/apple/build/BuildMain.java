@@ -46,8 +46,8 @@ public class BuildMain {
         System.out.println("Opened database successfully");
 //        GetItems.getItems();
 //        System.out.println("Inserted items");
-        Preindexing.preIndex();
-//        combinations();
+//        Preindexing.preIndex();
+        combinations();
         System.out.println("done");
     }
 
@@ -105,7 +105,11 @@ public class BuildMain {
      */
     private static BuildGenerator testMajorIds() {
         List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, daggers};
-        BuildGenerator builds = new BuildGenerator(allItems);
+        BuildGenerator builds = new BuildGenerator(allItems,new HashSet<>() {{
+            add(ElementSkill.EARTH);
+            add(ElementSkill.FIRE);
+            add(ElementSkill.AIR);
+        }});
         builds.addConstraint(new ConstraintHpr(590));
         builds.addConstraint(new ConstraintId("speed", 100));
         builds.addConstraint(new ConstraintId("manaSteal", 6));
@@ -118,11 +122,7 @@ public class BuildMain {
         builds.addConstraint(new ConstraintHp(14500));
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
             builds.addConstraint(exclusion);
-        builds.generate(new HashSet<>() {{
-            add(ElementSkill.EARTH);
-            add(ElementSkill.FIRE);
-            add(ElementSkill.AIR);
-        }});
+        builds.generate();
         return builds;
     }
 
@@ -136,7 +136,11 @@ public class BuildMain {
      */
     private static BuildGenerator benchmark() {
         List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, bows};
-        BuildGenerator builds = new BuildGenerator(allItems);
+        BuildGenerator builds = new BuildGenerator(allItems,new HashSet<>() {{
+            add(ElementSkill.THUNDER);
+            add(ElementSkill.WATER);
+            add(ElementSkill.FIRE);
+        }});
         builds.addConstraint(new ConstraintHpr(0));
         builds.addConstraint(new ConstraintId("manaSteal", 14));
         builds.addConstraint(new ConstraintId("attackSpeedBonus", -4));
@@ -144,23 +148,19 @@ public class BuildMain {
         builds.addConstraint(new ConstraintId("bonusThunderDamage", 102));
         builds.addConstraint(new ConstraintId("spellDamage", 68));
 //        builds.addConstraint(new ConstraintJoinedId(Arrays.asList("bonusThunderDamage", "spellDamage"),170));
-//        builds.addConstraint(new ConstraintId("spellDamageRaw", 835));
+        builds.addConstraint(new ConstraintId("spellDamageRaw", 835));
         builds.addConstraint(new ConstraintDefense(ElementSkill.EARTH, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.THUNDER, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.WATER, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.FIRE, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.AIR, -100));
-//        builds.addConstraint(new ConstraintMainDamage(4600));
+        builds.addConstraint(new ConstraintMainDamage(4600));
         builds.addConstraint(new ConstraintSpellDamage(Spell.ARROW_STORM, 47122));
         builds.addConstraint(new ConstraintSpellCost(Spell.ARROW_STORM, 1));
         builds.addConstraint(new ConstraintHp(12500));
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
             builds.addConstraint(exclusion);
-        builds.generate(new HashSet<>() {{
-            add(ElementSkill.THUNDER);
-            add(ElementSkill.WATER);
-            add(ElementSkill.FIRE);
-        }});
+        builds.generate();
         return builds;
     }
 
@@ -171,7 +171,11 @@ public class BuildMain {
      */
     private static BuildGenerator test() {
         List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, bows};
-        BuildGenerator builds = new BuildGenerator(allItems);
+        BuildGenerator builds = new BuildGenerator(allItems,new HashSet<>() {{
+            add(ElementSkill.THUNDER);
+            add(ElementSkill.WATER);
+            add(ElementSkill.FIRE);
+        }});
         builds.addConstraint(new ConstraintHpr(0));
         builds.addConstraint(new ConstraintId("manaSteal", 11));
         builds.addConstraint(new ConstraintId("bonusThunderDamage", 172));
@@ -188,11 +192,7 @@ public class BuildMain {
         builds.addConstraint(new ConstraintHp(11500));
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
             builds.addConstraint(exclusion);
-        builds.generate(new HashSet<>() {{
-            add(ElementSkill.THUNDER);
-            add(ElementSkill.WATER);
-            add(ElementSkill.FIRE);
-        }});
+        builds.generate();
         return builds;
     }
 
@@ -203,7 +203,11 @@ public class BuildMain {
      */
     private static BuildGenerator wfaNeptaSpellSpam() {
         List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, wands};
-        BuildGenerator builds = new BuildGenerator(allItems);
+        BuildGenerator builds = new BuildGenerator(allItems,new HashSet<>() {{
+            add(ElementSkill.EARTH);
+            add(ElementSkill.WATER);
+            add(ElementSkill.FIRE);
+        }});
         builds.addConstraint(new ConstraintId("manaRegen", 11));
         builds.addConstraint(new ConstraintId("bonusWaterDamage", 76));
         builds.addConstraint(new ConstraintId("spellDamage", 105));
@@ -213,11 +217,7 @@ public class BuildMain {
         builds.addConstraint(new ConstraintHp(12000));
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
             builds.addConstraint(exclusion);
-        builds.generate(new HashSet<>() {{
-            add(ElementSkill.EARTH);
-            add(ElementSkill.WATER);
-            add(ElementSkill.FIRE);
-        }});
+        builds.generate();
         return builds;
     }
 
@@ -228,5 +228,6 @@ public class BuildMain {
             System.out.println(build.toString());
         }
         System.out.println("Total time: " + (System.currentTimeMillis() - start) + " || Size: " + builds.size());
+        Preindexing.saveResult(builds);
     }
 }
