@@ -37,7 +37,7 @@ public class ConstraintSpellDamage extends BuildConstraintAdvancedDamage {
 
     @Override
     public @NotNull ConstraintSimplified getSimplified() {
-        ConstraintSimplified simple = new ConstraintSimplified(ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_SPELL_COST);
+        ConstraintSimplified simple = new ConstraintSimplified(ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_SPELL_DMG);
         simple.text = spell.name();
         simple.val = dmgRequired;
         return simple;
@@ -50,5 +50,10 @@ public class ConstraintSpellDamage extends BuildConstraintAdvancedDamage {
             return other.spell == this.spell && other.dmgRequired >= this.dmgRequired;
         }
         return false;
+    }
+
+    @Override
+    public boolean isExact(BuildConstraint constraint) {
+        return constraint instanceof ConstraintSpellDamage && ((ConstraintSpellDamage) constraint).dmgRequired == dmgRequired;
     }
 }

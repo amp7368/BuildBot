@@ -2,7 +2,6 @@ package apple.build.data.constraints.filter;
 
 import apple.build.data.constraints.BuildConstraint;
 import apple.build.data.constraints.ConstraintSimplified;
-import apple.build.data.constraints.ConstraintType;
 import apple.build.wynncraft.items.Item;
 import org.jetbrains.annotations.NotNull;
 
@@ -92,8 +91,14 @@ public class BuildConstraintExclusion implements BuildConstraint {
         }
         return false;
     }
+
     @Override
     public ConstraintSimplified.ConstraintSimplifiedName getSimplifiedName() {
         return ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_EXCLUSION;
+    }
+
+    @Override
+    public boolean isExact(BuildConstraint constraint) {
+        return constraint instanceof BuildConstraintExclusion && ((BuildConstraintExclusion) constraint).type.equals(this.type);
     }
 }

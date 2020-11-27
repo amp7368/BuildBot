@@ -305,7 +305,6 @@ public class BuildMath {
                 newSkills[i] = skillsWithoutZero[skillsToWithoutZero[i]];
             }
         }
-//        System.out.println(id + " exit");
         return newSkills;
     }
 

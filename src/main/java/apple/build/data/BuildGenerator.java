@@ -111,7 +111,7 @@ public class BuildGenerator {
     public void generate() {
         if (isFail()) return;
         long timingFull = System.currentTimeMillis();
-        PreFilter.filterItemPool(this, allItems[allItems.length - 1].get(0).type);
+        boolean startedWithExactMatch = PreFilter.filterItemPool(this, allItems[allItems.length - 1].get(0).type);
         if (isFail()) return;
         filterOnBadArchetype();
         if (isFail()) return;
@@ -141,7 +141,7 @@ public class BuildGenerator {
         subGenerators = Collections.emptyList();
         allItems = new List[0];
         timingFull = System.currentTimeMillis() - timingFull;
-        if (timingFull > TOO_LONG_THRESHOLD) {
+        if (!startedWithExactMatch && timingFull > TOO_LONG_THRESHOLD) {
             Preindexing.saveResult(this);
         }
     }
@@ -188,9 +188,6 @@ public class BuildGenerator {
 
 
     private boolean filterLower(int layerToStop) {
-        if(c() && (allItems[8].size() == 3)){
-            int a =3;
-        }
         if (size().compareTo(BigInteger.valueOf(100)) < 0 || layer == layerToStop) {
             List<Build> builds = getBuilds();
             extraBuilds.addAll(builds);
@@ -392,9 +389,6 @@ public class BuildGenerator {
         int finalMainDmgRaw = mainDmgRaw;
         int finalAttackSpeed = attackSpeed;
         boolean finalHawkeye = hawkeye;
-        if(c()){
-            int a =3;
-        }
         allItems[weaponIndex].removeIf(item -> {
             // make sure it's read only for the arrays
             int extraSkillPoints = Item.SKILLS_FOR_PLAYER;
@@ -434,9 +428,6 @@ public class BuildGenerator {
             double myFinalSpellDmg = mySpellDmg / 100.0;
             double myFinalMainDmg = myMainDmg / 100.0;
             DamageInput input = new DamageInput(myFinalSpellDmg, myFinalMainDmg, mySpellDmgRaw, myMainDmgRaw, mySkills, extraSkillPoints, extraSkillsPerElement, myElemental, Item.AttackSpeed.toModifier(myAttackSpeed));
-            if(c() && item.name.equals("Ivory")){
-                int a =3;
-            }
             if (finalHawkeye)
                 input.setHawkeye(true);
             for (BuildConstraintAdvancedDamage constraint : constraintsAdvancedDamage) {
@@ -956,7 +947,7 @@ public class BuildGenerator {
     }
 
     private boolean c() {
-        if(allItems.length==0) return false;
+        if (allItems.length == 0) return false;
         for (List<Item> items : allItems) {
             if (!d(items)) return false;
         }

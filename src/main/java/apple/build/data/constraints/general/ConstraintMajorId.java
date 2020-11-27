@@ -78,4 +78,13 @@ public class ConstraintMajorId extends BuildConstraintGeneral {
     public ConstraintSimplified.ConstraintSimplifiedName getSimplifiedName() {
         return ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_MAJOR_ID;
     }
+
+    @Override
+    public boolean isExact(BuildConstraint constraint) {
+        if (constraint instanceof ConstraintMajorId) {
+            ConstraintMajorId other = (ConstraintMajorId) constraint;
+            return other.majorId.equals(this.majorId);
+        }
+        return false;
+    }
 }

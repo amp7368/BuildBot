@@ -11,4 +11,6 @@ public interface BuildConstraint {
     boolean isMoreStrict(BuildConstraint obj);
 
     ConstraintSimplified.ConstraintSimplifiedName getSimplifiedName();
+
+    boolean isExact(BuildConstraint constraint);
 }

@@ -23,7 +23,7 @@ public class VerifyIndexDB {
             "CREATE TABLE IF NOT EXISTS item_types\n" +
             "(\n" +
             "    item_type_id   TINYINT NOT NULL PRIMARY KEY UNIQUE,\n" +
-            "    item_type_name BIGINT  NOT NULL UNIQUE\n" +
+            "    item_type_name BIGINT  NOT NULL\n" +
             ");";
     private static final String buildItems = "-- the table to map item names to a corresponding id\n" +
             "CREATE TABLE IF NOT EXISTS items\n" +
@@ -45,7 +45,7 @@ public class VerifyIndexDB {
     private static final String buildConstraintTextVals = "-- the table to turn the text_val that would otherwise be in all_constraints into an integer\n" +
             "CREATE TABLE IF NOT EXISTS constraint_text_vals\n" +
             "(\n" +
-            "    text_val       MEDIUMTEXT NOT NULL UNIQUE,\n" +
+            "    text_val       MEDIUMTEXT NOT NULL UNIQUE DEFAULT 'NA',\n" +
             "    text_val_index INTEGER PRIMARY KEY\n" +
             ");";
     private static final String buildPreIndexResults = "-- the table to map the unique ids to their item answers\n" +
@@ -75,7 +75,7 @@ public class VerifyIndexDB {
             "(\n" +
             "    constraint_id      BIGINT   NOT NULL PRIMARY KEY UNIQUE,\n" +
             "    constraint_enum_id SMALLINT NOT NULL,\n" +
-            "    text_val_index     INTEGER,\n" +
+            "    text_val_index     INTEGER NOT NULL DEFAULT -1,\n" +
             "    val                INTEGER,\n" +
             "    FOREIGN KEY (constraint_id) REFERENCES constraint_ids (constraint_id),\n" +
             "    FOREIGN KEY (text_val_index) REFERENCES constraint_text_vals (text_val_index),\n" +
@@ -141,6 +141,11 @@ public class VerifyIndexDB {
             currentConstraintEnumId = statement.executeQuery("SELECT max(constraint_enum_id) FROM constraint_enum_ids;").getInt(1) + 1;
             statement.execute(buildConstraintTextVals);
             currentConstraintTextValIndex = statement.executeQuery("SELECT max(text_val_index) FROM constraint_text_vals;").getInt(1) + 1;
+            try {
+                statement.execute("INSERT INTO constraint_text_vals (text_val_index) VALUES (-1);");
+            } catch (SQLException ignored) {
+            }// a fail is fine because it already exists
+
             statement.execute(buildPreIndexResults);
             statement.execute(buildSearchToConstraints);
             statement.execute(buildAllConstraints);

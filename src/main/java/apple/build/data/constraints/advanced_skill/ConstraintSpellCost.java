@@ -4,6 +4,7 @@ import apple.build.data.BuildMath;
 import apple.build.data.constraints.BuildConstraint;
 import apple.build.data.constraints.ConstraintSimplified;
 import apple.build.data.constraints.ConstraintType;
+import apple.build.data.constraints.advanced_damage.ConstraintSpellDamage;
 import apple.build.data.enums.ElementSkill;
 import apple.build.data.enums.Spell;
 import apple.build.wynncraft.items.Item;
@@ -127,8 +128,18 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
         }
         return false;
     }
+
     @Override
     public ConstraintSimplified.ConstraintSimplifiedName getSimplifiedName() {
         return ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_SPELL_COST;
+    }
+
+    @Override
+    public boolean isExact(BuildConstraint constraint) {
+        if (constraint instanceof ConstraintSpellCost) {
+            ConstraintSpellCost other = (ConstraintSpellCost) constraint;
+            return other.cost == this.cost && other.spell == this.spell;
+        }
+        return false;
     }
 }

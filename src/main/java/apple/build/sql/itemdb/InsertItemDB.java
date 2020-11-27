@@ -28,9 +28,7 @@ public class InsertItemDB {
                     if (item instanceof Weapon) {
                         batch.add(GetItemSql.insertItem((Weapon) item));
                     } else if (item instanceof Armor) {
-                        String e = GetItemSql.insertItem((Armor) item);
-                        System.out.println(e);
-                        batch.add(e);
+                        batch.add(GetItemSql.insertItem((Armor) item));
                     } else if (item instanceof Accessory) {
                         batch.add(GetItemSql.insertItem((Accessory) item));
                     }

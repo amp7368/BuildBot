@@ -115,4 +115,13 @@ public class ConstraintHpr extends BuildConstraintGeneral {
     public ConstraintSimplified.ConstraintSimplifiedName getSimplifiedName() {
         return ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_HPR;
     }
+
+    @Override
+    public boolean isExact(BuildConstraint constraint) {
+        if (constraint instanceof ConstraintHpr) {
+            ConstraintHpr other = (ConstraintHpr) constraint;
+            return other.hpr == this.hpr;
+        }
+        return false;
+    }
 }

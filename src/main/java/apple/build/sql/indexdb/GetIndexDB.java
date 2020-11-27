@@ -3,6 +3,7 @@ package apple.build.sql.indexdb;
 import apple.build.data.constraints.BuildConstraint;
 import apple.build.data.constraints.ConstraintSimplified;
 import apple.build.data.enums.ElementSkill;
+import apple.build.utils.Pair;
 import apple.build.wynncraft.items.Item;
 
 import java.sql.ResultSet;
@@ -55,10 +56,10 @@ public class GetIndexDB {
         }
     }
 
-    public static List<SearchResults> getMatchingSearches(List<BuildConstraint> constraints,
-                                                          List<ConstraintSimplified> simplifiedConstraints,
-                                                          Set<ElementSkill> archetype,
-                                                          Item.ItemType weaponType) throws SQLException {
+    public static Pair<Boolean, List<SearchResults>> getMatchingSearches(List<BuildConstraint> constraints,
+                                                                         List<ConstraintSimplified> simplifiedConstraints,
+                                                                         Set<ElementSkill> archetype,
+                                                                         Item.ItemType weaponType) throws SQLException {
         synchronized (VerifyIndexDB.syncDB) {
             Statement statement = VerifyIndexDB.databaseIndex.createStatement();
             String sql = GetIndexSql.ComplexGet.getSearches(simplifiedConstraints);
@@ -88,14 +89,21 @@ public class GetIndexDB {
             }
             searches.entrySet().removeIf(entry -> !entry.getValue().archetypeMatches(archetype));
             searches.entrySet().removeIf(entry -> !entry.getValue().isLessStrict(constraints));
+            boolean isExactMatch = false;
+            for (SearchConstraints search : searches.values()) {
+                if (search.isExact(constraints)) {
+                    isExactMatch = true;
+                    break;
+                }
+            }
             List<SearchResults> searchResults = new ArrayList<>(searches.size());
             for (Long searchId : searches.keySet()) {
                 response = statement.executeQuery(GetIndexSql.Get.getSearchFromId(searchId));
                 searchResults.add(new SearchResults(response));
             }
             statement.close();
-            searchResults.removeIf(search-> !search.isForClass(weaponType));
-            return searchResults;
+            searchResults.removeIf(search -> !search.isForClass(weaponType));
+            return new Pair<>(isExactMatch, searchResults);
         }
     }
 }

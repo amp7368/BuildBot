@@ -138,4 +138,15 @@ public class ConstraintJoinedId extends BuildConstraintGeneral {
         }
         return false;
     }
+
+    @Override
+    public boolean isExact(BuildConstraint constraint) {
+        if (constraint instanceof ConstraintJoinedId) {
+            ConstraintJoinedId other = (ConstraintJoinedId) constraint;
+            if (other.value != this.value) return false;
+            for (Integer name : this.names)
+                if (!other.names.contains(name)) return false;
+        }
+        return false;
+    }
 }

@@ -103,4 +103,13 @@ public class ConstraintId extends BuildConstraintGeneral {
     public ConstraintSimplified.ConstraintSimplifiedName getSimplifiedName() {
         return ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_ID;
     }
+
+    @Override
+    public boolean isExact(BuildConstraint constraint) {
+        if (constraint instanceof ConstraintId) {
+            ConstraintId other = (ConstraintId) constraint;
+            return other.name == this.name && other.value == this.value;
+        }
+        return false;
+    }
 }

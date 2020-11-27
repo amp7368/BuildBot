@@ -31,7 +31,7 @@ public class ConstraintMainDamage extends BuildConstraintAdvancedDamage {
 
     @Override
     public @NotNull ConstraintSimplified getSimplified() {
-        ConstraintSimplified simple = new ConstraintSimplified(ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_SPELL_COST);
+        ConstraintSimplified simple = new ConstraintSimplified(ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_MAIN_DMG);
         simple.val = dmg;
         return simple;
     }
@@ -43,5 +43,10 @@ public class ConstraintMainDamage extends BuildConstraintAdvancedDamage {
             return other.dmg >= this.dmg;
         }
         return false;
+    }
+
+    @Override
+    public boolean isExact(BuildConstraint constraint) {
+        return constraint instanceof ConstraintMainDamage && ((ConstraintMainDamage) constraint).dmg == dmg;
     }
 }
