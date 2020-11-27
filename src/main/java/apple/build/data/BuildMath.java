@@ -117,7 +117,7 @@ public class BuildMath {
                     multiplier -= powderMultiplier;
                     elementalLower[i] += powder.getLower() * weapon.sockets;
                     elementalUpper[i] += powder.getUpper() * weapon.sockets;
-                    elementalLower[i] += neutralUpper * powderMultiplier;
+                    elementalLower[i] += neutralLower * powderMultiplier;
                     elementalUpper[i] += neutralUpper * powderMultiplier;
                     break;
                 }
@@ -209,7 +209,7 @@ public class BuildMath {
             if (val != 0) {
                 elementEffectivenessWithoutZero[ei] = val;
                 skillsWithoutZero[ei] = skills[i];
-                extraSkillsPerElementWithoutZero[ei] = extraSkillsPerElement[i]+skills[i];
+                extraSkillsPerElementWithoutZero[ei] = extraSkillsPerElement[i] + skills[i];
                 skillsToWithoutZero[i] = ei++;
             } else {
                 skillsToWithoutZero[i] = -1;
@@ -353,14 +353,16 @@ public class BuildMath {
         double[] elementalLower = new double[elementSkillsLength];
         double[] elementalUpper = new double[elementSkillsLength];
         int i = 0;
+        int totalBaseDmg = 0;
         // get the base damage
         for (Pair<Integer, Integer> elemental : weapon.elemental) {
             elementalLower[i] = elemental.getKey();
-            elementalUpper[i++] = elemental.getValue();
+            elementalUpper[i] = elemental.getValue();
+            totalBaseDmg += elementalLower[i] + elementalUpper[i];
+            i++;
         }
         // multiply by spell elemental multiplier
         double multiplier = 1;
-        int totalBaseDmg = 0;
 
         if (powder != null) {
             i = 0;
@@ -370,7 +372,7 @@ public class BuildMath {
                     multiplier -= powderMultiplier;
                     elementalLower[i] += powder.getLower() * weapon.sockets;
                     elementalUpper[i] += powder.getUpper() * weapon.sockets;
-                    elementalLower[i] += neutralUpper * powderMultiplier;
+                    elementalLower[i] += neutralLower * powderMultiplier;
                     elementalUpper[i] += neutralUpper * powderMultiplier;
                     break;
                 }
@@ -425,24 +427,24 @@ public class BuildMath {
 
     public static void main(String[] args) throws SQLException, ClassNotFoundException {
         BuildMain.initialize();
-        List<Item> items = GetItemDB.getAllItems(Item.ItemType.WAND);
+        List<Item> items = GetItemDB.getAllItems(Item.ItemType.DAGGER);
         Weapon item = null;
         for (Item i : items) {
-            if (i.name.equals("Nepta Floodbringer"))
+            if (i.name.equals("Ivory"))
                 item = (Weapon) i;
         }
         if (item == null) return;
-        DamageOutput damage = getDamage(Spell.METEOR, new DamageInput(
-                1.05,
-                -.6,
-                852,
-                -36,
-                new int[]{-30, -30, 45, 125, 40},
+        DamageOutput damage = getDamage(Spell.SMOKE_BOMB, new DamageInput(
+                0.0,
+                -.20,
+                299,
+                2085,
+                new int[]{-30, 106, 107, -30, 40},
                 0,
                 new int[]{200, 100, 100, 100, 100},
-                new double[]{-.7, 0, .3, .76, .5},
+                new double[]{-.28, 1.05, .72, 0, .2},
                 Item.AttackSpeed.toModifier(Item.AttackSpeed.SUPER_FAST.speed)
-        ), item, Powder.WATER);
+        ), item, Powder.AIR);
         System.out.println(damage.dps());
     }
 }

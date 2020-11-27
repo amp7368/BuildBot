@@ -27,6 +27,16 @@ public class Item {
         add("defensePoints");
         add("intelligencePoints");
     }};
+    private static final Set<String> REVERSED_ROLLS = new HashSet<>() {{
+        add("spellCostRaw1");
+        add("spellCostRaw2");
+        add("spellCostRaw3");
+        add("spellCostRaw4");
+        add("spellCostPct1");
+        add("spellCostPct2");
+        add("spellCostPct3");
+        add("spellCostPct4");
+    }};
     private static final OneToOneMap<String, Integer> idNameToUid = new OneToOneMap<>();
     private static int currentUid = 0;
     public final Map<Integer, Integer> ids = new HashMap<>();
@@ -281,15 +291,17 @@ public class Item {
             }
     }
 
-    public void roll(double negativeRoll, double positiveRoll) {
+    public void roll(double negativeMinRoll, double positiveMinRoll, double negativeMaxRoll, double positiveMaxRoll) {
         if (identified) return;
         for (Map.Entry<Integer, Integer> entry : ids.entrySet()) {
-            if (!UNROLLABLE.contains(idNameToUid.getFromVal(entry.getKey()))) {
+            String idIndex = idNameToUid.getFromVal(entry.getKey());
+            if (!UNROLLABLE.contains(idIndex)) {
+                boolean goodToBeLower = REVERSED_ROLLS.contains(idIndex);
                 int value = entry.getValue();
                 if (value < 0) {
-                    value = (int) Math.round(value * negativeRoll);
+                    value = (int) Math.round(value * (goodToBeLower ? negativeMinRoll : negativeMaxRoll));
                 } else {
-                    value = (int) Math.round(value * positiveRoll);
+                    value = (int) Math.round(value * (goodToBeLower ? positiveMinRoll : positiveMaxRoll));
                 }
                 entry.setValue(value);
             }
@@ -325,8 +337,8 @@ public class Item {
     }
 
     public int getId(int idIndex) {
-        if(idIndex == 0){
-            int a =3;
+        if (idIndex == 0) {
+            int a = 3;
         }
         return ids.getOrDefault(idIndex, 0);
     }
