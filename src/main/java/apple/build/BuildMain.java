@@ -228,6 +228,5 @@ public class BuildMain {
             System.out.println(build.toString());
         }
         System.out.println("Total time: " + (System.currentTimeMillis() - start) + " || Size: " + builds.size());
-        Preindexing.saveResult(builds);
     }
 }

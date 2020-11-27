@@ -8,7 +8,6 @@ import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -18,7 +17,7 @@ public class GeneratorForkJoinPool {
     public static final int THOUSANDS = 10000;
 
     private final AtomicInteger sizeLeftInThousands = new AtomicInteger(THOUSANDS);
-    private final BiConsumer<BuildGenerator, Float> todo;
+    private final BiConsumer<BuildGenerator, Float> toRun;
     private final ForkJoinPool pool;
     private final Queue<ForkJoinTask<?>> tasksToJoin = new ConcurrentLinkedDeque<>();
     private final Queue<Pair<BuildGenerator, Float>> generatorsToAdd;
@@ -26,7 +25,7 @@ public class GeneratorForkJoinPool {
     private final float threadsToUse;
     private final int layer;
 
-    public GeneratorForkJoinPool(List<BuildGenerator> subGeneratorsRaw, BiConsumer<BuildGenerator, Float> todo, int myThreadsSize, float threadsToUse, int layer) {
+    public GeneratorForkJoinPool(List<BuildGenerator> subGeneratorsRaw, BiConsumer<BuildGenerator, Float> toRun, int myThreadsSize, float threadsToUse, int layer) {
         int generatorSize = subGeneratorsRaw.size();
         this.layer = layer;
         List<Pair<BuildGenerator, BigInteger>> subGenerators = new ArrayList<>(generatorSize);
@@ -44,7 +43,7 @@ public class GeneratorForkJoinPool {
 
         this.generatorsToAdd = new ConcurrentLinkedDeque<>(subGeneratorsPercs);
         this.pool = new ForkJoinPool(myThreadsSize); //this throws an exception if myThreadsSize = 0
-        this.todo = todo;
+        this.toRun = toRun;
         this.myThreadsSize = myThreadsSize;
         this.threadsToUse = threadsToUse;
         int myRealThreadSize = Math.min(generatorSize, myThreadsSize);
@@ -54,7 +53,7 @@ public class GeneratorForkJoinPool {
             float leftToDoMultiplier = ((float) generatorSize) / myRealThreadSize;
             float threadToGiveThis = Math.max(1, myThreadsToGive * addMe.getValue() / sizeLeftInThousands.get() * leftToDoMultiplier);
             tasksToJoin.add(pool.submit(
-                    new SubGeneratorRunnable(addMe.getKey(), threadToGiveThis, todo)
+                    new SubGeneratorRunnable(addMe.getKey(), threadToGiveThis, toRun)
             ));
             this.sizeLeftInThousands.getAndUpdate(old -> Math.max(1, old - addMe.getValue().intValue()));
         }
@@ -88,7 +87,7 @@ public class GeneratorForkJoinPool {
             float myThreadsToGive = threadsToUse - myRealThreadSize;
             float leftToDoMultiplier = ((float) generatorSize) / myRealThreadSize;
             float threadToGiveThis = Math.max(1, myThreadsToGive * addMe.getValue() / sizeLeftInThousands.get() * leftToDoMultiplier);
-            tasksToJoin.add(pool.submit(new SubGeneratorRunnable(addMe.getKey(), threadToGiveThis, todo)));
+            tasksToJoin.add(pool.submit(new SubGeneratorRunnable(addMe.getKey(), threadToGiveThis, toRun)));
             this.sizeLeftInThousands.getAndUpdate(old -> Math.max(1, old - addMe.getValue().intValue()));
         }
     }

@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class BuildGenerator {
+    private static final long TOO_LONG_THRESHOLD = 2 * 1000;
     private final int layer;
     private final Set<ElementSkill> archetype;
     private List<Item>[] allItems;
@@ -109,6 +110,7 @@ public class BuildGenerator {
      */
     public void generate() {
         if (isFail()) return;
+        long timingFull = System.currentTimeMillis();
         PreFilter.filterItemPool(this, allItems[allItems.length - 1].get(0).type);
         if (isFail()) return;
         filterOnBadArchetype();
@@ -138,6 +140,10 @@ public class BuildGenerator {
         extraBuilds.addAll(new HashSet<>(builds));
         subGenerators = Collections.emptyList();
         allItems = new List[0];
+        timingFull = System.currentTimeMillis() - timingFull;
+        if (timingFull > TOO_LONG_THRESHOLD) {
+            Preindexing.saveResult(this);
+        }
     }
 
 
