@@ -1,4 +1,4 @@
-package apple.build.sql;
+package apple.build.sql.itemdb;
 
 import apple.build.wynncraft.items.Accessory;
 import apple.build.wynncraft.items.Armor;
@@ -11,12 +11,12 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GetDB {
+public class GetItemDB {
     public static List<Item> getAllItems(Item.ItemType itemType) throws SQLException {
-        synchronized (VerifyDB.syncDB) {
+        synchronized (VerifyItemDB.syncDB) {
             List<Item> items = new ArrayList<>();
-            String sql = GetSql.getAllItems(itemType);
-            Statement statement = VerifyDB.database.createStatement();
+            String sql = GetItemSql.getAllItems(itemType);
+            Statement statement = VerifyItemDB.databaseItem.createStatement();
             ResultSet response = statement.executeQuery(sql);
             if (!response.isClosed()) {
                 while (response.next()) {
@@ -44,7 +44,7 @@ public class GetDB {
             }
             response.close();
             for (Item item : items) {
-                response = statement.executeQuery(GetSql.getAllIds(item.name));
+                response = statement.executeQuery(GetItemSql.getAllIds(item.name));
                 item.addIds(response);
                 response.close();
             }

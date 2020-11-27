@@ -1,7 +1,10 @@
 package apple.build.data.constraints.general;
 
 import apple.build.data.constraints.BuildConstraint;
+import apple.build.data.constraints.ConstraintSimplified;
+import apple.build.data.constraints.ConstraintType;
 import apple.build.wynncraft.items.Item;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -62,4 +65,11 @@ public abstract class BuildConstraintGeneral implements BuildConstraint {
      * @return positive if first is better, negative if second is better, otherwise 0
      */
     public abstract int compare(Item item1, Item item2);
+
+
+    /**
+     * @return the database ready version of this constraint
+     */
+    @NotNull
+    public abstract ConstraintSimplified getSimplified();
 }

@@ -1,7 +1,7 @@
 package apple.build.wynncraft;
 
 
-import apple.build.sql.InsertDB;
+import apple.build.sql.itemdb.InsertItemDB;
 import apple.build.wynncraft.items.Item;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -27,7 +27,7 @@ public class GetItems {
             }
             items[i++] = Item.makeItem(itemMap);
         }
-        InsertDB.insertItems(items);
+        InsertItemDB.insertItems(items);
         System.out.println("done");
     }
 }

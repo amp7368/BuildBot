@@ -2,7 +2,6 @@ package apple.build;
 
 import apple.build.data.Build;
 import apple.build.data.BuildGenerator;
-import apple.build.data.constraints.general.ConstraintJoinedId;
 import apple.build.data.constraints.general.ConstraintDefense;
 import apple.build.data.enums.Spell;
 import apple.build.data.constraints.filter.BuildConstraintExclusion;
@@ -13,8 +12,9 @@ import apple.build.data.constraints.general.ConstraintHp;
 import apple.build.data.constraints.general.ConstraintHpr;
 import apple.build.data.constraints.general.ConstraintId;
 import apple.build.data.constraints.advanced_skill.ConstraintSpellCost;
-import apple.build.sql.GetDB;
-import apple.build.sql.VerifyDB;
+import apple.build.sql.indexdb.VerifyIndexDB;
+import apple.build.sql.itemdb.GetItemDB;
+import apple.build.sql.itemdb.VerifyItemDB;
 import apple.build.wynncraft.items.Item;
 
 import java.io.IOException;
@@ -46,25 +46,26 @@ public class BuildMain {
         System.out.println("Opened database successfully");
 //        GetItems.getItems();
 //        System.out.println("Inserted items");
-
+//        Preindexing.preIndex();
         combinations();
         System.out.println("done");
     }
 
     public static void initialize() throws SQLException, ClassNotFoundException {
-        VerifyDB.initialize();
-        helmets = GetDB.getAllItems(Item.ItemType.HELMET);
-        chestplates = GetDB.getAllItems(Item.ItemType.CHESTPLATE);
-        leggings = GetDB.getAllItems(Item.ItemType.LEGGINGS);
-        boots = GetDB.getAllItems(Item.ItemType.BOOTS);
-        rings = GetDB.getAllItems(Item.ItemType.RING);
-        bracelets = GetDB.getAllItems(Item.ItemType.BRACELET);
-        necklaces = GetDB.getAllItems(Item.ItemType.NECKLACE);
-        bows = GetDB.getAllItems(Item.ItemType.BOW);
-        spears = GetDB.getAllItems(Item.ItemType.SPEAR);
-        daggers = GetDB.getAllItems(Item.ItemType.DAGGER);
-        wands = GetDB.getAllItems(Item.ItemType.WAND);
-        reliks = GetDB.getAllItems(Item.ItemType.RELIK);
+        VerifyItemDB.initialize();
+        VerifyIndexDB.initialize();
+        helmets = GetItemDB.getAllItems(Item.ItemType.HELMET);
+        chestplates = GetItemDB.getAllItems(Item.ItemType.CHESTPLATE);
+        leggings = GetItemDB.getAllItems(Item.ItemType.LEGGINGS);
+        boots = GetItemDB.getAllItems(Item.ItemType.BOOTS);
+        rings = GetItemDB.getAllItems(Item.ItemType.RING);
+        bracelets = GetItemDB.getAllItems(Item.ItemType.BRACELET);
+        necklaces = GetItemDB.getAllItems(Item.ItemType.NECKLACE);
+        bows = GetItemDB.getAllItems(Item.ItemType.BOW);
+        spears = GetItemDB.getAllItems(Item.ItemType.SPEAR);
+        daggers = GetItemDB.getAllItems(Item.ItemType.DAGGER);
+        wands = GetItemDB.getAllItems(Item.ItemType.WAND);
+        reliks = GetItemDB.getAllItems(Item.ItemType.RELIK);
         helmets.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
         chestplates.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
         leggings.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
@@ -104,7 +105,11 @@ public class BuildMain {
      */
     private static BuildGenerator testMajorIds() {
         List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, daggers};
-        BuildGenerator builds = new BuildGenerator(allItems);
+        BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
+            add(ElementSkill.EARTH);
+            add(ElementSkill.FIRE);
+            add(ElementSkill.AIR);
+        }});
         builds.addConstraint(new ConstraintHpr(590));
         builds.addConstraint(new ConstraintId("speed", 100));
         builds.addConstraint(new ConstraintId("manaSteal", 6));
@@ -117,11 +122,7 @@ public class BuildMain {
         builds.addConstraint(new ConstraintHp(14500));
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
             builds.addConstraint(exclusion);
-        builds.generate(new HashSet<>() {{
-            add(ElementSkill.EARTH);
-            add(ElementSkill.FIRE);
-            add(ElementSkill.AIR);
-        }});
+        builds.generate();
         return builds;
     }
 
@@ -135,31 +136,31 @@ public class BuildMain {
      */
     private static BuildGenerator benchmark() {
         List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, bows};
-        BuildGenerator builds = new BuildGenerator(allItems);
+        BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
+            add(ElementSkill.THUNDER);
+            add(ElementSkill.WATER);
+            add(ElementSkill.FIRE);
+        }});
         builds.addConstraint(new ConstraintHpr(0));
         builds.addConstraint(new ConstraintId("manaSteal", 14));
-//        builds.addConstraint(new ConstraintId("attackSpeedBonus", -4));
-//        builds.addConstraint(new ConstraintId("damageBonusRaw", 1745));
-//        builds.addConstraint(new ConstraintId("bonusThunderDamage", 102));
-//        builds.addConstraint(new ConstraintId("spellDamage", 68));
-        builds.addConstraint(new ConstraintJoinedId(Arrays.asList("bonusThunderDamage", "spellDamage"),170));
+        builds.addConstraint(new ConstraintId("attackSpeedBonus", -4));
+        builds.addConstraint(new ConstraintId("damageBonusRaw", 1745));
+        builds.addConstraint(new ConstraintId("bonusThunderDamage", 102));
+        builds.addConstraint(new ConstraintId("spellDamage", 68));
+//        builds.addConstraint(new ConstraintJoinedId(Arrays.asList("bonusThunderDamage", "spellDamage"),170));
         builds.addConstraint(new ConstraintId("spellDamageRaw", 835));
         builds.addConstraint(new ConstraintDefense(ElementSkill.EARTH, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.THUNDER, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.WATER, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.FIRE, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.AIR, -100));
-//        builds.addConstraint(new ConstraintMainDamage(4600));
+        builds.addConstraint(new ConstraintMainDamage(4600));
         builds.addConstraint(new ConstraintSpellDamage(Spell.ARROW_STORM, 47122));
         builds.addConstraint(new ConstraintSpellCost(Spell.ARROW_STORM, 1));
         builds.addConstraint(new ConstraintHp(12500));
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
             builds.addConstraint(exclusion);
-        builds.generate(new HashSet<>() {{
-            add(ElementSkill.THUNDER);
-            add(ElementSkill.WATER);
-            add(ElementSkill.FIRE);
-        }});
+        builds.generate();
         return builds;
     }
 
@@ -170,7 +171,11 @@ public class BuildMain {
      */
     private static BuildGenerator test() {
         List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, bows};
-        BuildGenerator builds = new BuildGenerator(allItems);
+        BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
+            add(ElementSkill.THUNDER);
+            add(ElementSkill.WATER);
+            add(ElementSkill.FIRE);
+        }});
         builds.addConstraint(new ConstraintHpr(0));
         builds.addConstraint(new ConstraintId("manaSteal", 11));
         builds.addConstraint(new ConstraintId("bonusThunderDamage", 172));
@@ -187,11 +192,7 @@ public class BuildMain {
         builds.addConstraint(new ConstraintHp(11500));
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
             builds.addConstraint(exclusion);
-        builds.generate(new HashSet<>() {{
-            add(ElementSkill.THUNDER);
-            add(ElementSkill.WATER);
-            add(ElementSkill.FIRE);
-        }});
+        builds.generate();
         return builds;
     }
 
@@ -202,7 +203,11 @@ public class BuildMain {
      */
     private static BuildGenerator wfaNeptaSpellSpam() {
         List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, wands};
-        BuildGenerator builds = new BuildGenerator(allItems);
+        BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
+            add(ElementSkill.EARTH);
+            add(ElementSkill.WATER);
+            add(ElementSkill.FIRE);
+        }});
         builds.addConstraint(new ConstraintId("manaRegen", 11));
         builds.addConstraint(new ConstraintId("bonusWaterDamage", 76));
         builds.addConstraint(new ConstraintId("spellDamage", 105));
@@ -212,11 +217,7 @@ public class BuildMain {
         builds.addConstraint(new ConstraintHp(12000));
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
             builds.addConstraint(exclusion);
-        builds.generate(new HashSet<>() {{
-            add(ElementSkill.EARTH);
-            add(ElementSkill.WATER);
-            add(ElementSkill.FIRE);
-        }});
+        builds.generate();
         return builds;
     }
 

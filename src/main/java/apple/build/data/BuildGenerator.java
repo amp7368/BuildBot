@@ -1,5 +1,8 @@
 package apple.build.data;
 
+import apple.build.Preindexing;
+import apple.build.data.constraints.BuildConstraint;
+import apple.build.data.constraints.ConstraintSimplified;
 import apple.build.data.constraints.advanced_damage.BuildConstraintAdvancedDamage;
 import apple.build.data.constraints.advanced_skill.BuildConstraintAdvancedSkills;
 import apple.build.data.constraints.answers.DamageInput;
@@ -8,6 +11,7 @@ import apple.build.data.constraints.filter.BuildConstraintExclusion;
 import apple.build.data.constraints.general.BuildConstraintGeneral;
 import apple.build.data.enums.ElementSkill;
 import apple.build.data.threads.GeneratorForkJoinPool;
+import apple.build.sql.PreFilter;
 import apple.build.wynncraft.items.Item;
 import apple.build.wynncraft.items.ItemIdIndex;
 import apple.build.wynncraft.items.Weapon;
@@ -17,7 +21,9 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class BuildGenerator {
+    private static final long TOO_LONG_THRESHOLD = 2 * 1000;
     private final int layer;
+    private final Set<ElementSkill> archetype;
     private List<Item>[] allItems;
     private List<BuildGenerator> subGenerators = new ArrayList<>();
     private final List<BuildConstraintGeneral> constraints;
@@ -37,25 +43,28 @@ public class BuildGenerator {
      *
      * @param allItems the items to build with (weapon must be last)
      */
-    public BuildGenerator(List<Item>[] allItems) {
+    public BuildGenerator(List<Item>[] allItems, Set<ElementSkill> archetype) {
         this.allItems = allItems;
         this.layer = 0;
         this.constraints = new ArrayList<>();
         this.constraintsAdvancedSkill = new ArrayList<>();
         this.constraintsAdvancedDamage = new ArrayList<>();
         this.constraintsExclusion = new ArrayList<>();
+        this.archetype = archetype;
     }
 
     private BuildGenerator(List<Item>[] subItems, List<BuildConstraintGeneral> constraints,
                            List<BuildConstraintAdvancedSkills> constraintsAdvancedSkill,
                            List<BuildConstraintAdvancedDamage> constraintsAdvancedDamage,
                            List<BuildConstraintExclusion> constraintsExclusion,
+                           Set<ElementSkill> archetype,
                            int layer) {
         this.allItems = subItems;
         this.constraints = constraints;
         this.constraintsAdvancedSkill = constraintsAdvancedSkill;
         this.constraintsAdvancedDamage = constraintsAdvancedDamage;
         this.constraintsExclusion = constraintsExclusion;
+        this.archetype = archetype;
         this.layer = layer;
     }
 
@@ -75,11 +84,36 @@ public class BuildGenerator {
         this.constraintsExclusion.add(buildConstraintExclusion);
     }
 
+    public List<ConstraintSimplified> getSimplifiedConstraints() {
+        List<ConstraintSimplified> simples = new ArrayList<>();
+        for (BuildConstraintGeneral constraint : constraints)
+            simples.add(constraint.getSimplified());
+        for (BuildConstraintExclusion constraint : constraintsExclusion)
+            simples.add(constraint.getSimplified());
+        for (BuildConstraintAdvancedSkills constraint : constraintsAdvancedSkill)
+            simples.add(constraint.getSimplified());
+        for (BuildConstraintAdvancedDamage constraint : constraintsAdvancedDamage)
+            simples.add(constraint.getSimplified());
+        return simples;
+    }
+
+    public List<BuildConstraint> getConstraints() {
+        List<BuildConstraint> allConstraints = new ArrayList<>(constraints);
+        allConstraints.addAll(constraintsExclusion);
+        allConstraints.addAll(constraintsAdvancedSkill);
+        allConstraints.addAll(constraintsAdvancedDamage);
+        return allConstraints;
+    }
+
     /**
      * generates for the top level
      */
-    public void generate(Set<ElementSkill> archetype) {
-        filterOnBadArchetype(archetype);
+    public void generate() {
+        if (isFail()) return;
+        long timingFull = System.currentTimeMillis();
+        PreFilter.filterItemPool(this, allItems[allItems.length - 1].get(0).type);
+        if (isFail()) return;
+        filterOnBadArchetype();
         if (isFail()) return;
         filterOnBadContribution();
         if (isFail()) return;
@@ -91,11 +125,11 @@ public class BuildGenerator {
 //        if (isFail()) return; todo redo this when you finish more filters
         breakApart();
         long start = System.currentTimeMillis();
-        subGenerators.removeIf(buildGenerator -> buildGenerator.filterLower(archetype, 9));
+        subGenerators.removeIf(buildGenerator -> buildGenerator.filterLower(9));
         if (subGenerators.isEmpty()) return;
         int indexToDefineLast = (int) (subGenerators.size() * .9);
         new GeneratorForkJoinPool(subGenerators, (generator, threads) -> {
-            generator.generate(archetype, 9, threads);
+            generator.generate(9, threads);
             int iValue = topLayerIndex.getAndIncrement();
             if (iValue == indexToDefineLast) onLastTasks = true; // this okay even though it's threaded
             System.out.println("time " + (System.currentTimeMillis() - start) + " | " + iValue + "/" + subGenerators.size());
@@ -106,36 +140,40 @@ public class BuildGenerator {
         extraBuilds.addAll(new HashSet<>(builds));
         subGenerators = Collections.emptyList();
         allItems = new List[0];
+        timingFull = System.currentTimeMillis() - timingFull;
+        if (timingFull > TOO_LONG_THRESHOLD) {
+            Preindexing.saveResult(this);
+        }
     }
 
 
     /**
      * filters item pool as much as possible, then generates all possible builds
      */
-    public void generate(Set<ElementSkill> archetype, int layerToStop, float myThreadsCount) {
+    public void generate(int layerToStop, float myThreadsCount) {
         if (isFail()) {
             return;
         }
         Thread.currentThread().setPriority(Math.min(layer + 2, 10));
         breakApart();
-        subGenerators.removeIf(buildGenerator -> buildGenerator.filterLower(archetype, layerToStop));
+        subGenerators.removeIf(buildGenerator -> buildGenerator.filterLower(layerToStop));
         if (subGenerators.isEmpty()) {
             return;
         }
         if (myThreadsCount <= 1) {
             if (onLastTasks) {
-                subGenerators.parallelStream().forEach(buildGenerator -> buildGenerator.generate(archetype, layerToStop, myThreadsCount));
+                subGenerators.parallelStream().forEach(buildGenerator -> buildGenerator.generate(layerToStop, myThreadsCount));
             } else {
                 for (BuildGenerator buildGenerator : subGenerators) {
-                    buildGenerator.generate(archetype, layerToStop, myThreadsCount);
+                    buildGenerator.generate(layerToStop, myThreadsCount);
                 }
             }
         } else {
             int maxThreadsAtOnceHere = MAX_THREADS_AT_ONCE + layer;
             if (myThreadsCount > maxThreadsAtOnceHere) {
-                new GeneratorForkJoinPool(subGenerators, (generator, threads) -> generator.generate(archetype, 9, threads), maxThreadsAtOnceHere, myThreadsCount, layer).waitForCompletion();
+                new GeneratorForkJoinPool(subGenerators, (generator, threads) -> generator.generate(9, threads), maxThreadsAtOnceHere, myThreadsCount, layer).waitForCompletion();
             } else {
-                new GeneratorForkJoinPool(subGenerators, (generator, threads) -> generator.generate(archetype, 9, threads), Math.max(1, (int) myThreadsCount), myThreadsCount, layer).waitForCompletion();
+                new GeneratorForkJoinPool(subGenerators, (generator, threads) -> generator.generate(9, threads), Math.max(1, (int) myThreadsCount), myThreadsCount, layer).waitForCompletion();
             }
         }
 
@@ -149,7 +187,7 @@ public class BuildGenerator {
     }
 
 
-    private boolean filterLower(Set<ElementSkill> archetype, int layerToStop) {
+    private boolean filterLower(int layerToStop) {
         if (size().compareTo(BigInteger.valueOf(100)) < 0 || layer == layerToStop) {
             List<Build> builds = getBuilds();
             extraBuilds.addAll(builds);
@@ -211,7 +249,8 @@ public class BuildGenerator {
 
     private boolean filterOnConstraintsAdvancedSkill(Build build) {
         for (BuildConstraintAdvancedSkills constaint : constraintsAdvancedSkill) {
-            if(!constaint.isValid(build.skills, build.extraSkillPoints, build.extraSkillPerElement, build.items)) return true;
+            if (!constaint.isValid(build.skills, build.extraSkillPoints, build.extraSkillPerElement, build.items))
+                return true;
         }
         return false;
     }
@@ -454,6 +493,7 @@ public class BuildGenerator {
                     constraintsAdvancedSkill,
                     constraintsAdvancedDamage,
                     constraintsExclusion,
+                    archetype,
                     layer + 1));
         }
         allItems = new List[0];
@@ -708,10 +748,8 @@ public class BuildGenerator {
 
     /**
      * remove items that don't fit our archetype
-     *
-     * @param archetype the archetype we're fitting
      */
-    private void filterOnBadArchetype(Set<ElementSkill> archetype) {
+    private void filterOnBadArchetype() {
         for (List<Item> items : allItems) {
             Iterator<Item> itemIterator = items.iterator();
             while (itemIterator.hasNext()) {
@@ -932,5 +970,36 @@ public class BuildGenerator {
             if (set.contains(item.name) || set.contains(item.displayName)) return true;
         }
         return false;
+    }
+
+    public Set<Item>[] getItemsInBuilds() {
+        List<Build> builds = getBuilds();
+        if (builds.size() != 0) {
+            Set<Item>[] items = new HashSet[builds.get(0).items.size()];
+            for (int i = 0; i < items.length; i++)
+                items[i] = new HashSet<>();
+            for (Build build : builds) {
+                for (int i = 0; i < items.length; i++) {
+                    items[i].add(build.items.get(i));
+                }
+            }
+            return items;
+        }
+        return null;
+    }
+
+    public Set<ElementSkill> getArchetype() {
+        return archetype;
+    }
+
+    public void refineItemPoolTo(Map<Item.ItemType, List<String>> results) {
+        for (List<Item> items : allItems) {
+            List<String> refineTo = results.get(items.get(0).type);
+            if (refineTo == null) {
+                allItems = new List[0];
+                return;
+            }
+            items.removeIf(item -> !refineTo.contains(item.name));
+        }
     }
 }
