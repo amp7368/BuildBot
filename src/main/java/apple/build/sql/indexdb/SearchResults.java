@@ -1,5 +1,6 @@
 package apple.build.sql.indexdb;
 
+import apple.build.sql.GetSql;
 import apple.build.wynncraft.items.Item;
 
 import java.sql.ResultSet;
@@ -17,7 +18,7 @@ public class SearchResults {
             while (response.next()) {
                 Item.ItemType itemType = Item.ItemType.valueOf(response.getString("item_type_name"));
                 results.putIfAbsent(itemType, new ArrayList<>());
-                results.get(itemType).add(response.getString("item_name"));
+                results.get(itemType).add(GetSql.convertFromSql(response.getString("item_name")));
             }
         }
     }

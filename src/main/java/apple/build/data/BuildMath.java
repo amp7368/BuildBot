@@ -58,8 +58,6 @@ public class BuildMath {
         for (ElementSkill elementSkill : ElementSkill.values()) {
             double elementalIdBoost = Math.max(0, getSkillImprovement(input.skills[i]) / 100);
             double extra = input.elemental[i];
-            if (elementSkill == ElementSkill.THUNDER || elementSkill == ElementSkill.EARTH)
-                extra++;
             elementalIdBoost += extra;
             if (elementalIdBoost > maxIdBoostNoSP) maxIdBoostNoSP = elementalIdBoost;
             assignedIdBoost[i] = Math.max(0, getSkillImprovement(input.skills[i] + input.extraSkillPoints) / 100) + extra;
@@ -146,7 +144,7 @@ public class BuildMath {
         // idBoost
         double idBoost = 1;
         idBoost += input.spellDamage;
-        idBoost += getSkillImprovement(ElementSkill.EARTH.getSkill(skills) / 100);
+        idBoost += getSkillImprovement(ElementSkill.EARTH.getSkill(skills)) / 100;
 
         double idBoostCrit = idBoost + 1;
         double neutralLowerCrit = neutralLower;
@@ -189,16 +187,12 @@ public class BuildMath {
         }
         return new DamageOutput(neutralLower, neutralUpper, elementalLower, elementalUpper,
                 neutralLowerCrit, neutralUpperCrit, elementalLowerCrit, elementalUpperCrit,
-                getSkillImprovement(input.dexterity) / 100, rawSpell);
+                getSkillImprovement(ElementSkill.THUNDER.getSkill(skills)) / 100, rawSpell);
     }
 
-    private static final AtomicInteger test = new AtomicInteger();
 
     private static int[] findMaximum(double[] elementEffectiveness, int[] skills, int extraSkillPoints, int[] extraSkillsPerElement) {
-        int id = test.getAndIncrement();
-//        System.out.println(id + " enter");
         if (extraSkillPoints == 0) {
-//            System.out.println(id + " exit");
             return skills;
         }
         int varCount = 0;
@@ -215,7 +209,7 @@ public class BuildMath {
             if (val != 0) {
                 elementEffectivenessWithoutZero[ei] = val;
                 skillsWithoutZero[ei] = skills[i];
-                extraSkillsPerElementWithoutZero[ei] = extraSkillsPerElement[i];
+                extraSkillsPerElementWithoutZero[ei] = extraSkillsPerElement[i]+skills[i];
                 skillsToWithoutZero[i] = ei++;
             } else {
                 skillsToWithoutZero[i] = -1;
@@ -248,7 +242,6 @@ public class BuildMath {
                         newSkills[i] = skillsWithoutZero[skillsToWithoutZero[i]];
                     }
                 }
-//                System.out.println(id + " exit");
                 return newSkills;
             }
             extraToEach = extraLeft / toDistribute;
@@ -426,30 +419,30 @@ public class BuildMath {
         }
         return new DamageOutput(neutralLower, neutralUpper, elementalLower, elementalUpper,
                 neutralLowerCrit, neutralUpperCrit, elementalLowerCrit, elementalUpperCrit,
-                getSkillImprovement(input.dexterity) / 100, input.mainDamageRaw, input.attackSpeedModifier);
+                getSkillImprovement(ElementSkill.THUNDER.getSkill(skills)) / 100, input.mainDamageRaw, input.attackSpeedModifier);
 
     }
 
     public static void main(String[] args) throws SQLException, ClassNotFoundException {
         BuildMain.initialize();
-        List<Item> items = GetItemDB.getAllItems(Item.ItemType.BOW);
+        List<Item> items = GetItemDB.getAllItems(Item.ItemType.WAND);
         Weapon item = null;
         for (Item i : items) {
-            if (i.name.equals("Divzer"))
+            if (i.name.equals("Nepta Floodbringer"))
                 item = (Weapon) i;
         }
         if (item == null) return;
-        DamageOutput damage = getDamage(new DamageInput(
-                0,
-                0,
-                445,
-                945,
-                new int[]{152, 0, 0, 0, 0},
+        DamageOutput damage = getDamage(Spell.METEOR, new DamageInput(
+                1.05,
+                -.6,
+                852,
+                -36,
+                new int[]{-30, -30, 45, 125, 40},
                 0,
                 new int[]{200, 100, 100, 100, 100},
-                new double[]{0, 0, 0, 0, 0},
+                new double[]{-.7, 0, .3, .76, .5},
                 Item.AttackSpeed.toModifier(Item.AttackSpeed.SUPER_FAST.speed)
-        ), item);
+        ), item, Powder.WATER);
         System.out.println(damage.dps());
     }
 }

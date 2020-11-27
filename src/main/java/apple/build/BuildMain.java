@@ -96,7 +96,7 @@ public class BuildMain {
 //        weapon.removeIf(item -> !item.name.equals("Ignis"));
 
         long start = System.currentTimeMillis();
-        BuildGenerator builds = benchmark();
+        BuildGenerator builds = wfaNeptaSpellSpam();
         finish(builds, start);
     }
 
@@ -165,8 +165,6 @@ public class BuildMain {
     }
 
     /**
-     * TODO
-     *
      * @return https://wynndata.tk/s/ol8ktd
      */
     private static BuildGenerator test() {
@@ -209,7 +207,7 @@ public class BuildMain {
             add(ElementSkill.FIRE);
         }});
         builds.addConstraint(new ConstraintId("manaRegen", 11));
-        builds.addConstraint(new ConstraintId("bonusWaterDamage", 76));
+        builds.addConstraint(new ConstraintId("bonusWaterDamage", 56));
         builds.addConstraint(new ConstraintId("spellDamage", 105));
         builds.addConstraint(new ConstraintId("spellDamageRaw", 850));
         builds.addConstraint(new ConstraintSpellCost(Spell.METEOR, 1));
