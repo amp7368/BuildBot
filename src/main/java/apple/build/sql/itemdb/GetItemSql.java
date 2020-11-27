@@ -1,30 +1,14 @@
 package apple.build.sql.itemdb;
 
 import apple.build.data.enums.ElementSkill;
+import apple.build.sql.GetSql;
 import apple.build.utils.Pair;
 import apple.build.wynncraft.items.Accessory;
 import apple.build.wynncraft.items.Armor;
 import apple.build.wynncraft.items.Item;
 import apple.build.wynncraft.items.Weapon;
-import org.jetbrains.annotations.Nullable;
 
-public class GetItemSql {
-
-    @Nullable
-    private static String convertToNullable(@Nullable String s) {
-        return s == null ? null : "'" + s + "'";
-    }
-
-    @Nullable
-    private static String convertToSql(@Nullable String s) {
-        return s == null ? null : s.replace("'", "$");
-    }
-
-    @Nullable
-    public static String convertFromSql(@Nullable String s) {
-        return s == null ? null : s.replace("$", "'");
-    }
-
+public class GetItemSql extends GetSql {
     public static String insertItem(Weapon item) {
         Pair<Integer, Integer> thunderDamage = null;
         Pair<Integer, Integer> airDamage = null;

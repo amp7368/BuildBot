@@ -1,8 +1,14 @@
 package apple.build.sql.indexdb;
 
+import apple.build.data.constraints.BuildConstraint;
+import apple.build.data.constraints.ConstraintSimplified;
+import apple.build.data.enums.ElementSkill;
+import apple.build.wynncraft.items.Item;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.*;
 
 public class GetIndexDB {
     public static long getEnumId(String name) throws SQLException {
@@ -46,6 +52,50 @@ public class GetIndexDB {
             }
             statement.close();
             return itemId;
+        }
+    }
+
+    public static List<SearchResults> getMatchingSearches(List<BuildConstraint> constraints,
+                                                          List<ConstraintSimplified> simplifiedConstraints,
+                                                          Set<ElementSkill> archetype,
+                                                          Item.ItemType weaponType) throws SQLException {
+        synchronized (VerifyIndexDB.syncDB) {
+            Statement statement = VerifyIndexDB.databaseIndex.createStatement();
+            String sql = GetIndexSql.ComplexGet.getSearches(simplifiedConstraints);
+            ResultSet response = statement.executeQuery(sql);
+            Map<Long, SearchConstraints> searches = new HashMap<>();
+            if (!response.isClosed()) {
+                while (response.next()) {
+                    long searchId = response.getLong("search_id");
+                    SearchConstraints search;
+                    if (searches.containsKey(searchId)) {
+                        search = searches.get(searchId);
+                    } else {
+                        searches.put(searchId, search = new SearchConstraints(searchId));
+                    }
+                    search.addConstraint(response);
+                }
+            }
+            response.close();
+            for (Map.Entry<Long, SearchConstraints> search : searches.entrySet()) {
+                response = statement.executeQuery(GetIndexSql.Get.getSearchArchetypeFromId(search.getKey()));
+                Set<ElementSkill> searchArchetype = new HashSet<>();
+                if (!response.isClosed())
+                    while (response.next())
+                        searchArchetype.add(ElementSkill.valueOf(response.getString("element")));
+                response.close();
+                search.getValue().setArchetype(searchArchetype);
+            }
+            searches.entrySet().removeIf(entry -> !entry.getValue().archetypeMatches(archetype));
+            searches.entrySet().removeIf(entry -> !entry.getValue().isLessStrict(constraints));
+            List<SearchResults> searchResults = new ArrayList<>(searches.size());
+            for (Long searchId : searches.keySet()) {
+                response = statement.executeQuery(GetIndexSql.Get.getSearchFromId(searchId));
+                searchResults.add(new SearchResults(response));
+            }
+            statement.close();
+            searchResults.removeIf(search-> !search.isForClass(weaponType));
+            return searchResults;
         }
     }
 }

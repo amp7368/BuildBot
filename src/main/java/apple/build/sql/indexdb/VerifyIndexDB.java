@@ -134,7 +134,7 @@ public class VerifyIndexDB {
                 } catch (SQLException ignored) {
                 }// a fail is fine because it already exists
             statement.execute(buildItems);
-            currentConstraintId = statement.executeQuery("SELECT max(item_name_id) FROM items;").getInt(1) + 1;
+            currentItemId = statement.executeQuery("SELECT max(item_name_id) FROM items;").getInt(1) + 1;
             statement.execute(buildConstraintIds);
             currentConstraintId = statement.executeQuery("SELECT max(constraint_id) FROM constraint_ids;").getLong(1) + 1;
             statement.execute(buildConstraintEnumIds);

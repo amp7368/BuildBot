@@ -1,5 +1,6 @@
 package apple.build.data.constraints.general;
 
+import apple.build.data.constraints.BuildConstraint;
 import apple.build.data.constraints.ConstraintSimplified;
 import apple.build.data.constraints.ConstraintType;
 import apple.build.wynncraft.items.Item;
@@ -7,7 +8,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,6 +24,14 @@ public class ConstraintJoinedId extends BuildConstraintGeneral {
         this.value = value;
     }
 
+    public ConstraintJoinedId(String textVal, int val) {
+        String[] names = textVal.split(",");
+        this.names = new ArrayList<>(names.length);
+        for (String n : names) {
+            this.names.add(Item.getIdIndex(n));
+        }
+        this.value = val;
+    }
 
     /**
      * checks whether the items satisfy the constraint
@@ -104,8 +112,8 @@ public class ConstraintJoinedId extends BuildConstraintGeneral {
     }
 
     @Override
-    public @NotNull ConstraintType getType() {
-        return ConstraintType.TEXT_VAL;
+    public ConstraintSimplified.ConstraintSimplifiedName getSimplifiedName() {
+        return ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_JOINED_ID;
     }
 
     /**
@@ -117,5 +125,17 @@ public class ConstraintJoinedId extends BuildConstraintGeneral {
         simple.text = names.stream().map(Item::getIdName).collect(Collectors.joining(","));
         simple.val = value;
         return simple;
+    }
+
+    @Override
+    public boolean isMoreStrict(BuildConstraint obj) {
+        if (obj instanceof ConstraintJoinedId) {
+            ConstraintJoinedId other = (ConstraintJoinedId) obj;
+            if (other.value < this.value) return false;
+            for (Integer name : this.names)
+                if (!other.names.contains(name)) return false;
+            return true;
+        }
+        return false;
     }
 }

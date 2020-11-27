@@ -1,5 +1,6 @@
 package apple.build.data.constraints.general;
 
+import apple.build.data.constraints.BuildConstraint;
 import apple.build.data.constraints.ConstraintSimplified;
 import apple.build.data.constraints.ConstraintType;
 import apple.build.wynncraft.items.Item;
@@ -7,7 +8,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ConstraintId extends BuildConstraintGeneral {
     private final int name;
@@ -78,19 +78,29 @@ public class ConstraintId extends BuildConstraintGeneral {
         return item1.getId(name) - item2.getId(name);
     }
 
-    @Override
-    public @NotNull ConstraintType getType() {
-        return ConstraintType.TEXT_VAL;
-    }
-
     /**
      * @return the database ready version of this constraint
      */
+    @Override
     @NotNull
     public ConstraintSimplified getSimplified() {
         ConstraintSimplified simple = new ConstraintSimplified(ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_ID);
         simple.text = Item.getIdName(name);
         simple.val = value;
         return simple;
+    }
+
+    @Override
+    public boolean isMoreStrict(BuildConstraint obj) {
+        if (obj instanceof ConstraintId) {
+            ConstraintId other = (ConstraintId) obj;
+            return other.name == this.name && other.value >= this.value;
+        }
+        return false;
+    }
+
+    @Override
+    public ConstraintSimplified.ConstraintSimplifiedName getSimplifiedName() {
+        return ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_ID;
     }
 }

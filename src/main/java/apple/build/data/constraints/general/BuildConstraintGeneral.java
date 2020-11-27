@@ -52,11 +52,9 @@ public abstract class BuildConstraintGeneral implements BuildConstraint {
      * @param items the items to check against
      * @return the best item for this constraint
      */
-    @Override
     @Nullable
     public abstract Item getBest(List<Item> items);
 
-    @Override
     public abstract boolean contributes(Item item);
 
     /**
@@ -66,14 +64,8 @@ public abstract class BuildConstraintGeneral implements BuildConstraint {
      * @param item2 the second item to compare
      * @return positive if first is better, negative if second is better, otherwise 0
      */
-    @Override
     public abstract int compare(Item item1, Item item2);
 
-    /**
-     * @return what type this is
-     */
-    @NotNull
-    public abstract ConstraintType getType();
 
     /**
      * @return the database ready version of this constraint

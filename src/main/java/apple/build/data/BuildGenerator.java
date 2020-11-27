@@ -1,5 +1,7 @@
 package apple.build.data;
 
+import apple.build.Preindexing;
+import apple.build.data.constraints.BuildConstraint;
 import apple.build.data.constraints.ConstraintSimplified;
 import apple.build.data.constraints.advanced_damage.BuildConstraintAdvancedDamage;
 import apple.build.data.constraints.advanced_skill.BuildConstraintAdvancedSkills;
@@ -9,6 +11,7 @@ import apple.build.data.constraints.filter.BuildConstraintExclusion;
 import apple.build.data.constraints.general.BuildConstraintGeneral;
 import apple.build.data.enums.ElementSkill;
 import apple.build.data.threads.GeneratorForkJoinPool;
+import apple.build.sql.PreFilter;
 import apple.build.wynncraft.items.Item;
 import apple.build.wynncraft.items.ItemIdIndex;
 import apple.build.wynncraft.items.Weapon;
@@ -80,7 +83,7 @@ public class BuildGenerator {
         this.constraintsExclusion.add(buildConstraintExclusion);
     }
 
-    public List<ConstraintSimplified> getConstraints() {
+    public List<ConstraintSimplified> getSimplifiedConstraints() {
         List<ConstraintSimplified> simples = new ArrayList<>();
         for (BuildConstraintGeneral constraint : constraints)
             simples.add(constraint.getSimplified());
@@ -93,10 +96,21 @@ public class BuildGenerator {
         return simples;
     }
 
+    public List<BuildConstraint> getConstraints() {
+        List<BuildConstraint> allConstraints = new ArrayList<>(constraints);
+        allConstraints.addAll(constraintsExclusion);
+        allConstraints.addAll(constraintsAdvancedSkill);
+        allConstraints.addAll(constraintsAdvancedDamage);
+        return allConstraints;
+    }
+
     /**
      * generates for the top level
      */
     public void generate() {
+        if (isFail()) return;
+        PreFilter.filterItemPool(this, allItems[allItems.length - 1].get(0).type);
+        if (isFail()) return;
         filterOnBadArchetype();
         if (isFail()) return;
         filterOnBadContribution();
@@ -970,5 +984,16 @@ public class BuildGenerator {
 
     public Set<ElementSkill> getArchetype() {
         return archetype;
+    }
+
+    public void refineItemPoolTo(Map<Item.ItemType, List<String>> results) {
+        for (List<Item> items : allItems) {
+            List<String> refineTo = results.get(items.get(0).type);
+            if (refineTo == null) {
+                allItems = new List[0];
+                return;
+            }
+            items.removeIf(item -> !refineTo.contains(item.name));
+        }
     }
 }

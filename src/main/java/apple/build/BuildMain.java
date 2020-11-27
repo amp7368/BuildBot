@@ -105,7 +105,7 @@ public class BuildMain {
      */
     private static BuildGenerator testMajorIds() {
         List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, daggers};
-        BuildGenerator builds = new BuildGenerator(allItems,new HashSet<>() {{
+        BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
             add(ElementSkill.EARTH);
             add(ElementSkill.FIRE);
             add(ElementSkill.AIR);
@@ -136,7 +136,7 @@ public class BuildMain {
      */
     private static BuildGenerator benchmark() {
         List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, bows};
-        BuildGenerator builds = new BuildGenerator(allItems,new HashSet<>() {{
+        BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
             add(ElementSkill.THUNDER);
             add(ElementSkill.WATER);
             add(ElementSkill.FIRE);
@@ -171,7 +171,7 @@ public class BuildMain {
      */
     private static BuildGenerator test() {
         List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, bows};
-        BuildGenerator builds = new BuildGenerator(allItems,new HashSet<>() {{
+        BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
             add(ElementSkill.THUNDER);
             add(ElementSkill.WATER);
             add(ElementSkill.FIRE);
@@ -203,7 +203,7 @@ public class BuildMain {
      */
     private static BuildGenerator wfaNeptaSpellSpam() {
         List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, wands};
-        BuildGenerator builds = new BuildGenerator(allItems,new HashSet<>() {{
+        BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
             add(ElementSkill.EARTH);
             add(ElementSkill.WATER);
             add(ElementSkill.FIRE);

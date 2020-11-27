@@ -1,5 +1,6 @@
 package apple.build.data.constraints.general;
 
+import apple.build.data.constraints.BuildConstraint;
 import apple.build.data.constraints.ConstraintSimplified;
 import apple.build.data.constraints.ConstraintType;
 import apple.build.data.enums.ElementSkill;
@@ -21,6 +22,14 @@ public class ConstraintDefense extends BuildConstraintGeneral {
         this.rawIndex = name.defenseRawIndex;
         this.name = name;
         this.val = val;
+    }
+
+    public ConstraintDefense(String text, Integer val) {
+        this.name = ElementSkill.valueOf(text);
+        this.percIndex = this.name.defensePercIndex;
+        this.rawIndex = this.name.defenseRawIndex;
+        this.val = val;
+
     }
 
     @Override
@@ -95,15 +104,23 @@ public class ConstraintDefense extends BuildConstraintGeneral {
     }
 
     @Override
-    public @NotNull ConstraintType getType() {
-        return ConstraintType.TEXT_VAL;
-    }
-
-    @Override
     public @NotNull ConstraintSimplified getSimplified() {
         ConstraintSimplified simple = new ConstraintSimplified(ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_HP);
         simple.text = name.name();
-        simple.val= val;
+        simple.val = val;
         return simple;
+    }
+
+    @Override
+    public boolean isMoreStrict(BuildConstraint obj) {
+        if (obj instanceof ConstraintDefense) {
+            ConstraintDefense other = (ConstraintDefense) obj;
+            return other.name == this.name && other.val >= this.val;
+        }
+        return false;
+    }
+    @Override
+    public ConstraintSimplified.ConstraintSimplifiedName getSimplifiedName() {
+        return ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_DEFENSE;
     }
 }

@@ -1,5 +1,6 @@
 package apple.build.data.constraints.general;
 
+import apple.build.data.constraints.BuildConstraint;
 import apple.build.data.constraints.ConstraintSimplified;
 import apple.build.data.constraints.ConstraintType;
 import apple.build.wynncraft.items.Item;
@@ -15,6 +16,10 @@ public class ConstraintHpr extends BuildConstraintGeneral {
 
     public ConstraintHpr(int hpr) {
         this.hpr = hpr;
+    }
+
+    public ConstraintHpr(String text, Integer val) {
+        this.hpr = val;
     }
 
     protected boolean internalIsValid(Collection<Item> items) {
@@ -87,10 +92,6 @@ public class ConstraintHpr extends BuildConstraintGeneral {
         }
     }
 
-    @Override
-    public @NotNull ConstraintType getType() {
-        return ConstraintType.SIMPLE;
-    }
     /**
      * @return the database ready version of this constraint
      */
@@ -99,5 +100,19 @@ public class ConstraintHpr extends BuildConstraintGeneral {
         ConstraintSimplified simple = new ConstraintSimplified(ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_HPR);
         simple.val = hpr;
         return simple;
+    }
+
+    @Override
+    public boolean isMoreStrict(BuildConstraint obj) {
+        if (obj instanceof ConstraintHpr) {
+            ConstraintHpr other = (ConstraintHpr) obj;
+            return other.hpr >= this.hpr;
+        }
+        return false;
+    }
+
+    @Override
+    public ConstraintSimplified.ConstraintSimplifiedName getSimplifiedName() {
+        return ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_HPR;
     }
 }

@@ -1,5 +1,6 @@
 package apple.build.data.constraints.filter;
 
+import apple.build.data.constraints.BuildConstraint;
 import apple.build.data.constraints.ConstraintSimplified;
 import apple.build.data.constraints.ConstraintType;
 import apple.build.wynncraft.items.Item;
@@ -7,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
-public class BuildConstraintExclusion {
+public class BuildConstraintExclusion implements BuildConstraint {
     public final static List<BuildConstraintExclusion> all = new ArrayList<>();
 
     static {
@@ -22,6 +23,12 @@ public class BuildConstraintExclusion {
     public BuildConstraintExclusion(BuildConstraintExclusionTypes type) {
         this.excluded = new HashSet<>(type.exclusion);
         this.type = type.name();
+    }
+
+    public BuildConstraintExclusion(String text, Integer val) {
+        BuildConstraintExclusionTypes type = BuildConstraintExclusionTypes.valueOf(text);
+        this.type = type.name();
+        this.excluded = new HashSet<>(type.exclusion);
     }
 
 
@@ -60,19 +67,11 @@ public class BuildConstraintExclusion {
         HIVE_EARTH(Arrays.asList("Ambertoise Shell", "Humbark Moccasins", "Elder Oak Roots", "Beetle Aegis", "Subur Clip", "Golemlus Core")),
         HIVE_WATER(Arrays.asList("Whitecap Crown", "Stillwater Blue", "Trench Scourer", "Silt of the Seafloor", "Coral Ring", "Moon Pool Circlet")),
         HIVE_FIRE(Arrays.asList("Clockwork", "Dupliblaze", "Mantlewalkers", "Cinderchain", "Soulflare", "Sparkweaver"));
-        private List<String> exclusion;
+        private final List<String> exclusion;
 
         BuildConstraintExclusionTypes(List<String> exclusion) {
             this.exclusion = exclusion;
         }
-    }
-
-    /**
-     * @return what type this is
-     */
-    @NotNull
-    public ConstraintType getType() {
-        return ConstraintType.TEXT;
     }
 
     /**
@@ -83,5 +82,18 @@ public class BuildConstraintExclusion {
         ConstraintSimplified simple = new ConstraintSimplified(ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_EXCLUSION);
         simple.text = this.type;
         return simple;
+    }
+
+    @Override
+    public boolean isMoreStrict(BuildConstraint obj) {
+        if (obj instanceof BuildConstraintExclusion) {
+            BuildConstraintExclusion other = (BuildConstraintExclusion) obj;
+            return other.type.equals(this.type);
+        }
+        return false;
+    }
+    @Override
+    public ConstraintSimplified.ConstraintSimplifiedName getSimplifiedName() {
+        return ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_EXCLUSION;
     }
 }

@@ -20,7 +20,7 @@ public class InsertIndexDB {
                 statement.execute(GetIndexSql.Insert.archetype(searchId, element));
             }
             statement.close();
-            List<ConstraintSimplified> constraints = generator.getConstraints();
+            List<ConstraintSimplified> constraints = generator.getSimplifiedConstraints();
             for (ConstraintSimplified constraint : constraints) {
                 insertConstraint(searchId, constraint);
             }

@@ -1,28 +1,14 @@
 package apple.build.data.constraints;
 
-import apple.build.wynncraft.items.Item;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.List;
 
 public interface BuildConstraint {
     /**
-     * gets the best item among the given items
+     * checks if other is more strict than me
      *
-     * @param items the items to check against
-     * @return the best item for this constraint
+     * @param obj the other to check against
+     * @return true if other is more or equal strict, false if these are incompatible, false otherwise
      */
-    @Nullable
-    Item getBest(List<Item> items);
+    boolean isMoreStrict(BuildConstraint obj);
 
-    boolean contributes(Item item);
-
-    /**
-     * compares two items with this constraint
-     *
-     * @param item1 the first item to compare
-     * @param item2 the second item to compare
-     * @return positive if first is better, negative if second is better, otherwise 0
-     */
-    int compare(Item item1, Item item2);
+    ConstraintSimplified.ConstraintSimplifiedName getSimplifiedName();
 }

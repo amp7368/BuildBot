@@ -10,15 +10,9 @@ import apple.build.data.constraints.general.ConstraintId;
 import apple.build.data.enums.ElementSkill;
 import apple.build.data.enums.Spell;
 import apple.build.sql.indexdb.InsertIndexDB;
-import apple.build.wynncraft.items.Item;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static apple.build.BuildMain.*;
 

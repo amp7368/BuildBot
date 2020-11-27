@@ -1,6 +1,7 @@
 package apple.build.data.constraints.advanced_skill;
 
 import apple.build.data.BuildMath;
+import apple.build.data.constraints.BuildConstraint;
 import apple.build.data.constraints.ConstraintSimplified;
 import apple.build.data.constraints.ConstraintType;
 import apple.build.data.enums.ElementSkill;
@@ -24,6 +25,13 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
     public ConstraintSpellCost(Spell spell, int cost) {
         this.cost = cost;
         this.spell = spell;
+        this.idIndexRaw = Item.getIdIndex(SPELL_COST_RAW_NAME + spell.spellNum);
+        this.idIndexPerc = Item.getIdIndex(SPELL_COST_PERC_NAME + spell.spellNum);
+    }
+
+    public ConstraintSpellCost(String text, Integer val) {
+        this.cost = val;
+        this.spell = Spell.valueOf(text);
         this.idIndexRaw = Item.getIdIndex(SPELL_COST_RAW_NAME + spell.spellNum);
         this.idIndexPerc = Item.getIdIndex(SPELL_COST_PERC_NAME + spell.spellNum);
     }
@@ -104,15 +112,23 @@ public class ConstraintSpellCost extends BuildConstraintAdvancedSkills {
     }
 
     @Override
-    public @NotNull ConstraintType getType() {
-        return ConstraintType.TEXT_VAL;
-    }
-
-    @Override
     public @NotNull ConstraintSimplified getSimplified() {
         ConstraintSimplified simple = new ConstraintSimplified(ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_SPELL_COST);
         simple.text = spell.name();
         simple.val = cost;
         return simple;
+    }
+
+    @Override
+    public boolean isMoreStrict(BuildConstraint obj) {
+        if (obj instanceof ConstraintSpellCost) {
+            ConstraintSpellCost other = (ConstraintSpellCost) obj;
+            return other.spell == this.spell && other.cost <= this.cost;
+        }
+        return false;
+    }
+    @Override
+    public ConstraintSimplified.ConstraintSimplifiedName getSimplifiedName() {
+        return ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_SPELL_COST;
     }
 }
