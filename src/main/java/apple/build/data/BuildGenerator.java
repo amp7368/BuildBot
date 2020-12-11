@@ -111,7 +111,7 @@ public class BuildGenerator {
     public void generate() {
         if (isFail()) return;
         long timingFull = System.currentTimeMillis();
-        PreFilter.filterItemPool(this, allItems[allItems.length - 1].get(0).type);
+        boolean startedWithExactMatch = PreFilter.filterItemPool(this, allItems[allItems.length - 1].get(0).type);
         if (isFail()) return;
         filterOnBadArchetype();
         if (isFail()) return;
@@ -141,7 +141,7 @@ public class BuildGenerator {
         subGenerators = Collections.emptyList();
         allItems = new List[0];
         timingFull = System.currentTimeMillis() - timingFull;
-        if (timingFull > TOO_LONG_THRESHOLD) {
+        if (!startedWithExactMatch && timingFull > TOO_LONG_THRESHOLD) {
             Preindexing.saveResult(this);
         }
     }
@@ -389,9 +389,6 @@ public class BuildGenerator {
         int finalMainDmgRaw = mainDmgRaw;
         int finalAttackSpeed = attackSpeed;
         boolean finalHawkeye = hawkeye;
-        if(c() && allItems[4].size()==1){
-            int a =3;
-        }
         allItems[weaponIndex].removeIf(item -> {
             // make sure it's read only for the arrays
             int extraSkillPoints = Item.SKILLS_FOR_PLAYER;
@@ -430,11 +427,7 @@ public class BuildGenerator {
             myAttackSpeed += ((Weapon) item).attackSpeed.speed;
             double myFinalSpellDmg = mySpellDmg / 100.0;
             double myFinalMainDmg = myMainDmg / 100.0;
-            if(c()){
-                int a =3;
-            }
             DamageInput input = new DamageInput(myFinalSpellDmg, myFinalMainDmg, mySpellDmgRaw, myMainDmgRaw, mySkills, extraSkillPoints, extraSkillsPerElement, myElemental, Item.AttackSpeed.toModifier(myAttackSpeed));
-
             if (finalHawkeye)
                 input.setHawkeye(true);
             for (BuildConstraintAdvancedDamage constraint : constraintsAdvancedDamage) {
@@ -954,7 +947,7 @@ public class BuildGenerator {
     }
 
     private boolean c() {
-        if(allItems.length==0) return false;
+        if (allItems.length == 0) return false;
         for (List<Item> items : allItems) {
             if (!d(items)) return false;
         }
@@ -963,15 +956,15 @@ public class BuildGenerator {
 
     private boolean d(List<Item> items) {
         Set<String> set = new HashSet<>() {{
-            add("Sizzling Shawl");
-            add("Vacuum");
-            add("Garland");
-            add("Gaea-Hewn Boots");
-            add("Moon Pool Circlet");
-            add("Yang");
-            add("Dragon's Eye Bracelet");
-            add("Diamond Hydro Necklace");
-            add("Nepta Floodbringer");
+            add("Pride of the Aerie");
+            add("Elysium-Engraved Aegis");
+            add("Sagittarius");
+            add("Revenant");
+            add("Diamond Fiber Ring");
+            add("Old Keeper's Ring");
+            add("Vindicator");
+            add("Swift");
+            add("Ivory");
         }};
         for (Item item : items) {
             if (set.contains(item.name) || set.contains(item.displayName)) return true;

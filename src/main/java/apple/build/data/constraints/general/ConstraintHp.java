@@ -79,6 +79,7 @@ public class ConstraintHp extends BuildConstraintGeneral {
         simple.val = ehp;
         return simple;
     }
+
     @Override
     public boolean isMoreStrict(BuildConstraint obj) {
         if (obj instanceof ConstraintHp) {
@@ -87,8 +88,18 @@ public class ConstraintHp extends BuildConstraintGeneral {
         }
         return false;
     }
+
     @Override
     public ConstraintSimplified.ConstraintSimplifiedName getSimplifiedName() {
         return ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_HP;
+    }
+
+    @Override
+    public boolean isExact(BuildConstraint constraint) {
+        if (constraint instanceof ConstraintHp) {
+            ConstraintHp other = (ConstraintHp) constraint;
+            return other.ehp == this.ehp;
+        }
+        return false;
     }
 }

@@ -3,6 +3,7 @@ package apple.build.data.constraints.general;
 import apple.build.data.constraints.BuildConstraint;
 import apple.build.data.constraints.ConstraintSimplified;
 import apple.build.data.constraints.ConstraintType;
+import apple.build.data.constraints.advanced_skill.ConstraintSpellCost;
 import apple.build.data.enums.ElementSkill;
 import apple.build.wynncraft.items.Item;
 import org.jetbrains.annotations.NotNull;
@@ -122,5 +123,14 @@ public class ConstraintDefense extends BuildConstraintGeneral {
     @Override
     public ConstraintSimplified.ConstraintSimplifiedName getSimplifiedName() {
         return ConstraintSimplified.ConstraintSimplifiedName.CONSTRAINT_DEFENSE;
+    }
+
+    @Override
+    public boolean isExact(BuildConstraint constraint) {
+        if (constraint instanceof ConstraintDefense) {
+            ConstraintDefense other = (ConstraintDefense) constraint;
+            return other.val == this.val && other.name == this.name;
+        }
+        return false;
     }
 }

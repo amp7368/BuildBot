@@ -2,15 +2,12 @@ package apple.build;
 
 import apple.build.data.Build;
 import apple.build.data.BuildGenerator;
-import apple.build.data.constraints.general.ConstraintDefense;
+import apple.build.data.constraints.general.*;
 import apple.build.data.enums.Spell;
 import apple.build.data.constraints.filter.BuildConstraintExclusion;
 import apple.build.data.enums.ElementSkill;
 import apple.build.data.constraints.advanced_damage.ConstraintMainDamage;
 import apple.build.data.constraints.advanced_damage.ConstraintSpellDamage;
-import apple.build.data.constraints.general.ConstraintHp;
-import apple.build.data.constraints.general.ConstraintHpr;
-import apple.build.data.constraints.general.ConstraintId;
 import apple.build.data.constraints.advanced_skill.ConstraintSpellCost;
 import apple.build.sql.indexdb.VerifyIndexDB;
 import apple.build.sql.itemdb.GetItemDB;
@@ -25,6 +22,8 @@ public class BuildMain {
 
     public static final double NEGATIVE_MAX_ROLL = 0.7;
     public static final double POSITIVE_MAX_ROLL = 1.3;
+    private static final double NEGATIVE_MIN_ROLL = 1.3;
+    private static final double POSITIVE_MIN_ROLL = 0.3;
     public static List<Item> helmets;
     public static List<Item> chestplates;
     public static List<Item> leggings;
@@ -66,37 +65,33 @@ public class BuildMain {
         daggers = GetItemDB.getAllItems(Item.ItemType.DAGGER);
         wands = GetItemDB.getAllItems(Item.ItemType.WAND);
         reliks = GetItemDB.getAllItems(Item.ItemType.RELIK);
-        helmets.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
-        chestplates.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
-        leggings.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
-        boots.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
-        rings.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
-        bracelets.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
-        necklaces.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
-        bows.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
-        spears.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
-        daggers.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
-        wands.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
-        reliks.forEach(item -> item.roll(NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
+        List<List<Item>> allitems = new ArrayList<>() {{
+            add(helmets);
+            add(chestplates);
+            add(leggings);
+            add(boots);
+            add(rings);
+            add(bracelets);
+            add(necklaces);
+            add(bows);
+            add(spears);
+            add(daggers);
+            add(wands);
+            add(reliks);
+        }};
+        for (List<Item> items : allitems) {
+            items.forEach(item -> item.roll(NEGATIVE_MIN_ROLL, POSITIVE_MIN_ROLL, NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
+        }
     }
 
-    private static void combinations() throws SQLException {
+    private static void combinations() {
         helmets.removeIf(item -> item.level < 80);
         chestplates.removeIf(item -> item.level < 80);
         leggings.removeIf(item -> item.level < 80);
         boots.removeIf(item -> item.level < 80);
 
-//        helmets.removeIf(item -> !item.name.equals("Sizzling Shawl"));
-//        chestplates.removeIf(item -> !item.name.equals("Boreal-Patterned Aegis"));
-//        leggings.removeIf(item -> !item.name.equals("Leggings of Desolation"));
-//        boots.removeIf(item -> !item.name.equals("Resurgence"));
-//        rings.removeIf(item -> !item.name.equals("Gold Static Ring") && !item.name.equals("Diamond Static Ring"));
-//        bracelets.removeIf(item -> !item.name.equals("Diamond Static Bracelet"));
-//        necklaces.removeIf(item -> !item.name.equals("Tenuto"));
-//        weapon.removeIf(item -> !item.name.equals("Ignis"));
-
         long start = System.currentTimeMillis();
-        BuildGenerator builds = wfaNeptaSpellSpam();
+        BuildGenerator builds = benchmark();
         finish(builds, start);
     }
 
@@ -116,9 +111,11 @@ public class BuildMain {
         builds.addConstraint(new ConstraintId("attackSpeedBonus", 1));
         builds.addConstraint(new ConstraintId("damageBonusRaw", 2000));
         builds.addConstraint(new ConstraintId("bonusAirDamage", 100));
-        builds.addConstraint(new ConstraintMainDamage(12900));
+        builds.addConstraint(new ConstraintMajorId("GREED"));
+        builds.addConstraint(new ConstraintMajorId("MAGNET"));
+        builds.addConstraint(new ConstraintMainDamage(12000));
         builds.addConstraint(new ConstraintSpellCost(Spell.SMOKE_BOMB, 3));
-        builds.addConstraint(new ConstraintSpellDamage(Spell.SMOKE_BOMB, 9900));
+        builds.addConstraint(new ConstraintSpellDamage(Spell.SMOKE_BOMB, 9800));
         builds.addConstraint(new ConstraintHp(14500));
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
             builds.addConstraint(exclusion);
@@ -144,18 +141,18 @@ public class BuildMain {
         builds.addConstraint(new ConstraintHpr(0));
         builds.addConstraint(new ConstraintId("manaSteal", 14));
         builds.addConstraint(new ConstraintId("attackSpeedBonus", -4));
-        builds.addConstraint(new ConstraintId("damageBonusRaw", 1745));
-        builds.addConstraint(new ConstraintId("bonusThunderDamage", 102));
-        builds.addConstraint(new ConstraintId("spellDamage", 68));
-//        builds.addConstraint(new ConstraintJoinedId(Arrays.asList("bonusThunderDamage", "spellDamage"),170));
-        builds.addConstraint(new ConstraintId("spellDamageRaw", 835));
+//        builds.addConstraint(new ConstraintId("damageBonusRaw", 1745));
+//        builds.addConstraint(new ConstraintId("bonusThunderDamage", 102));
+//        builds.addConstraint(new ConstraintId("spellDamage", 68));
+        builds.addConstraint(new ConstraintJoinedId(Arrays.asList("bonusThunderDamage", "spellDamage"),170));
+//        builds.addConstraint(new ConstraintId("spellDamageRaw", 835));
         builds.addConstraint(new ConstraintDefense(ElementSkill.EARTH, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.THUNDER, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.WATER, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.FIRE, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.AIR, -100));
         builds.addConstraint(new ConstraintMainDamage(4600));
-        builds.addConstraint(new ConstraintSpellDamage(Spell.ARROW_STORM, 47122));
+        builds.addConstraint(new ConstraintSpellDamage(Spell.ARROW_STORM, 40122));
         builds.addConstraint(new ConstraintSpellCost(Spell.ARROW_STORM, 1));
         builds.addConstraint(new ConstraintHp(12500));
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
@@ -195,8 +192,6 @@ public class BuildMain {
     }
 
     /**
-     * TODO
-     *
      * @return https://www.wynndata.tk/s/wj4zbg
      */
     private static BuildGenerator wfaNeptaSpellSpam() {

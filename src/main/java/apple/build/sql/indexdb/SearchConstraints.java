@@ -76,4 +76,21 @@ class SearchConstraints {
         }
         return true;
     }
+
+    public boolean isExact(List<BuildConstraint> constraints) {
+        for (BuildConstraint constraint : constraints) {
+            ConstraintSimplifiedName name = constraint.getSimplifiedName();
+            List<BuildConstraint> myConstraints = this.constraints.get(name);
+            if (myConstraints == null) return false;
+            boolean isMatched = false;
+            for (BuildConstraint myConstraint : myConstraints) {
+                if (myConstraint.isExact(constraint)) {
+                    isMatched = true;
+                    break;
+                }
+            }
+            if (!isMatched) return false;
+        }
+        return true;
+    }
 }

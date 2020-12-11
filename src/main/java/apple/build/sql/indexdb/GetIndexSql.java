@@ -28,10 +28,10 @@ public class GetIndexSql extends GetSql {
 
         public static String constraint(long constraintId, long enumId, long textValId, ConstraintSimplified constraint) {
             return String.format("INSERT INTO all_constraints (constraint_id, constraint_enum_id, text_val_index, val)\n" +
-                            "VALUES (%d, %d, %s, %s);",
+                            "VALUES (%d, %d, %d, %s);",
                     constraintId,
                     enumId,
-                    textValId == -1 ? null : String.valueOf(textValId),
+                    textValId,
                     constraint.getValSql());
         }
 

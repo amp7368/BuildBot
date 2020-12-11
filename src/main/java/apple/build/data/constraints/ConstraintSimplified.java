@@ -22,7 +22,8 @@ public class ConstraintSimplified {
         CONSTRAINT_EXCLUSION,
         CONSTRAINT_SPELL_COST,
         CONSTRAINT_SPELL_DMG,
-        CONSTRAINT_MAIN_DMG
+        CONSTRAINT_MAIN_DMG,
+        CONSTRAINT_MAJOR_ID;
     }
 
     public String getName() {

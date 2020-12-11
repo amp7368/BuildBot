@@ -47,6 +47,9 @@ public class BuildConstraintBuilder {
             case CONSTRAINT_MAIN_DMG:
                 create = ConstraintMainDamage::new;
                 break;
+            case CONSTRAINT_MAJOR_ID:
+                create = ConstraintMajorId::new;
+                break;
             default:
                 create = null;
                 break;
