@@ -9,11 +9,13 @@ import apple.build.data.enums.ElementSkill;
 import apple.build.data.constraints.advanced_damage.ConstraintMainDamage;
 import apple.build.data.constraints.advanced_damage.ConstraintSpellDamage;
 import apple.build.data.constraints.advanced_skill.ConstraintSpellCost;
+import apple.build.discord.DiscordBot;
 import apple.build.sql.indexdb.VerifyIndexDB;
 import apple.build.sql.itemdb.GetItemDB;
 import apple.build.sql.itemdb.VerifyItemDB;
 import apple.build.wynncraft.items.Item;
 
+import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.*;
@@ -37,16 +39,13 @@ public class BuildMain {
     public static List<Item> wands;
     public static List<Item> reliks;
 
-    public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException {
-//        PrintStream out = new PrintStream(new File("data/out.out"));
-//        System.setOut(out);
+    public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException, LoginException {
         System.out.println("Starting BuildBot");
         initialize();
         System.out.println("Opened database successfully");
+        new DiscordBot();
 //        GetItems.getItems();
 //        System.out.println("Inserted items");
-//        Preindexing.preIndex();
-        combinations();
         System.out.println("done");
     }
 
