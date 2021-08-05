@@ -1,6 +1,6 @@
 package apple.build.wynncraft.items;
 
-import apple.build.data.enums.ElementSkill;
+import apple.build.search.enums.ElementSkill;
 import apple.build.utils.Pair;
 
 import java.sql.ResultSet;

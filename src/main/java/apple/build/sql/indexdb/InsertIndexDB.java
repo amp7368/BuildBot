@@ -1,9 +1,9 @@
 package apple.build.sql.indexdb;
 
-import apple.build.data.Build;
-import apple.build.data.BuildGenerator;
-import apple.build.data.constraints.ConstraintSimplified;
-import apple.build.data.enums.ElementSkill;
+import apple.build.search.Build;
+import apple.build.search.BuildGenerator;
+import apple.build.search.constraints.ConstraintSimplified;
+import apple.build.search.enums.ElementSkill;
 import apple.build.wynncraft.items.Item;
 
 import java.sql.SQLException;

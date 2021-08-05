@@ -1,14 +1,14 @@
 package apple.build;
 
-import apple.build.data.BuildGenerator;
-import apple.build.data.constraints.advanced_damage.ConstraintSpellDamage;
-import apple.build.data.constraints.advanced_skill.ConstraintSpellCost;
-import apple.build.data.constraints.filter.BuildConstraintExclusion;
-import apple.build.data.constraints.general.ConstraintHp;
-import apple.build.data.constraints.general.ConstraintHpr;
-import apple.build.data.constraints.general.ConstraintId;
-import apple.build.data.enums.ElementSkill;
-import apple.build.data.enums.Spell;
+import apple.build.search.BuildGenerator;
+import apple.build.search.constraints.advanced_damage.ConstraintSpellDamage;
+import apple.build.search.constraints.advanced_skill.ConstraintSpellCost;
+import apple.build.search.constraints.filter.BuildConstraintExclusion;
+import apple.build.search.constraints.general.ConstraintHp;
+import apple.build.search.constraints.general.ConstraintHpr;
+import apple.build.search.constraints.general.ConstraintId;
+import apple.build.search.enums.ElementSkill;
+import apple.build.search.enums.Spell;
 import apple.build.sql.indexdb.InsertIndexDB;
 
 import java.sql.SQLException;

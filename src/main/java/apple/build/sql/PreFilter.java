@@ -1,6 +1,6 @@
 package apple.build.sql;
 
-import apple.build.data.BuildGenerator;
+import apple.build.search.BuildGenerator;
 import apple.build.sql.indexdb.GetIndexDB;
 import apple.build.sql.indexdb.SearchResults;
 import apple.build.utils.Pair;

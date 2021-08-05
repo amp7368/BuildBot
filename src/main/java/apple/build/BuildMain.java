@@ -1,18 +1,19 @@
 package apple.build;
 
-import apple.build.data.Build;
-import apple.build.data.BuildGenerator;
-import apple.build.data.constraints.general.*;
-import apple.build.data.enums.Spell;
-import apple.build.data.constraints.filter.BuildConstraintExclusion;
-import apple.build.data.enums.ElementSkill;
-import apple.build.data.constraints.advanced_damage.ConstraintMainDamage;
-import apple.build.data.constraints.advanced_damage.ConstraintSpellDamage;
-import apple.build.data.constraints.advanced_skill.ConstraintSpellCost;
+import apple.build.search.Build;
+import apple.build.search.BuildGenerator;
+import apple.build.search.constraints.general.*;
+import apple.build.search.enums.Spell;
+import apple.build.search.constraints.filter.BuildConstraintExclusion;
+import apple.build.search.enums.ElementSkill;
+import apple.build.search.constraints.advanced_damage.ConstraintMainDamage;
+import apple.build.search.constraints.advanced_damage.ConstraintSpellDamage;
+import apple.build.search.constraints.advanced_skill.ConstraintSpellCost;
 import apple.build.discord.DiscordBot;
 import apple.build.sql.indexdb.VerifyIndexDB;
 import apple.build.sql.itemdb.GetItemDB;
 import apple.build.sql.itemdb.VerifyItemDB;
+import apple.build.wynncraft.GetItems;
 import apple.build.wynncraft.items.Item;
 
 import javax.security.auth.login.LoginException;

@@ -1,6 +1,6 @@
 package apple.build.sql.itemdb;
 
-import apple.build.data.enums.ElementSkill;
+import apple.build.search.enums.ElementSkill;
 import apple.build.sql.GetSql;
 import apple.build.utils.Pair;
 import apple.build.wynncraft.items.Accessory;

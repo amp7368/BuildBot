@@ -1,6 +1,6 @@
 package apple.build.wynncraft.items;
 
-import apple.build.data.enums.ElementSkill;
+import apple.build.search.enums.ElementSkill;
 import apple.build.sql.itemdb.GetItemSql;
 import apple.build.utils.OneToOneMap;
 import apple.build.utils.Pair;
@@ -184,11 +184,17 @@ public class Item {
         Object addedLoreTemp = itemMap.remove("addedLore");
         String addedLore = (addedLoreTemp == JSONObject.NULL) ? null : (String) addedLoreTemp;
         Object materialTemp = itemMap.remove("material");
-        String material = (materialTemp == JSONObject.NULL) ? null : (String) materialTemp;
+        String material = null;//(materialTemp == JSONObject.NULL) ? null : (String) materialTemp;
         Object questTemp = itemMap.remove("quest");
         String quest = (questTemp == JSONObject.NULL) ? null : (String) questTemp;
         Object classRequirementTemp = itemMap.remove("classRequirement");
-        ClassType classRequirement = (classRequirementTemp == JSONObject.NULL) ? null : ClassType.valueOf(classRequirementTemp.toString().toUpperCase());
+        ClassType classRequirement=null;
+        try{
+            classRequirement = (classRequirementTemp == JSONObject.NULL) ? null : ClassType.valueOf(classRequirementTemp.toString().toUpperCase());
+        }catch(NullPointerException e){
+            // just null if we can't figure it out
+            e.printStackTrace();
+        }
 
         String category = (String) itemMap.remove("category");
         String armorTypeTemp = null;
@@ -337,9 +343,6 @@ public class Item {
     }
 
     public int getId(int idIndex) {
-        if (idIndex == 0) {
-            int a = 3;
-        }
         return ids.getOrDefault(idIndex, 0);
     }
 

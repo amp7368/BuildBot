@@ -1,7 +1,7 @@
 package apple.build.sql.indexdb;
 
-import apple.build.data.constraints.ConstraintSimplified;
-import apple.build.data.enums.ElementSkill;
+import apple.build.search.constraints.ConstraintSimplified;
+import apple.build.search.enums.ElementSkill;
 import apple.build.sql.GetSql;
 import org.jetbrains.annotations.NotNull;
 
