@@ -1,7 +1,10 @@
 package apple.build.wynncraft.items;
 
 import apple.build.search.enums.ElementSkill;
+import apple.build.sql.indexdb.VerifyIndexDB;
+import apple.build.sql.itemdb.GetItemDB;
 import apple.build.sql.itemdb.GetItemSql;
+import apple.build.sql.itemdb.VerifyItemDB;
 import apple.build.utils.OneToOneMap;
 import apple.build.utils.Pair;
 import org.jetbrains.annotations.Nullable;
@@ -13,6 +16,63 @@ import java.sql.SQLException;
 import java.util.*;
 
 public class Item {
+    public static final double NEGATIVE_MAX_ROLL = 0.7;
+    public static final double POSITIVE_MAX_ROLL = 1.3;
+    public static final double NEGATIVE_MIN_ROLL = 1.3;
+    public static final double POSITIVE_MIN_ROLL = 0.3;
+    public static List<Item> helmets;
+    public static List<Item> chestplates;
+    public static List<Item> leggings;
+    public static List<Item> boots;
+    public static List<Item> rings;
+    public static List<Item> bracelets;
+    public static List<Item> necklaces;
+    public static List<Item> bows;
+    public static List<Item> spears;
+    public static List<Item> daggers;
+    public static List<Item> wands;
+    public static List<Item> reliks;
+
+    static {
+        try {
+            VerifyItemDB.initialize();
+            VerifyIndexDB.initialize();
+            helmets = GetItemDB.getAllItems(Item.ItemType.HELMET);
+            chestplates = GetItemDB.getAllItems(Item.ItemType.CHESTPLATE);
+            leggings = GetItemDB.getAllItems(Item.ItemType.LEGGINGS);
+            boots = GetItemDB.getAllItems(Item.ItemType.BOOTS);
+            rings = GetItemDB.getAllItems(Item.ItemType.RING);
+            bracelets = GetItemDB.getAllItems(Item.ItemType.BRACELET);
+            necklaces = GetItemDB.getAllItems(Item.ItemType.NECKLACE);
+            bows = GetItemDB.getAllItems(Item.ItemType.BOW);
+            spears = GetItemDB.getAllItems(Item.ItemType.SPEAR);
+            daggers = GetItemDB.getAllItems(ItemType.DAGGER);
+
+            wands = GetItemDB.getAllItems(Item.ItemType.WAND);
+            reliks = GetItemDB.getAllItems(Item.ItemType.RELIK);
+            List<List<Item>> allitems = new ArrayList<>() {{
+                add(helmets);
+                add(chestplates);
+                add(leggings);
+                add(boots);
+                add(rings);
+                add(bracelets);
+                add(necklaces);
+                add(bows);
+                add(spears);
+                add(daggers);
+                add(wands);
+                add(reliks);
+            }};
+            for (List<Item> items : allitems) {
+                items.forEach(item -> item.roll(NEGATIVE_MIN_ROLL, POSITIVE_MIN_ROLL, NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
+            }
+        } catch (SQLException | ClassNotFoundException throwables) {
+            throwables.printStackTrace();
+            System.exit(1);
+        }
+    }
+
     public static final int SKILLS_FOR_PLAYER = 200;
     public static final int SKILLS_PER_ELEMENT = 100;
     private static final Set<String> UNROLLABLE = new HashSet<>() {{
@@ -188,10 +248,10 @@ public class Item {
         Object questTemp = itemMap.remove("quest");
         String quest = (questTemp == JSONObject.NULL) ? null : (String) questTemp;
         Object classRequirementTemp = itemMap.remove("classRequirement");
-        ClassType classRequirement=null;
-        try{
+        ClassType classRequirement = null;
+        try {
             classRequirement = (classRequirementTemp == JSONObject.NULL) ? null : ClassType.valueOf(classRequirementTemp.toString().toUpperCase());
-        }catch(NullPointerException e){
+        } catch (NullPointerException e) {
             // just null if we can't figure it out
             e.printStackTrace();
         }
@@ -254,25 +314,12 @@ public class Item {
         for (Map.Entry<String, Object> entry : itemMap.entrySet()) {
             idsTemp.put(entry.getKey(), (Integer) entry.getValue());
         }
-        switch (typeTemp) {
-            case HELMET:
-            case CHESTPLATE:
-            case LEGGINGS:
-            case BOOTS:
-                return new Armor(idsTemp, name, displayName, level, strength, dexterity, intelligence, agility, defense, tier, sockets, dropType, restrictions, set, addedLore, material, quest, classRequirement, majorIdsTemp, identified, typeTemp, armorTypeTemp, health);
-            case WAND:
-            case DAGGER:
-            case SPEAR:
-            case BOW:
-            case RELIK:
-                return new Weapon(idsTemp, name, displayName, level, strength, dexterity, intelligence, agility, defense, tier, sockets, dropType, restrictions, set, addedLore, material, quest, classRequirement, majorIdsTemp, identified, typeTemp, attackSpeed, thunderDamageTemp, airDamageTemp, waterDamageTemp, earthDamageTemp, fireDamageTemp, damageTemp);
-            case RING:
-            case BRACELET:
-            case NECKLACE:
-                return new Accessory(idsTemp, name, displayName, level, strength, dexterity, intelligence, agility, defense, tier, sockets, dropType, restrictions, set, addedLore, material, quest, classRequirement, majorIdsTemp, identified, typeTemp, health);
-            default:
-                throw new RuntimeException("Unknown type " + typeTemp);
-        }
+        return switch (typeTemp) {
+            case HELMET, CHESTPLATE, LEGGINGS, BOOTS -> new Armor(idsTemp, name, displayName, level, strength, dexterity, intelligence, agility, defense, tier, sockets, dropType, restrictions, set, addedLore, material, quest, classRequirement, majorIdsTemp, identified, typeTemp, armorTypeTemp, health);
+            case WAND, DAGGER, SPEAR, BOW, RELIK -> new Weapon(idsTemp, name, displayName, level, strength, dexterity, intelligence, agility, defense, tier, sockets, dropType, restrictions, set, addedLore, material, quest, classRequirement, majorIdsTemp, identified, typeTemp, attackSpeed, thunderDamageTemp, airDamageTemp, waterDamageTemp, earthDamageTemp, fireDamageTemp, damageTemp);
+            case RING, BRACELET, NECKLACE -> new Accessory(idsTemp, name, displayName, level, strength, dexterity, intelligence, agility, defense, tier, sockets, dropType, restrictions, set, addedLore, material, quest, classRequirement, majorIdsTemp, identified, typeTemp, health);
+            default -> throw new RuntimeException("Unknown type " + typeTemp);
+        };
     }
 
     public static int getIdIndex(String idName) {

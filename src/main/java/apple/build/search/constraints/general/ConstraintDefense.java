@@ -17,16 +17,16 @@ public class ConstraintDefense extends BuildConstraintGeneral {
     private final ElementSkill name;
 
     public ConstraintDefense(ElementSkill name, int val) {
-        this.percIndex = name.defensePercIndex;
-        this.rawIndex = name.defenseRawIndex;
+        this.percIndex = name.getDefensePercIndex();
+        this.rawIndex = name.getDefenseRawIndex();
         this.name = name;
         this.val = val;
     }
 
     public ConstraintDefense(String text, Integer val) {
         this.name = ElementSkill.valueOf(text);
-        this.percIndex = this.name.defensePercIndex;
-        this.rawIndex = this.name.defenseRawIndex;
+        this.percIndex = this.name.getDefensePercIndex();
+        this.rawIndex = this.name.getDefenseRawIndex();
         this.val = val;
 
     }

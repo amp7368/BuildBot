@@ -10,11 +10,10 @@ import apple.build.search.constraints.general.ConstraintId;
 import apple.build.search.enums.ElementSkill;
 import apple.build.search.enums.Spell;
 import apple.build.sql.indexdb.InsertIndexDB;
+import apple.build.wynncraft.items.Item;
 
 import java.sql.SQLException;
 import java.util.*;
-
-import static apple.build.BuildMain.*;
 
 public class Preindexing {
 
@@ -45,11 +44,11 @@ public class Preindexing {
     }};
 
     public static void preIndex() {
-        helmets.removeIf(item -> item.level < 80);
-        chestplates.removeIf(item -> item.level < 80);
-        leggings.removeIf(item -> item.level < 80);
-        boots.removeIf(item -> item.level < 80);
-        List[] bowItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, wands};
+        Item.helmets.removeIf(item -> item.level < 80);
+        Item.chestplates.removeIf(item -> item.level < 80);
+        Item.leggings.removeIf(item -> item.level < 80);
+        Item.boots.removeIf(item -> item.level < 80);
+        List[] bowItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.wands};
         List<Set<ElementSkill>> archetypes = Arrays.asList(EWF, EWA, TWF, TWA, WFA);
         for (Set<ElementSkill> archetype : archetypes) {
             BuildGenerator builds = new BuildGenerator(bowItems,archetype);

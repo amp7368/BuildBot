@@ -273,7 +273,7 @@ public class BuildGenerator {
             mainDmgRaw += item.getId(ItemIdIndex.DAMAGE_BONUS_RAW);
             int i = 0;
             for (ElementSkill elementSkill : ElementSkill.values()) {
-                elemental[i++] += item.getId(elementSkill.damageIdIndex);
+                elemental[i++] += item.getId(elementSkill.getDamageIdIndex());
             }
             attackSpeed += item.getId(ItemIdIndex.ATTACK_SPEED_BONUS);
         }
@@ -352,9 +352,9 @@ public class BuildGenerator {
             for (ElementSkill elementSkill : ElementSkill.values()) {
                 for (Item item : allItems[typePieceIndex]) {
                     elementalDamage[elementIndex] = Math.max(elementalDamage[elementIndex],
-                            item.getId(elementSkill.damageIdIndex));
+                            item.getId(elementSkill.getDamageIdIndex()));
                     elementalDamage[elementIndex] = Math.max(elementalDamage[elementIndex],
-                            item.getId(elementSkill.damageIdIndex));
+                            item.getId(elementSkill.getDamageIdIndex()));
                 }
                 skills[elementIndex] = BuildUtils.bestSkillPoints(elementSkill, allItems[typePieceIndex]);
                 requiredSkills[elementIndex] = BuildUtils.bestSkillReqs(elementSkill, allItems[typePieceIndex]);
@@ -410,7 +410,7 @@ public class BuildGenerator {
                     mySkills[i] = skill;
                 }
                 mySkills[i] += item.getSkill(elementSkill); // do this after because weapon skill doesn't help with reqs
-                myElemental[i] = ((double) (elementalDamage[i] + item.getId(elementSkill.damageIdIndex))) / 100d;
+                myElemental[i] = ((double) (elementalDamage[i] + item.getId(elementSkill.getDamageIdIndex()))) / 100d;
                 i++;
             }
             if (extraSkillPoints < 0) return true; // return a failed skill point test

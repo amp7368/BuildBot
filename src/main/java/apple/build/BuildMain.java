@@ -1,45 +1,26 @@
 package apple.build;
 
+import apple.build.discord.DiscordBot;
 import apple.build.search.Build;
 import apple.build.search.BuildGenerator;
-import apple.build.search.constraints.general.*;
-import apple.build.search.enums.Spell;
-import apple.build.search.constraints.filter.BuildConstraintExclusion;
-import apple.build.search.enums.ElementSkill;
 import apple.build.search.constraints.advanced_damage.ConstraintMainDamage;
 import apple.build.search.constraints.advanced_damage.ConstraintSpellDamage;
 import apple.build.search.constraints.advanced_skill.ConstraintSpellCost;
-import apple.build.discord.DiscordBot;
-import apple.build.sql.indexdb.VerifyIndexDB;
-import apple.build.sql.itemdb.GetItemDB;
-import apple.build.sql.itemdb.VerifyItemDB;
-import apple.build.wynncraft.GetItems;
+import apple.build.search.constraints.filter.BuildConstraintExclusion;
+import apple.build.search.constraints.general.*;
+import apple.build.search.enums.ElementSkill;
+import apple.build.search.enums.Spell;
 import apple.build.wynncraft.items.Item;
 
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
 
 public class BuildMain {
-
-    public static final double NEGATIVE_MAX_ROLL = 0.7;
-    public static final double POSITIVE_MAX_ROLL = 1.3;
-    private static final double NEGATIVE_MIN_ROLL = 1.3;
-    private static final double POSITIVE_MIN_ROLL = 0.3;
-    public static List<Item> helmets;
-    public static List<Item> chestplates;
-    public static List<Item> leggings;
-    public static List<Item> boots;
-    public static List<Item> rings;
-    public static List<Item> bracelets;
-    public static List<Item> necklaces;
-    public static List<Item> bows;
-    public static List<Item> spears;
-    public static List<Item> daggers;
-    public static List<Item> wands;
-    public static List<Item> reliks;
-
     public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException, LoginException {
         System.out.println("Starting BuildBot");
         initialize();
@@ -51,44 +32,14 @@ public class BuildMain {
     }
 
     public static void initialize() throws SQLException, ClassNotFoundException {
-        VerifyItemDB.initialize();
-        VerifyIndexDB.initialize();
-        helmets = GetItemDB.getAllItems(Item.ItemType.HELMET);
-        chestplates = GetItemDB.getAllItems(Item.ItemType.CHESTPLATE);
-        leggings = GetItemDB.getAllItems(Item.ItemType.LEGGINGS);
-        boots = GetItemDB.getAllItems(Item.ItemType.BOOTS);
-        rings = GetItemDB.getAllItems(Item.ItemType.RING);
-        bracelets = GetItemDB.getAllItems(Item.ItemType.BRACELET);
-        necklaces = GetItemDB.getAllItems(Item.ItemType.NECKLACE);
-        bows = GetItemDB.getAllItems(Item.ItemType.BOW);
-        spears = GetItemDB.getAllItems(Item.ItemType.SPEAR);
-        daggers = GetItemDB.getAllItems(Item.ItemType.DAGGER);
-        wands = GetItemDB.getAllItems(Item.ItemType.WAND);
-        reliks = GetItemDB.getAllItems(Item.ItemType.RELIK);
-        List<List<Item>> allitems = new ArrayList<>() {{
-            add(helmets);
-            add(chestplates);
-            add(leggings);
-            add(boots);
-            add(rings);
-            add(bracelets);
-            add(necklaces);
-            add(bows);
-            add(spears);
-            add(daggers);
-            add(wands);
-            add(reliks);
-        }};
-        for (List<Item> items : allitems) {
-            items.forEach(item -> item.roll(NEGATIVE_MIN_ROLL, POSITIVE_MIN_ROLL, NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
-        }
+
     }
 
     private static void combinations() {
-        helmets.removeIf(item -> item.level < 80);
-        chestplates.removeIf(item -> item.level < 80);
-        leggings.removeIf(item -> item.level < 80);
-        boots.removeIf(item -> item.level < 80);
+        Item.helmets.removeIf(item -> item.level < 80);
+        Item.chestplates.removeIf(item -> item.level < 80);
+        Item.leggings.removeIf(item -> item.level < 80);
+        Item.boots.removeIf(item -> item.level < 80);
 
         long start = System.currentTimeMillis();
         BuildGenerator builds = benchmark();
@@ -99,7 +50,7 @@ public class BuildMain {
      * @return https://wynndata.tk/s/t9vo23
      */
     private static BuildGenerator testMajorIds() {
-        List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, daggers};
+        List[] allItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.daggers};
         BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
             add(ElementSkill.EARTH);
             add(ElementSkill.FIRE);
@@ -132,7 +83,7 @@ public class BuildMain {
      * @return https://wynndata.tk/s/ykeag2
      */
     private static BuildGenerator benchmark() {
-        List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, bows};
+        List[] allItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.bows};
         BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
             add(ElementSkill.THUNDER);
             add(ElementSkill.WATER);
@@ -144,7 +95,7 @@ public class BuildMain {
 //        builds.addConstraint(new ConstraintId("damageBonusRaw", 1745));
 //        builds.addConstraint(new ConstraintId("bonusThunderDamage", 102));
 //        builds.addConstraint(new ConstraintId("spellDamage", 68));
-        builds.addConstraint(new ConstraintJoinedId(Arrays.asList("bonusThunderDamage", "spellDamage"),170));
+        builds.addConstraint(new ConstraintJoinedId(Arrays.asList("bonusThunderDamage", "spellDamage"), 170));
 //        builds.addConstraint(new ConstraintId("spellDamageRaw", 835));
         builds.addConstraint(new ConstraintDefense(ElementSkill.EARTH, -100));
         builds.addConstraint(new ConstraintDefense(ElementSkill.THUNDER, -100));
@@ -165,7 +116,7 @@ public class BuildMain {
      * @return https://wynndata.tk/s/ol8ktd
      */
     private static BuildGenerator test() {
-        List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, bows};
+        List[] allItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.bows};
         BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
             add(ElementSkill.THUNDER);
             add(ElementSkill.WATER);
@@ -195,7 +146,7 @@ public class BuildMain {
      * @return https://www.wynndata.tk/s/wj4zbg
      */
     private static BuildGenerator wfaNeptaSpellSpam() {
-        List[] allItems = {helmets, chestplates, leggings, boots, new ArrayList<>(rings), rings, bracelets, necklaces, wands};
+        List[] allItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.wands};
         BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
             add(ElementSkill.EARTH);
             add(ElementSkill.WATER);

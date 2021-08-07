@@ -9,7 +9,6 @@ import java.util.Arrays;
 import java.util.Map;
 
 public class Weapon extends Item {
-
     public final AttackSpeed attackSpeed;
     public final Pair<Integer, Integer>[] elemental;
     public final Pair<Integer, Integer> damage;
