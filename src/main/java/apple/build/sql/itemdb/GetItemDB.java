@@ -21,24 +21,9 @@ public class GetItemDB {
             if (!response.isClosed()) {
                 while (response.next()) {
                     switch (itemType) {
-                        case HELMET:
-                        case CHESTPLATE:
-                        case LEGGINGS:
-                        case BOOTS:
-                            items.add(new Armor(response, itemType));
-                            break;
-                        case WAND:
-                        case DAGGER:
-                        case SPEAR:
-                        case BOW:
-                        case RELIK:
-                            items.add(new Weapon(response, itemType));
-                            break;
-                        case RING:
-                        case BRACELET:
-                        case NECKLACE:
-                            items.add(new Accessory(response, itemType));
-                            break;
+                        case HELMET, CHESTPLATE, LEGGINGS, BOOTS -> items.add(new Armor(response, itemType));
+                        case WAND, DAGGER, SPEAR, BOW, RELIK -> items.add(new Weapon(response, itemType));
+                        case RING, BRACELET, NECKLACE -> items.add(new Accessory(response, itemType));
                     }
                 }
             }

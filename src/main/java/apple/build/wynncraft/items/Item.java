@@ -32,6 +32,33 @@ public class Item {
     public static List<Item> daggers;
     public static List<Item> wands;
     public static List<Item> reliks;
+    public static final int SKILLS_FOR_PLAYER = 200;
+    public static final int SKILLS_PER_ELEMENT = 100;
+    private static final Set<String> UNROLLABLE = new HashSet<>() {{
+        add("thunderDefense");
+        add("airDefense");
+        add("earthDefense");
+        add("waterDefense");
+        add("fireDefense");
+        add("dexterityPoints");
+        add("agilityPoints");
+        add("strengthPoints");
+        add("defensePoints");
+        add("intelligencePoints");
+    }};
+    private static final Set<String> REVERSED_ROLLS = new HashSet<>() {{
+        add("spellCostRaw1");
+        add("spellCostRaw2");
+        add("spellCostRaw3");
+        add("spellCostRaw4");
+        add("spellCostPct1");
+        add("spellCostPct2");
+        add("spellCostPct3");
+        add("spellCostPct4");
+    }};
+    public static final Set<String> majorIdsListAll = new HashSet<>();
+    private static final OneToOneMap<String, Integer> idNameToUid = new OneToOneMap<>();
+    private static int currentUid = 0;
 
     static {
         try {
@@ -73,32 +100,6 @@ public class Item {
         }
     }
 
-    public static final int SKILLS_FOR_PLAYER = 200;
-    public static final int SKILLS_PER_ELEMENT = 100;
-    private static final Set<String> UNROLLABLE = new HashSet<>() {{
-        add("thunderDefense");
-        add("airDefense");
-        add("earthDefense");
-        add("waterDefense");
-        add("fireDefense");
-        add("dexterityPoints");
-        add("agilityPoints");
-        add("strengthPoints");
-        add("defensePoints");
-        add("intelligencePoints");
-    }};
-    private static final Set<String> REVERSED_ROLLS = new HashSet<>() {{
-        add("spellCostRaw1");
-        add("spellCostRaw2");
-        add("spellCostRaw3");
-        add("spellCostRaw4");
-        add("spellCostPct1");
-        add("spellCostPct2");
-        add("spellCostPct3");
-        add("spellCostPct4");
-    }};
-    private static final OneToOneMap<String, Integer> idNameToUid = new OneToOneMap<>();
-    private static int currentUid = 0;
     public final Map<Integer, Integer> ids = new HashMap<>();
     public final String name;
     public final String displayName;
@@ -140,6 +141,7 @@ public class Item {
         this.quest = other.quest;
         this.classRequirement = other.classRequirement;
         this.majorIds = Arrays.copyOf(other.majorIds, other.majorIds.length);
+        majorIdsListAll.addAll(Arrays.asList(this.majorIds));
         this.identified = other.identified;
         this.type = other.type;
         this.level = other.level;
@@ -176,6 +178,7 @@ public class Item {
         this.quest = quest;
         this.classRequirement = classRequirement;
         this.majorIds = majorIds;
+        majorIdsListAll.addAll(Arrays.asList(this.majorIds));
         this.identified = identified;
         this.type = type;
     }
@@ -199,7 +202,10 @@ public class Item {
         String classRequirementTemp = response.getString("classRequirement");
         this.classRequirement = classRequirementTemp == null ? null : ClassType.valueOf(classRequirementTemp);
         String majorIdsTemp = response.getString("majorIds");
-        this.majorIds = majorIdsTemp == null ? null : majorIdsTemp.split(",");
+        List<String> majorIdsListTemp = new ArrayList<>(majorIdsTemp == null || majorIdsTemp.equals("null") ? Collections.emptyList() : Arrays.asList(majorIdsTemp.split(",")));
+        majorIdsListTemp.removeAll(List.of("", "null"));
+        this.majorIds = majorIdsListTemp.toArray(new String[0]);
+        majorIdsListAll.addAll(Arrays.asList(this.majorIds));
         this.identified = response.getBoolean("identified");
         this.level = response.getInt("level");
         this.type = itemType;

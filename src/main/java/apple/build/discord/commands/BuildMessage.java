@@ -3,30 +3,40 @@ package apple.build.discord.commands;
 import apple.build.discord.DiscordBot;
 import apple.build.search.enums.ElementSkill;
 import apple.build.utils.Pretty;
+import apple.build.wynncraft.items.Item;
 import apple.discord.acd.ACD;
 import apple.discord.acd.MillisTimeUnits;
 import apple.discord.acd.reaction.DiscordEmoji;
 import apple.discord.acd.reaction.buttons.GuiButton;
+import apple.discord.acd.reaction.buttons.GuiMenu;
 import apple.discord.acd.reaction.gui.ACDGui;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.ButtonStyle;
 import net.dv8tion.jda.api.interactions.components.ComponentInteraction;
+import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.internal.interactions.ButtonImpl;
+import net.dv8tion.jda.internal.interactions.SelectionMenuImpl;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 public class BuildMessage extends ACDGui {
     public static final String SUBMIT_BUTTON_ID = "submit";
+    public static final String MAJOR_ID_SELECTION_ID = "major_id_sel";
+    private static final String BACK_BUTTON_ID = "back";
+    private static final String MAJOR_ID_CLEAR = "major_id_clear";
     private BuildPhase phase = BuildPhase.ELEMENTS;
-    private List<ElementSkill> elements = new ArrayList<>();
+    private final List<ElementSkill> elements = new ArrayList<>();
+    private final List<String> majorIds = new ArrayList<>();
     private MessageEmbed error = null;
 
     public BuildMessage(ACD acd, MessageChannel channel) {
@@ -49,6 +59,8 @@ public class BuildMessage extends ACDGui {
                 return makeElementsMessage();
             case MAJOR_ID:
                 return makeMajorIdMessage();
+            case DAMAGE:
+                return makeDamageMessage();
         }
         MessageBuilder messageBuilder = new MessageBuilder();
         messageBuilder.setContent("hmm");
@@ -59,8 +71,8 @@ public class BuildMessage extends ACDGui {
     @GuiButton(id = SUBMIT_BUTTON_ID)
     public void submit(ComponentInteraction interaction) {
         switch (phase) {
-            case ELEMENTS:
-                elementsSubmit(interaction);
+            case ELEMENTS -> elementsSubmit(interaction);
+            case MAJOR_ID -> majorIdSubmit(interaction);
         }
     }
 
@@ -104,6 +116,18 @@ public class BuildMessage extends ACDGui {
         editAsReply(interaction);
     }
 
+    @GuiMenu(id = MAJOR_ID_SELECTION_ID)
+    public void majorIdMenu(SelectionMenuEvent interaction) {
+        majorIds.addAll(interaction.getValues());
+        editAsReply(interaction);
+    }
+
+    @GuiButton(id = MAJOR_ID_CLEAR)
+    public void majorIdClear(ComponentInteraction interaction) {
+        majorIds.clear();
+        editAsReply(interaction);
+    }
+
     public void elementsSubmit(ComponentInteraction interaction) {
         if (this.elements.size() > 3) {
             EmbedBuilder errorBuilder = new EmbedBuilder();
@@ -113,6 +137,11 @@ public class BuildMessage extends ACDGui {
         } else {
             phase = BuildPhase.MAJOR_ID;
         }
+        editAsReply(interaction);
+    }
+
+    private void majorIdSubmit(ComponentInteraction interaction) {
+        phase = BuildPhase.DAMAGE;
         editAsReply(interaction);
     }
 
@@ -146,7 +175,43 @@ public class BuildMessage extends ACDGui {
     }
 
     private Message makeMajorIdMessage() {
-        return null;
+        final MessageBuilder messageBuilder = new MessageBuilder();
+        final EmbedBuilder embed = new EmbedBuilder();
+        embed.setTitle("Select major ids");
+        embed.setAuthor("Select all the major ids you require for your build");
+        embed.setDescription(majorIds.stream().map(Pretty::uppercaseFirst).collect(Collectors.joining("\n")));
+        messageBuilder.setEmbeds(embed.build());
+        List<SelectOption> majorIdOptions = new ArrayList<>();
+        List<String> majorIdsAll = new ArrayList<>(Item.majorIdsListAll);
+        majorIdsAll.sort(String::compareTo);
+        for (String majorId : majorIdsAll) {
+            majorIdOptions.add(
+                    SelectOption.of(
+                            majorId, Pretty.uppercaseFirst(majorId)
+                    )
+            );
+        }
+        ActionRow majorIdSelection = ActionRow.of(
+                new SelectionMenuImpl(
+                        MAJOR_ID_SELECTION_ID,
+                        "Major Ids",
+                        1,
+                        majorIdsAll.size(),
+                        false,
+                        majorIdOptions
+                )
+        );
+        ActionRow navigationRow = ActionRow.of(
+                new ButtonImpl(BACK_BUTTON_ID, "Back", ButtonStyle.DANGER, false, null),
+                new ButtonImpl(SUBMIT_BUTTON_ID, "Submit", ButtonStyle.SUCCESS, false, null),
+                new ButtonImpl(MAJOR_ID_CLEAR, "Clear", ButtonStyle.PRIMARY, false, null)
+        );
+        messageBuilder.setActionRows(majorIdSelection, navigationRow);
+        return messageBuilder.build();
+    }
+
+    private Message makeDamageMessage() {
+        return new MessageBuilder("incomplete").build();
     }
 
     private enum BuildPhase {
