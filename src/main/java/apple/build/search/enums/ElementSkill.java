@@ -2,6 +2,7 @@ package apple.build.search.enums;
 
 import apple.build.utils.Pretty;
 import apple.build.wynncraft.items.Item;
+import org.jetbrains.annotations.NotNull;
 
 public enum ElementSkill {
     THUNDER("dexterity", Constants.THUNDER_ID),
@@ -19,7 +20,7 @@ public enum ElementSkill {
     ElementSkill(String skill, String id) {
         this.skill = skill;
         this.id = id;
-        }
+    }
 
     public Powder getPowder() {
         return Powder.valueOf(name());
@@ -48,20 +49,42 @@ public enum ElementSkill {
         if (!wasIdIndexSet) {
             wasIdIndexSet = true;
             setIdIndex();
-        }return defenseRawIndex;
+        }
+        return defenseRawIndex;
     }
 
     public int getDefensePercIndex() {
         if (!wasIdIndexSet) {
             wasIdIndexSet = true;
             setIdIndex();
-        }return defensePercIndex;
+        }
+        return defensePercIndex;
     }
 
     private void setIdIndex() {
-        this.damageIdIndex = Item.getIdIndex("bonus" + Pretty.uppercaseFirst(name().toLowerCase() + "Damage"));
-        this.defenseRawIndex = Item.getIdIndex(name().toLowerCase() + "Defense");
-        this.defensePercIndex = Item.getIdIndex("bonus" + Pretty.uppercaseFirst(name().toLowerCase()) + "Defense");
+        this.damageIdIndex = Item.getIdIndex(getDamageId());
+        this.defenseRawIndex = Item.getIdIndex(getDefenseId());
+        this.defensePercIndex = Item.getIdIndex(getBonusDefenseId());
+    }
+
+    @NotNull
+    public String getBonusDefenseId() {
+        return "bonus" + Pretty.uppercaseFirst(name().toLowerCase()) + "Defense";
+    }
+
+    @NotNull
+    public String getDefenseId() {
+        return name().toLowerCase() + "Defense";
+    }
+
+    @NotNull
+    public String getDamageId() {
+        return "bonus" + Pretty.uppercaseFirst(name().toLowerCase()) + "Damage";
+    }
+
+    @NotNull
+    public String prettyName() {
+        return Pretty.uppercaseFirst(name());
     }
 
     public static class Constants {

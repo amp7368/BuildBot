@@ -1,5 +1,7 @@
 package apple.build.search.enums;
 
+import apple.build.utils.Pretty;
+
 public enum Spell {
     ARROW_STORM(6, 1, 6, .25, 0, 0, 0, 0.15),
     ESCAPE(3, 2, 1, 0, 0.5, 0, 0, 0),
@@ -35,23 +37,17 @@ public enum Spell {
         int i = 0;
         for (ElementSkill element : ElementSkill.values()) {
             switch (element) {
-                case THUNDER:
-                    elemental[i] = thunder;
-                    break;
-                case AIR:
-                    elemental[i] = air;
-                    break;
-                case EARTH:
-                    elemental[i] = earth;
-                    break;
-                case WATER:
-                    elemental[i] = water;
-                    break;
-                case FIRE:
-                    elemental[i] = fire;
-                    break;
+                case THUNDER -> elemental[i] = thunder;
+                case AIR -> elemental[i] = air;
+                case EARTH -> elemental[i] = earth;
+                case WATER -> elemental[i] = water;
+                case FIRE -> elemental[i] = fire;
             }
             i++;
         }
+    }
+
+    public String prettyName() {
+        return Pretty.uppercaseFirst(this.name());
     }
 }

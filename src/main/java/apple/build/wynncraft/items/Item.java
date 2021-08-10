@@ -336,6 +336,9 @@ public class Item {
         return idNameToUid.getFromVal(index);
     }
 
+    public static Set<String> idsListAll() {
+        return idNameToUid.keySet();
+    }
 
     public void addIds(ResultSet response) throws SQLException {
         if (!response.isClosed())

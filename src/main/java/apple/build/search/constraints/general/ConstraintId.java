@@ -6,14 +6,17 @@ import apple.build.wynncraft.items.Item;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
 
 public class ConstraintId extends BuildConstraintGeneral {
     private final int name;
-    private final int value;
+    private final String stringName;
+    private int value;
 
     public ConstraintId(String name, int value) {
         this.name = Item.getIdIndex(name);
+        this.stringName = name;
         this.value = value;
     }
 
@@ -105,10 +108,21 @@ public class ConstraintId extends BuildConstraintGeneral {
 
     @Override
     public boolean isExact(BuildConstraint constraint) {
-        if (constraint instanceof ConstraintId) {
-            ConstraintId other = (ConstraintId) constraint;
+        if (constraint instanceof ConstraintId other) {
             return other.name == this.name && other.value == this.value;
         }
         return false;
+    }
+
+    public int getValue() {
+        return value;
+    }
+
+    public void setValue(int value) {
+        this.value = value;
+    }
+
+    public String getStringName() {
+        return stringName;
     }
 }

@@ -2,6 +2,7 @@ package apple.build.utils;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class OneToOneMap<K, V> {
     private final Map<K, V> map = new HashMap<>();
@@ -28,5 +29,13 @@ public class OneToOneMap<K, V> {
 
     public boolean isEmpty() {
         return map.isEmpty();
+    }
+
+    public Set<K> keySet() {
+        return map.keySet();
+    }
+
+    public Set<V> values() {
+        return backwardsMap.keySet();
     }
 }
