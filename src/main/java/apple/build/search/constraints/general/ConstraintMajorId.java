@@ -6,7 +6,6 @@ import apple.build.wynncraft.items.Item;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
 import java.util.List;
 
 public class ConstraintMajorId extends BuildConstraintGeneral {
@@ -21,7 +20,7 @@ public class ConstraintMajorId extends BuildConstraintGeneral {
     }
 
     @Override
-    protected boolean internalIsValid(Collection<Item> items) {
+    protected boolean internalIsValid(Iterable<Item> items) {
         for (Item item : items) {
             for (String majorId : item.majorIds) {
                 if (this.majorId.equals(majorId)) return true;
@@ -53,10 +52,16 @@ public class ConstraintMajorId extends BuildConstraintGeneral {
         boolean contains1 = false;
         boolean contains2 = false;
         for (String majorId : item1.majorIds) {
-            if (this.majorId.equals(majorId)) contains1 = true;
+            if (this.majorId.equals(majorId)) {
+                contains1 = true;
+                break;
+            }
         }
         for (String majorId : item2.majorIds) {
-            if (this.majorId.equals(majorId)) contains2 = true;
+            if (this.majorId.equals(majorId)) {
+                contains2 = true;
+                break;
+            }
         }
         if (contains1 == contains2) return 0;
         return contains1 ? 1 : -1;

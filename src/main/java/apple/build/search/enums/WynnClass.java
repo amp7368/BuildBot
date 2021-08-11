@@ -1,6 +1,5 @@
 package apple.build.search.enums;
 
-import apple.build.discord.commands.BuildMessage;
 import apple.build.wynncraft.items.Item;
 
 import java.util.List;

@@ -9,12 +9,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.List;
 
 public class GetItemDB {
-    public static List<Item> getAllItems(Item.ItemType itemType) throws SQLException {
+    public static ArrayList<Item> getAllItems(Item.ItemType itemType) throws SQLException {
         synchronized (VerifyItemDB.syncDB) {
-            List<Item> items = new ArrayList<>();
+            ArrayList<Item> items = new ArrayList<>();
             String sql = GetItemSql.getAllItems(itemType);
             Statement statement = VerifyItemDB.databaseItem.createStatement();
             ResultSet response = statement.executeQuery(sql);

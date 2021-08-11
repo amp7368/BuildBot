@@ -1,6 +1,5 @@
 package apple.build.search;
 
-import apple.build.Preindexing;
 import apple.build.search.constraints.BuildConstraint;
 import apple.build.search.constraints.ConstraintSimplified;
 import apple.build.search.constraints.advanced_damage.BuildConstraintAdvancedDamage;
@@ -11,7 +10,6 @@ import apple.build.search.constraints.filter.BuildConstraintExclusion;
 import apple.build.search.constraints.general.BuildConstraintGeneral;
 import apple.build.search.enums.ElementSkill;
 import apple.build.search.threads.GeneratorForkJoinPool;
-import apple.build.sql.PreFilter;
 import apple.build.wynncraft.items.Item;
 import apple.build.wynncraft.items.ItemIdIndex;
 import apple.build.wynncraft.items.Weapon;
@@ -24,8 +22,8 @@ public class BuildGenerator {
     private static final long TOO_LONG_THRESHOLD = 3 * 1000;
     private final int layer;
     private final Set<ElementSkill> archetype;
-    private List<Item>[] allItems;
-    private List<BuildGenerator> subGenerators = new ArrayList<>();
+    private ArrayList<Item>[] allItems;
+    private ArrayList<BuildGenerator> subGenerators = new ArrayList<>();
     private final List<BuildConstraintGeneral> constraints;
     private final List<BuildConstraintExclusion> constraintsExclusion;
     private final List<BuildConstraintAdvancedSkills> constraintsAdvancedSkill;
@@ -43,7 +41,7 @@ public class BuildGenerator {
      *
      * @param allItems the items to build with (weapon must be last)
      */
-    public BuildGenerator(List<Item>[] allItems, Set<ElementSkill> archetype) {
+    public BuildGenerator(ArrayList<Item>[] allItems, Set<ElementSkill> archetype) {
         this.allItems = allItems;
         this.layer = 0;
         this.constraints = new ArrayList<>();
@@ -53,7 +51,7 @@ public class BuildGenerator {
         this.archetype = archetype;
     }
 
-    private BuildGenerator(List<Item>[] subItems, List<BuildConstraintGeneral> constraints,
+    private BuildGenerator(ArrayList<Item>[] subItems, List<BuildConstraintGeneral> constraints,
                            List<BuildConstraintAdvancedSkills> constraintsAdvancedSkill,
                            List<BuildConstraintAdvancedDamage> constraintsAdvancedDamage,
                            List<BuildConstraintExclusion> constraintsExclusion,
@@ -111,7 +109,7 @@ public class BuildGenerator {
     public void generate() {
         if (isFail()) return;
         long timingFull = System.currentTimeMillis();
-        boolean startedWithExactMatch = PreFilter.filterItemPool(this, allItems[allItems.length - 1].get(0).type);
+//        boolean startedWithExactMatch = PreFilter.filterItemPool(this, allItems[allItems.length - 1].get(0).type);
         if (isFail()) return;
         filterOnBadArchetype();
         if (isFail()) return;
@@ -138,12 +136,12 @@ public class BuildGenerator {
         List<Build> builds = getBuilds();
         finalLayerFilter(builds);
         extraBuilds.addAll(new HashSet<>(builds));
-        subGenerators = Collections.emptyList();
-        allItems = new List[0];
+        subGenerators = new ArrayList<>(0);
+        allItems = new ArrayList[0];
         timingFull = System.currentTimeMillis() - timingFull;
-        if (!startedWithExactMatch && timingFull > TOO_LONG_THRESHOLD) {
-            Preindexing.saveResult(this);
-        }
+//        if (!startedWithExactMatch && timingFull > TOO_LONG_THRESHOLD) {
+//            Preindexing.saveResult(this);
+//        }
     }
 
 
@@ -160,6 +158,7 @@ public class BuildGenerator {
         if (subGenerators.isEmpty()) {
             return;
         }
+        subGenerators.trimToSize();
         if (myThreadsCount <= 1) {
             if (onLastTasks) {
                 subGenerators.parallelStream().forEach(buildGenerator -> buildGenerator.generate(layerToStop, myThreadsCount));
@@ -177,12 +176,13 @@ public class BuildGenerator {
             }
         }
 
-        subGenerators.removeIf(generator -> generator.size().equals(BigInteger.ZERO));
+        subGenerators.removeIf(BuildGenerator::isEmpty);
+        subGenerators.trimToSize();
         if (size().compareTo(BigInteger.valueOf(100)) < 0) {
             List<Build> builds = getBuilds();
             finalLayerFilter(builds);
             extraBuilds.addAll(builds);
-            subGenerators = Collections.emptyList();
+            subGenerators = new ArrayList<>(0);
         }
     }
 
@@ -192,8 +192,8 @@ public class BuildGenerator {
             List<Build> builds = getBuilds();
             extraBuilds.addAll(builds);
             finalLayerFilter(builds);
-            subGenerators = Collections.emptyList();
-            allItems = new List[0];
+            subGenerators = new ArrayList<>(0);
+            allItems = new ArrayList[0];
             return false;
         }
         filterOnExclusion();
@@ -205,8 +205,7 @@ public class BuildGenerator {
         filterWeaponOnAdvancedDamageConstraintsFirstPass();
         if (isFail()) return true;
         filterOnSkillReqsFirstPass(archetype);
-        if (isFail()) return true;
-        return false;
+        return isFail();
     }
 
     private void filterOnExclusion() {
@@ -242,8 +241,7 @@ public class BuildGenerator {
             if (filterWeaponOnAdvancedDamageConstraintsSecondPass(build)) return true;
             if (filterOnConstraints(build)) return true;
             if (filterOnConstraintsAdvancedSkill(build)) return true;
-            if (filterOnExclusion(build)) return true;
-            return false;
+            return filterOnExclusion(build);
         });
     }
 
@@ -437,6 +435,26 @@ public class BuildGenerator {
         });
     }
 
+    public boolean isEmpty() {
+        if (allItems.length != 0) {
+            boolean shouldStop = true;
+            for (List<Item> type : allItems) {
+                if (type.isEmpty()) {
+                    shouldStop = false;
+                    break;
+                }
+            }
+            if (shouldStop) return false;
+        }
+        if (!extraBuilds.isEmpty()) {
+            return false;
+        }
+        for (BuildGenerator generator : subGenerators) {
+            if (!generator.isEmpty()) return false;
+        }
+        return true;
+    }
+
     public BigInteger size() {
         BigInteger combinationsCount;
         if (allItems.length == 0) {
@@ -476,10 +494,10 @@ public class BuildGenerator {
         }
         List<Item> items = allItems[pieceIndex];
         for (Item chosenItem : items) {
-            List<Item>[] subItems = new List[length];
+            ArrayList<Item>[] subItems = new ArrayList[length];
             for (int subIndex = 0; subIndex < length; subIndex++) {
                 if (subIndex == pieceIndex) {
-                    List<Item> smallList = new ArrayList<>(1);
+                    ArrayList<Item> smallList = new ArrayList<>(1);
                     smallList.add(chosenItem);
                     subItems[subIndex] = smallList;
                 } else {
@@ -495,7 +513,7 @@ public class BuildGenerator {
                     archetype,
                     layer + 1));
         }
-        allItems = new List[0];
+        allItems = new ArrayList[0];
     }
 
     /**
@@ -623,21 +641,11 @@ public class BuildGenerator {
         int j = 0;
         for (ElementSkill elementSkill : ElementSkill.values()) {
             switch (elementSkill) {
-                case THUNDER:
-                    realSkills[j] = response.mySkills[0];
-                    break;
-                case AIR:
-                    realSkills[j] = response.mySkills[1];
-                    break;
-                case EARTH:
-                    realSkills[j] = response.mySkills[2];
-                    break;
-                case WATER:
-                    realSkills[j] = response.mySkills[3];
-                    break;
-                case FIRE:
-                    realSkills[j] = response.mySkills[4];
-                    break;
+                case THUNDER -> realSkills[j] = response.mySkills[0];
+                case AIR -> realSkills[j] = response.mySkills[1];
+                case EARTH -> realSkills[j] = response.mySkills[2];
+                case WATER -> realSkills[j] = response.mySkills[3];
+                case FIRE -> realSkills[j] = response.mySkills[4];
             }
             j++;
         }
@@ -840,7 +848,7 @@ public class BuildGenerator {
     private void filterOnConstraints() {
         for (BuildConstraintGeneral constraint : constraints) {
             for (int optimizingIndex = 0; optimizingIndex < allItems.length; optimizingIndex++) {
-                List<Item> bestItems = new ArrayList<>();
+                List<Item> bestItems = new ArrayList<>(allItems.length);
                 for (int index = 0; index < allItems.length; index++) {
                     if (optimizingIndex != index) {
                         Item bestItem = constraint.getBest(allItems[index]);
@@ -993,13 +1001,14 @@ public class BuildGenerator {
     }
 
     public void refineItemPoolTo(Map<Item.ItemType, List<String>> results) {
-        for (List<Item> items : allItems) {
+        for (ArrayList<Item> items : allItems) {
             List<String> refineTo = results.get(items.get(0).type);
             if (refineTo == null) {
-                allItems = new List[0];
+                allItems = new ArrayList[0];
                 return;
             }
             items.removeIf(item -> !refineTo.contains(item.name));
+            items.trimToSize();
         }
     }
 }

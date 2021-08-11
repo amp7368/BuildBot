@@ -19,6 +19,7 @@ import java.util.List;
 
 public class BuildMath {
     private static final int MAX_SKILL_POINT_ALLOCATION = 150;
+    private static final Float[] skillImprovements = new Float[MAX_SKILL_POINT_ALLOCATION + 1];
 
     /**
      * gets the percent increase that a skill point of sp gives
@@ -29,9 +30,14 @@ public class BuildMath {
     public static float getSkillImprovement(int sp) {
         if (sp < 0) return 0;
         if (sp > MAX_SKILL_POINT_ALLOCATION) sp = MAX_SKILL_POINT_ALLOCATION;
-        return Math.round((
-                -0.0000000166 * Math.pow(sp, 4) + 0.0000122614 * Math.pow(sp, 3) - 0.0044972984 * Math.pow(sp, 2) + 0.9931907398 * sp + 0.0093811967
-        ) * 10) / 10f; //idk what this formula is
+        Float valueThere = skillImprovements[sp];
+        if (valueThere == null) {
+            float improvement = Math.round((
+                    -0.0000000166 * Math.pow(sp, 4) + 0.0000122614 * Math.pow(sp, 3) - 0.0044972984 * Math.pow(sp, 2) + 0.9931907398 * sp + 0.0093811967
+            ) * 10) / 10f; //idk what this formula is
+            return skillImprovements[sp] = improvement;
+        }
+        return valueThere;
     }
 
     /**

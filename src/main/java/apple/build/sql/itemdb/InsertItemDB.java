@@ -11,8 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static apple.build.sql.itemdb.VerifyItemDB.syncDB;
 import static apple.build.sql.itemdb.VerifyItemDB.databaseItem;
+import static apple.build.sql.itemdb.VerifyItemDB.syncDB;
 
 public class InsertItemDB {
     public static void insertItems(Item[] items) throws SQLException {
@@ -24,7 +24,7 @@ public class InsertItemDB {
             for (Item item : items) {
                 if (i++ % 50 == 0)
                     System.out.printf("doing %d/%d\n", i, size);
-                if (!item.tier.toLowerCase().equals("normal") && statement.executeQuery(GetItemSql.existsItem(item.type.name(), item.name)).getInt(1) == 0) {
+                if (!item.tier.equalsIgnoreCase("normal") && statement.executeQuery(GetItemSql.existsItem(item.type.name(), item.name)).getInt(1) == 0) {
                     if (item instanceof Weapon) {
                         batch.add(GetItemSql.insertItem((Weapon) item));
                     } else if (item instanceof Armor) {

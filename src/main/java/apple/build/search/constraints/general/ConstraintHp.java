@@ -9,7 +9,6 @@ import apple.build.wynncraft.items.ItemIdIndex;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
 import java.util.List;
 
 public class ConstraintHp extends BuildConstraintGeneral {
@@ -25,7 +24,7 @@ public class ConstraintHp extends BuildConstraintGeneral {
     }
 
     @Override
-    protected boolean internalIsValid(Collection<Item> items) {
+    protected boolean internalIsValid(Iterable<Item> items) {
         int hp = 0;
         for (Item item : items) {
             hp += getEhp(item);
@@ -35,10 +34,10 @@ public class ConstraintHp extends BuildConstraintGeneral {
 
     private int getEhp(Item item) {
         int hp = 0;
-        if (item instanceof Armor)
-            hp += ((Armor) item).health;
-        else if (item instanceof Accessory) {
-            hp += ((Accessory) item).health;
+        if (item instanceof Armor armor)
+            hp += armor.health;
+        else if (item instanceof Accessory accessory) {
+            hp += accessory.health;
         }
         return hp + item.ids.getOrDefault(ItemIdIndex.HEALTH_BONUS, 0);
     }

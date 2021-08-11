@@ -6,14 +6,16 @@ import apple.build.wynncraft.items.Item;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
 public class GetItems {
     public static void getItems() throws IOException, SQLException {
-        BufferedReader itemsJsonReader = new BufferedReader(new FileReader(new File("data/items.json")));
+        BufferedReader itemsJsonReader = new BufferedReader(new FileReader("data/items.json"));
         JSONObject itemsJsonResponse = new JSONObject(itemsJsonReader.readLine());
         itemsJsonReader.close();
         JSONArray allItemsJson = itemsJsonResponse.getJSONArray("items");

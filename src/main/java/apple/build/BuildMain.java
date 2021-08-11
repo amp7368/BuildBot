@@ -1,6 +1,5 @@
 package apple.build;
 
-import apple.build.discord.DiscordBot;
 import apple.build.search.Build;
 import apple.build.search.BuildGenerator;
 import apple.build.search.constraints.advanced_damage.ConstraintMainDamage;
@@ -18,14 +17,13 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.List;
 
 public class BuildMain {
     public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException, LoginException {
         System.out.println("Starting BuildBot");
         initialize();
         System.out.println("Opened database successfully");
-        new DiscordBot();
+        combinations();
 //        GetItems.getItems();
 //        System.out.println("Inserted items");
         System.out.println("done");
@@ -42,7 +40,7 @@ public class BuildMain {
         Item.boots.removeIf(item -> item.level < 80);
 
         long start = System.currentTimeMillis();
-        BuildGenerator builds = benchmark();
+        BuildGenerator builds = wfaNeptaSpellSpam();
         finish(builds, start);
     }
 
@@ -50,7 +48,7 @@ public class BuildMain {
      * @return https://wynndata.tk/s/t9vo23
      */
     private static BuildGenerator testMajorIds() {
-        List[] allItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.daggers};
+        ArrayList[] allItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.daggers};
         BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
             add(ElementSkill.EARTH);
             add(ElementSkill.FIRE);
@@ -83,7 +81,7 @@ public class BuildMain {
      * @return https://wynndata.tk/s/ykeag2
      */
     private static BuildGenerator benchmark() {
-        List[] allItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.bows};
+        ArrayList[] allItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.bows};
         BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
             add(ElementSkill.THUNDER);
             add(ElementSkill.WATER);
@@ -116,7 +114,7 @@ public class BuildMain {
      * @return https://wynndata.tk/s/ol8ktd
      */
     private static BuildGenerator test() {
-        List[] allItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.bows};
+        ArrayList[] allItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.bows};
         BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
             add(ElementSkill.THUNDER);
             add(ElementSkill.WATER);
@@ -144,9 +142,10 @@ public class BuildMain {
 
     /**
      * @return https://www.wynndata.tk/s/wj4zbg
+     * 23159
      */
     private static BuildGenerator wfaNeptaSpellSpam() {
-        List[] allItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.wands};
+        ArrayList[] allItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.wands};
         BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
             add(ElementSkill.EARTH);
             add(ElementSkill.WATER);

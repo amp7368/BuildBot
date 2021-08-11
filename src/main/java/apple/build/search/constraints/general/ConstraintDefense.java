@@ -7,7 +7,6 @@ import apple.build.wynncraft.items.Item;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
 import java.util.List;
 
 public class ConstraintDefense extends BuildConstraintGeneral {
@@ -32,7 +31,7 @@ public class ConstraintDefense extends BuildConstraintGeneral {
     }
 
     @Override
-    protected boolean internalIsValid(Collection<Item> items) {
+    protected boolean internalIsValid(Iterable<Item> items) {
         int raw = 0;
         int perc = 0;
         for (Item item : items) {
@@ -92,14 +91,11 @@ public class ConstraintDefense extends BuildConstraintGeneral {
                 // 1 is better
                 return 1;
             }
-            return 0;
-        } else {
-            if (rawVal1 < rawVal2) {
-                // 2 is better
-                return -1;
-            }
-            return 0;
+        } else if (rawVal1 < rawVal2) {
+            // 2 is better
+            return -1;
         }
+        return 0;
     }
 
     @Override

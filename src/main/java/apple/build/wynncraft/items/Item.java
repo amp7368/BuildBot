@@ -20,18 +20,18 @@ public class Item {
     public static final double POSITIVE_MAX_ROLL = 1.3;
     public static final double NEGATIVE_MIN_ROLL = 1.3;
     public static final double POSITIVE_MIN_ROLL = 0.3;
-    public static List<Item> helmets;
-    public static List<Item> chestplates;
-    public static List<Item> leggings;
-    public static List<Item> boots;
-    public static List<Item> rings;
-    public static List<Item> bracelets;
-    public static List<Item> necklaces;
-    public static List<Item> bows;
-    public static List<Item> spears;
-    public static List<Item> daggers;
-    public static List<Item> wands;
-    public static List<Item> reliks;
+    public static ArrayList<Item> helmets;
+    public static ArrayList<Item> chestplates;
+    public static ArrayList<Item> leggings;
+    public static ArrayList<Item> boots;
+    public static ArrayList<Item> rings;
+    public static ArrayList<Item> bracelets;
+    public static ArrayList<Item> necklaces;
+    public static ArrayList<Item> bows;
+    public static ArrayList<Item> spears;
+    public static ArrayList<Item> daggers;
+    public static ArrayList<Item> wands;
+    public static ArrayList<Item> reliks;
     public static final int SKILLS_FOR_PLAYER = 200;
     public static final int SKILLS_PER_ELEMENT = 100;
     private static final Set<String> UNROLLABLE = new HashSet<>() {{
@@ -151,7 +151,6 @@ public class Item {
                 @Nullable String restrictions, @Nullable String set, @Nullable String addedLore, @Nullable String material,
                 @Nullable String quest, @Nullable ClassType classRequirement, String[] majorIds, boolean identified, ItemType type) {
         for (Map.Entry<String, Integer> entry : ids.entrySet()) {
-
             Integer uid = idNameToUid.getFromKey(entry.getKey());
             if (uid == null) {
                 uid = currentUid++;
@@ -403,35 +402,23 @@ public class Item {
     }
 
     public int getRequiredSkill(ElementSkill elementSkill) {
-        switch (elementSkill) {
-            case THUNDER:
-                return dexterity;
-            case AIR:
-                return agility;
-            case EARTH:
-                return strength;
-            case WATER:
-                return intelligence;
-            case FIRE:
-                return defense;
-        }
-        return 0;
+        return switch (elementSkill) {
+            case THUNDER -> dexterity;
+            case AIR -> agility;
+            case EARTH -> strength;
+            case WATER -> intelligence;
+            case FIRE -> defense;
+        };
     }
 
     public int getSkill(ElementSkill elementSkill) {
-        switch (elementSkill) {
-            case THUNDER:
-                return getId(ItemIdIndex.DEXTERITY_POINTS);
-            case AIR:
-                return getId(ItemIdIndex.AGILITY_POINTS);
-            case EARTH:
-                return getId(ItemIdIndex.STRENGTH_POINTS);
-            case WATER:
-                return getId(ItemIdIndex.INTELLIGENCE_POINTS);
-            case FIRE:
-                return getId(ItemIdIndex.DEFENSE_POINTS);
-        }
-        return 0;
+        return switch (elementSkill) {
+            case THUNDER -> getId(ItemIdIndex.DEXTERITY_POINTS);
+            case AIR -> getId(ItemIdIndex.AGILITY_POINTS);
+            case EARTH -> getId(ItemIdIndex.STRENGTH_POINTS);
+            case WATER -> getId(ItemIdIndex.INTELLIGENCE_POINTS);
+            case FIRE -> getId(ItemIdIndex.DEFENSE_POINTS);
+        };
     }
 
     @Override

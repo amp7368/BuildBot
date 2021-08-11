@@ -7,7 +7,6 @@ import apple.build.wynncraft.items.ItemIdIndex;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collection;
 import java.util.List;
 
 public class ConstraintHpr extends BuildConstraintGeneral {
@@ -21,7 +20,7 @@ public class ConstraintHpr extends BuildConstraintGeneral {
         this.hpr = val;
     }
 
-    protected boolean internalIsValid(Collection<Item> items) {
+    protected boolean internalIsValid(Iterable<Item> items) {
         int hprRaw = 0;
         int hprPerc = 0;
         for (Item item : items) {
@@ -81,14 +80,11 @@ public class ConstraintHpr extends BuildConstraintGeneral {
                 // 1 is better
                 return 1;
             }
-            return 0;
-        } else {
-            if (hprRawVal1 < hprRawVal2) {
-                // 2 is better
-                return -1;
-            }
-            return 0;
+        } else if (hprRawVal1 < hprRawVal2) {
+            // 2 is better
+            return -1;
         }
+        return 0;
     }
 
     /**

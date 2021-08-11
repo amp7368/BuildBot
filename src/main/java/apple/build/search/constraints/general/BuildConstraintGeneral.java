@@ -2,11 +2,11 @@ package apple.build.search.constraints.general;
 
 import apple.build.search.constraints.BuildConstraint;
 import apple.build.search.constraints.ConstraintSimplified;
+import apple.build.utils.JoinedIterable;
 import apple.build.wynncraft.items.Item;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -31,10 +31,7 @@ public abstract class BuildConstraintGeneral implements BuildConstraint {
      * @return true if it satisfies, otherwise false
      */
     public boolean isValid(Collection<Item> items1, Item... items2) {
-        List<Item> items = new ArrayList<>();
-        items.addAll(items1);
-        items.addAll(Arrays.asList(items2));
-        return internalIsValid(items);
+        return internalIsValid(new JoinedIterable<>(items1, Arrays.asList(items2)));
     }
 
     /**
@@ -43,7 +40,7 @@ public abstract class BuildConstraintGeneral implements BuildConstraint {
      * @param items the items to check against
      * @return true if it satisfies, otherwise false
      */
-    protected abstract boolean internalIsValid(Collection<Item> items);
+    protected abstract boolean internalIsValid(Iterable<Item> items);
 
     /**
      * gets the best item among the given items

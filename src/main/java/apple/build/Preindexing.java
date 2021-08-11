@@ -48,7 +48,7 @@ public class Preindexing {
         Item.chestplates.removeIf(item -> item.level < 80);
         Item.leggings.removeIf(item -> item.level < 80);
         Item.boots.removeIf(item -> item.level < 80);
-        List[] bowItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.wands};
+        ArrayList[] bowItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.wands};
         List<Set<ElementSkill>> archetypes = Arrays.asList(EWF, EWA, TWF, TWA, WFA);
         for (Set<ElementSkill> archetype : archetypes) {
             BuildGenerator builds = new BuildGenerator(bowItems,archetype);

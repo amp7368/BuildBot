@@ -7,7 +7,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -39,7 +38,7 @@ public class ConstraintJoinedId extends BuildConstraintGeneral {
      * @return true if it satisfies, otherwise false
      */
     @Override
-    protected boolean internalIsValid(Collection<Item> items) {
+    protected boolean internalIsValid(Iterable<Item> items) {
         int actualVal = 0;
         for (Item item : items) {
             for (int name : names)
