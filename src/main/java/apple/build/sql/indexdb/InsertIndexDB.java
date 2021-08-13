@@ -8,6 +8,7 @@ import apple.build.wynncraft.items.Item;
 
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collection;
 import java.util.List;
 
 public class InsertIndexDB {
@@ -24,7 +25,7 @@ public class InsertIndexDB {
             for (ConstraintSimplified constraint : constraints) {
                 insertConstraint(searchId, constraint);
             }
-            List<Build> builds = generator.getBuilds();
+            Collection<Build> builds = generator.getBuildsAll();
             for (Build build : builds) {
                 insertBuild(searchId, build);
             }

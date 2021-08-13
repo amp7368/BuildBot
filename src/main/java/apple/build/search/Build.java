@@ -3,10 +3,12 @@ package apple.build.search;
 import apple.build.wynncraft.items.Item;
 
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class Build {
 
+    private static final int MAX_BUILDS = 600;
     public final List<Item> items;
     public final List<Integer> ordering = new ArrayList<>();
     public int[] skills = null;
@@ -17,15 +19,15 @@ public class Build {
         items = chosen;
     }
 
-    public static List<Build> makeBuilds(List<Item>[] allItems) {
-        List<Build> builds = new ArrayList<>();
+    public static Collection<Build> makeBuilds(List<Item>[] allItems, Predicate<Build> filter) {
+        Set<Build> builds = new HashSet<>();
         List<Item> chosen = new ArrayList<>();
         int i = 0;
         for (List<Item> items : allItems) {
             if (items.size() == 1) {
                 chosen.add(items.get(0));
             } else {
-                makeBuilds(chosen, allItems, builds, i);
+                makeBuilds(chosen, allItems, builds, i, filter);
                 return builds;
             }
             i++;
@@ -33,15 +35,18 @@ public class Build {
         return Collections.singletonList(new Build(chosen));
     }
 
-    private static void makeBuilds(List<Item> chosen, List<Item>[] allItems, List<Build> builds, int indexAt) {
+    private static void makeBuilds(List<Item> chosen, List<Item>[] allItems, Set<Build> builds, int indexAt, Predicate<Build> filter) {
         if (indexAt == allItems.length) {
-            builds.add(new Build(chosen));
+            Build build = new Build(chosen);
+            if (!filter.test(build))
+                builds.add(build);
             return;
         }
         for (Item item : allItems[indexAt]) {
             List<Item> subChosen = new ArrayList<>(chosen);
             subChosen.add(item);
-            makeBuilds(subChosen, allItems, builds, indexAt + 1);
+            makeBuilds(subChosen, allItems, builds, indexAt + 1, filter);
+            if (builds.size() > MAX_BUILDS) break;
         }
     }
 

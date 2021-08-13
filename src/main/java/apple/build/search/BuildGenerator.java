@@ -1,5 +1,6 @@
 package apple.build.search;
 
+import apple.build.Preindexing;
 import apple.build.search.constraints.BuildConstraint;
 import apple.build.search.constraints.ConstraintSimplified;
 import apple.build.search.constraints.advanced_damage.BuildConstraintAdvancedDamage;
@@ -17,6 +18,7 @@ import apple.build.wynncraft.items.Weapon;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 public class BuildGenerator {
     private static final long TOO_LONG_THRESHOLD = 3 * 1000;
@@ -28,13 +30,14 @@ public class BuildGenerator {
     private final List<BuildConstraintExclusion> constraintsExclusion;
     private final List<BuildConstraintAdvancedSkills> constraintsAdvancedSkill;
     private final List<BuildConstraintAdvancedDamage> constraintsAdvancedDamage;
-    private final List<Build> extraBuilds = new ArrayList<>();
+    private final Set<Build> extraBuilds = new HashSet<>();
     private static final int THREADS_TO_START = 50;
     private static final int MAX_THREADS_AT_ONCE = 2;
     // there is only one place where this is updated so it's fine that this isn't atomic
     // also it's one way from false to true
     private static boolean onLastTasks = false;
     public static AtomicInteger topLayerIndex = new AtomicInteger(1);
+    private boolean shouldSaveResult;
 
     /**
      * makes a generator for every build possible with the given items
@@ -103,12 +106,17 @@ public class BuildGenerator {
         return allConstraints;
     }
 
+    public void generate() {
+        generate(9);
+    }
+
     /**
      * generates for the top level
      */
-    public void generate() {
+    public void generate(int layerToStop) {
         if (isFail()) return;
         long timingFull = System.currentTimeMillis();
+        boolean startedWithExactMatch = true;
 //        boolean startedWithExactMatch = PreFilter.filterItemPool(this, allItems[allItems.length - 1].get(0).type);
         if (isFail()) return;
         filterOnBadArchetype();
@@ -119,29 +127,20 @@ public class BuildGenerator {
         if (isFail()) return;
         filterOnAdvancedSkillConstraints();
         if (isFail()) return;
-//        filterOnTranslationConstraints();
-//        if (isFail()) return; todo redo this when you finish more filters
         breakApart();
         long start = System.currentTimeMillis();
-        subGenerators.removeIf(buildGenerator -> buildGenerator.filterLower(9));
+        subGenerators.removeIf(buildGenerator -> buildGenerator.filterLower(layerToStop));
         if (subGenerators.isEmpty()) return;
         int indexToDefineLast = (int) (subGenerators.size() * .9);
         new GeneratorForkJoinPool(subGenerators, (generator, threads) -> {
-            generator.generate(9, threads);
+            generator.generate(layerToStop, threads);
             int iValue = topLayerIndex.getAndIncrement();
             if (iValue == indexToDefineLast) onLastTasks = true; // this okay even though it's threaded
             System.out.println("time " + (System.currentTimeMillis() - start) + " | " + iValue + "/" + subGenerators.size());
         }, MAX_THREADS_AT_ONCE, THREADS_TO_START, layer).waitForCompletion();
-        subGenerators.removeIf(generator -> generator.size().equals(BigInteger.ZERO));
-        List<Build> builds = getBuilds();
-        finalLayerFilter(builds);
-        extraBuilds.addAll(new HashSet<>(builds));
-        subGenerators = new ArrayList<>(0);
-        allItems = new ArrayList[0];
+        subGenerators.removeIf(BuildGenerator::isEmpty);
         timingFull = System.currentTimeMillis() - timingFull;
-//        if (!startedWithExactMatch && timingFull > TOO_LONG_THRESHOLD) {
-//            Preindexing.saveResult(this);
-//        }
+        shouldSaveResult = !startedWithExactMatch && timingFull > TOO_LONG_THRESHOLD;
     }
 
 
@@ -170,17 +169,16 @@ public class BuildGenerator {
         } else {
             int maxThreadsAtOnceHere = MAX_THREADS_AT_ONCE + layer;
             if (myThreadsCount > maxThreadsAtOnceHere) {
-                new GeneratorForkJoinPool(subGenerators, (generator, threads) -> generator.generate(9, threads), maxThreadsAtOnceHere, myThreadsCount, layer).waitForCompletion();
+                new GeneratorForkJoinPool(subGenerators, (generator, threads) -> generator.generate(layerToStop, threads), maxThreadsAtOnceHere, myThreadsCount, layer).waitForCompletion();
             } else {
-                new GeneratorForkJoinPool(subGenerators, (generator, threads) -> generator.generate(9, threads), Math.max(1, (int) myThreadsCount), myThreadsCount, layer).waitForCompletion();
+                new GeneratorForkJoinPool(subGenerators, (generator, threads) -> generator.generate(layerToStop, threads), Math.max(1, (int) myThreadsCount), myThreadsCount, layer).waitForCompletion();
             }
         }
 
         subGenerators.removeIf(BuildGenerator::isEmpty);
         subGenerators.trimToSize();
         if (size().compareTo(BigInteger.valueOf(100)) < 0) {
-            List<Build> builds = getBuilds();
-            finalLayerFilter(builds);
+            Collection<Build> builds = getBuildsAll();
             extraBuilds.addAll(builds);
             subGenerators = new ArrayList<>(0);
         }
@@ -189,9 +187,7 @@ public class BuildGenerator {
 
     private boolean filterLower(int layerToStop) {
         if (size().compareTo(BigInteger.valueOf(100)) < 0 || layer == layerToStop) {
-            List<Build> builds = getBuilds();
-            extraBuilds.addAll(builds);
-            finalLayerFilter(builds);
+            extraBuilds.addAll(getBuildsAll());
             subGenerators = new ArrayList<>(0);
             allItems = new ArrayList[0];
             return false;
@@ -235,14 +231,12 @@ public class BuildGenerator {
     /**
      * do all filters that require defined items to check
      */
-    private void finalLayerFilter(List<Build> builds) {
-        builds.removeIf(build -> {
-            if (filterOnSkillReqsSecondPass(build)) return true;
-            if (filterWeaponOnAdvancedDamageConstraintsSecondPass(build)) return true;
-            if (filterOnConstraints(build)) return true;
-            if (filterOnConstraintsAdvancedSkill(build)) return true;
-            return filterOnExclusion(build);
-        });
+    private boolean finalLayerFilter(Build build) {
+        if (filterOnSkillReqsSecondPass(build)) return true;
+        if (filterWeaponOnAdvancedDamageConstraintsSecondPass(build)) return true;
+        if (filterOnConstraints(build)) return true;
+        if (filterOnConstraintsAdvancedSkill(build)) return true;
+        return filterOnExclusion(build);
     }
 
     private boolean filterOnConstraintsAdvancedSkill(Build build) {
@@ -931,18 +925,27 @@ public class BuildGenerator {
         return false;
     }
 
-    public List<Build> getBuilds() {
+    public Collection<Build> getBuildsAll() {
+        Collection<Build> builds = getBuilds(this::finalLayerFilter);
+        extraBuilds.addAll(builds);
+        allItems = new ArrayList[0];
+        subGenerators = new ArrayList<>(0);
+        if (shouldSaveResult)
+            Preindexing.saveResult(this);
+        return builds;
+    }
+
+    public Collection<Build> getBuilds(Predicate<Build> filter) {
         if (allItems.length == 0) {
-            List<Build> builds = new ArrayList<>();
+            Set<Build> builds = new HashSet<>();
             for (BuildGenerator generator : subGenerators) {
-                builds.addAll(generator.getBuilds());
+                builds.addAll(generator.getBuilds(filter));
             }
+            extraBuilds.removeIf(filter);
             builds.addAll(extraBuilds);
             return builds;
         } else {
-            ArrayList<Build> builds = new ArrayList<>(1);
-            builds.addAll(Build.makeBuilds(allItems));
-            return builds;
+            return new ArrayList<>(Build.makeBuilds(allItems, filter));
         }
     }
 
@@ -980,16 +983,12 @@ public class BuildGenerator {
         return false;
     }
 
-    public Set<Item>[] getItemsInBuilds() {
-        List<Build> builds = getBuilds();
+    public Set<Item> getItemsInBuilds() {
+        Collection<Build> builds = getBuildsAll();
         if (builds.size() != 0) {
-            Set<Item>[] items = new HashSet[builds.get(0).items.size()];
-            for (int i = 0; i < items.length; i++)
-                items[i] = new HashSet<>();
+            Set<Item> items = new HashSet<>();
             for (Build build : builds) {
-                for (int i = 0; i < items.length; i++) {
-                    items[i].add(build.items.get(i));
-                }
+                items.addAll(build.items);
             }
             return items;
         }

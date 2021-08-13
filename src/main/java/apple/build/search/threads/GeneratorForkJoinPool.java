@@ -6,7 +6,9 @@ import apple.build.utils.Pair;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
@@ -35,6 +37,7 @@ public class GeneratorForkJoinPool {
         for (Pair<BuildGenerator, BigInteger> subGenerator : subGenerators) {
             totalSizeInteger = totalSizeInteger.add(subGenerator.getValue());
         }
+        totalSizeInteger = totalSizeInteger.max(BigInteger.ONE);
         BigDecimal totalSizeDecimal = new BigDecimal(totalSizeInteger);
         List<Pair<BuildGenerator, Float>> subGeneratorsPercs = new ArrayList<>(generatorSize);
         for (Pair<BuildGenerator, BigInteger> subGenerator : subGenerators)

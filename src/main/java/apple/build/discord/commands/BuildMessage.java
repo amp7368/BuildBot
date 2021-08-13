@@ -863,7 +863,7 @@ public class BuildMessage extends ACDGui {
         Collection<ButtonImpl> buttons = new ArrayList<>();
         int i = 0;
         for (ElementSkill elementSkill : ElementSkill.values()) {
-            buttons.add(new ButtonImpl(EDIT_DEFENSE_ID + elementSkill.name(), Pretty.uppercaseFirst(elementSkill.name()) + " Defense: " + (defense[i] == null ? "not set" : defense[i]), ButtonStyle.PRIMARY, false, null));
+            buttons.add(new ButtonImpl(EDIT_DEFENSE_ID + elementSkill.name(), Pretty.uppercaseFirst(elementSkill.name()) + " Def: " + (defense[i] == null ? "not set" : defense[i]), ButtonStyle.PRIMARY, false, null));
             addManualButton((event) -> editDefense(event, elementSkill), EDIT_DEFENSE_ID + elementSkill.name());
             i++;
         }
@@ -1077,9 +1077,8 @@ public class BuildMessage extends ACDGui {
         @Override
         public void run() {
             long start = System.currentTimeMillis();
-            generator.generate(generator.getItemsInBuilds().length, Runtime.getRuntime().availableProcessors());
+            generator.generate(1);
             System.out.println("Total time: " + (System.currentTimeMillis() - start) + " || Size: " + generator.size());
-
         }
     }
 }
