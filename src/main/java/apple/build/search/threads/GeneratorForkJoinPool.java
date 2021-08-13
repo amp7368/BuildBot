@@ -2,114 +2,133 @@ package apple.build.search.threads;
 
 import apple.build.search.BuildGenerator;
 import apple.build.utils.Pair;
+import apple.build.utils.SystemUsage;
 
-import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.ForkJoinTask;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 public class GeneratorForkJoinPool {
-    public static final int THOUSANDS = 10000;
+    private final Consumer<BuildGenerator> toRun;
+    private AtomicLong maxTimeToStop;
+    private final PoolThread[] pool;
 
-    private final AtomicInteger sizeLeftInThousands = new AtomicInteger(THOUSANDS);
-    private final BiConsumer<BuildGenerator, Float> toRun;
-    private final ForkJoinPool pool;
-    private final Queue<ForkJoinTask<?>> tasksToJoin = new ConcurrentLinkedDeque<>();
-    private final Queue<Pair<BuildGenerator, Float>> generatorsToAdd;
-    private final int myThreadsSize;
-    private final float threadsToUse;
-    private final int layer;
+    private final List<Pair<BuildGenerator, BigInteger>> generatorsToStartWork;
 
-    public GeneratorForkJoinPool(List<BuildGenerator> subGeneratorsRaw, BiConsumer<BuildGenerator, Float> toRun, int myThreadsSize, float threadsToUse, int layer) {
+    private BigInteger sizeBeingWorkedOn = BigInteger.ZERO;
+    private final Object syncSize = new Object();
+    private boolean stoppedPrematurely = true;
+
+    /**
+     * @param subGeneratorsRaw the subGenerators for the parent generator
+     * @param toRun            what the parent generator wants to be completed for each subGenerator
+     * @param myThreadsSize    the number of threads for this generator
+     * @param maxTimeToStop    when we should stop working on things
+     */
+    public GeneratorForkJoinPool(List<BuildGenerator> subGeneratorsRaw, Consumer<BuildGenerator> toRun, int myThreadsSize, AtomicLong maxTimeToStop) {
+        this.toRun = toRun;
+        this.maxTimeToStop = maxTimeToStop;
         int generatorSize = subGeneratorsRaw.size();
-        this.layer = layer;
         List<Pair<BuildGenerator, BigInteger>> subGenerators = new ArrayList<>(generatorSize);
         for (BuildGenerator generator : subGeneratorsRaw)
             subGenerators.add(new Pair<>(generator, generator.size()));
-        BigInteger totalSizeInteger = BigInteger.ZERO;
-        for (Pair<BuildGenerator, BigInteger> subGenerator : subGenerators) {
-            totalSizeInteger = totalSizeInteger.add(subGenerator.getValue());
+        subGenerators.sort((b1, b2) -> b2.getValue().compareTo(b1.getValue()));
+        this.generatorsToStartWork = subGenerators;
+        this.pool = new PoolThread[Math.min(5, myThreadsSize)];
+        for (int i = 0; i < this.pool.length; i++) {
+            PoolThread poolThread = new PoolThread(i);
+            this.pool[i] = poolThread;
+            if (!this.generatorsToStartWork.isEmpty()) {
+                Pair<BuildGenerator, BigInteger> generator = this.generatorsToStartWork.remove(0);
+                poolThread.setGenerator(generator.getKey(), generator.getValue());
+            }
         }
-        totalSizeInteger = totalSizeInteger.max(BigInteger.ONE);
-        BigDecimal totalSizeDecimal = new BigDecimal(totalSizeInteger);
-        List<Pair<BuildGenerator, Float>> subGeneratorsPercs = new ArrayList<>(generatorSize);
-        for (Pair<BuildGenerator, BigInteger> subGenerator : subGenerators)
-            subGeneratorsPercs.add(new Pair<>(subGenerator.getKey(), new BigDecimal(subGenerator.getValue()).divide(totalSizeDecimal, 4, RoundingMode.DOWN).floatValue() * THOUSANDS));
-        subGeneratorsPercs.sort((b1, b2) -> b2.getValue().compareTo(b1.getValue()));
-
-        this.generatorsToAdd = new ConcurrentLinkedDeque<>(subGeneratorsPercs);
-        this.pool = new ForkJoinPool(myThreadsSize); //this throws an exception if myThreadsSize = 0
-        this.toRun = toRun;
-        this.myThreadsSize = myThreadsSize;
-        this.threadsToUse = threadsToUse;
-        int myRealThreadSize = Math.min(generatorSize, myThreadsSize);
-        float myThreadsToGive = threadsToUse - myRealThreadSize;
-        for (int i = -1; i < myThreadsSize && !generatorsToAdd.isEmpty(); i++) {
-            Pair<BuildGenerator, Float> addMe = generatorsToAdd.remove();
-            float leftToDoMultiplier = ((float) generatorSize) / myRealThreadSize;
-            float threadToGiveThis = Math.max(1, myThreadsToGive * addMe.getValue() / sizeLeftInThousands.get() * leftToDoMultiplier);
-            tasksToJoin.add(pool.submit(
-                    new SubGeneratorRunnable(addMe.getKey(), threadToGiveThis, toRun)
-            ));
-            this.sizeLeftInThousands.getAndUpdate(old -> Math.max(1, old - addMe.getValue().intValue()));
+        for (PoolThread poolThread : pool) {
+            poolThread.start();
         }
     }
 
-
-    public void waitForCompletion() {
-        boolean notDone;
-        do {
-            ForkJoinTask<?> join;
-            while ((join = tasksToJoin.poll()) != null) {
-                if (layer == 0) {
-                    int a = 3;
-                }
-                join.join(); // if this throws an error, reduce the threads to 1 to find where the actual error is. it's not here
-            }
+    /**
+     * @return true if the generator stopped prematurely
+     */
+    public boolean waitForCompletion() {
+        try {
             synchronized (this) {
-                notDone = !generatorsToAdd.isEmpty() || !tasksToJoin.isEmpty();
+                this.wait();
             }
-        } while (notDone);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return stoppedPrematurely;
     }
 
-    private void finished() {
-        synchronized (this) {
-            Pair<BuildGenerator, Float> addMe = generatorsToAdd.poll();
-            if (addMe == null) {
-                return;
+    private synchronized void finished(int id) {
+        this.pool[id] = null;
+        boolean isReallyDone = true;
+        for (PoolThread thread : this.pool) {
+            if (thread != null) {
+                isReallyDone = false;
+                break;
             }
-            int generatorSize = generatorsToAdd.size();
-            int myRealThreadSize = Math.min(generatorSize + 1, myThreadsSize);
-            float myThreadsToGive = threadsToUse - myRealThreadSize;
-            float leftToDoMultiplier = ((float) generatorSize) / myRealThreadSize;
-            float threadToGiveThis = Math.max(1, myThreadsToGive * addMe.getValue() / sizeLeftInThousands.get() * leftToDoMultiplier);
-            tasksToJoin.add(pool.submit(new SubGeneratorRunnable(addMe.getKey(), threadToGiveThis, toRun)));
-            this.sizeLeftInThousands.getAndUpdate(old -> Math.max(1, old - addMe.getValue().intValue()));
+        }
+        if (isReallyDone) {
+            synchronized (this) {
+                this.notify();
+            }
         }
     }
 
-    private class SubGeneratorRunnable implements Runnable {
-        private final BuildGenerator subGenerator;
-        private final float threads;
-        private final BiConsumer<BuildGenerator, Float> todo;
+    private class PoolThread extends Thread {
+        private final int id;
+        private BuildGenerator generator;
+        private BigInteger size = BigInteger.ZERO;
 
-        public SubGeneratorRunnable(BuildGenerator subGenerator, float threads, BiConsumer<BuildGenerator, Float> todo) {
-            this.subGenerator = subGenerator;
-            this.threads = threads;
-            this.todo = todo;
+        private PoolThread(int id) {
+            this.id = id;
         }
 
         @Override
         public void run() {
-            todo.accept(subGenerator, threads);
-            finished();
+            while (true) {
+                if (this.generator == null) {
+                    Pair<BuildGenerator, BigInteger> generatorToWorkOn;
+                    synchronized (generatorsToStartWork) {
+                        if (!generatorsToStartWork.isEmpty()) {
+                            generatorToWorkOn = generatorsToStartWork.remove(0);
+                        } else {
+                            finished(this.id);
+                            return;
+                        }
+                    }
+                    setGenerator(generatorToWorkOn.getKey(), generatorToWorkOn.getValue());
+                }
+                this.generator.generateLowerLevel();
+                if (shouldStop(maxTimeToStop)) {
+                    finished(this.id);
+                    synchronized (syncSize) {
+                        stoppedPrematurely = false;
+                    }
+                }
+                this.generator = null;
+            }
         }
+
+        public void setGenerator(BuildGenerator generator, BigInteger size) {
+            synchronized (syncSize) {
+                this.generator = generator;
+                sizeBeingWorkedOn = sizeBeingWorkedOn.subtract(this.size).add(size);
+                this.size = size;
+            }
+        }
+    }
+
+    public static boolean shouldStop(AtomicLong maxTimeToStop) {
+        return System.currentTimeMillis() > maxTimeToStop.get();
+    }
+
+    public static int getThreadsAvailable() {
+        return (int) SystemUsage.getProcessorsFree() + 1;
     }
 }

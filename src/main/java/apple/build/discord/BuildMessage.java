@@ -1,7 +1,8 @@
-package apple.build.discord.commands;
+package apple.build.discord;
 
 import apple.build.discord.DiscordBot;
 import apple.build.search.BuildGenerator;
+import apple.build.search.GeneratorManager;
 import apple.build.search.constraints.advanced_damage.ConstraintMainDamage;
 import apple.build.search.constraints.advanced_damage.ConstraintSpellDamage;
 import apple.build.search.constraints.advanced_skill.ConstraintSpellCost;
@@ -1023,7 +1024,15 @@ public class BuildMessage extends ACDGui {
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
             generator.addConstraint(exclusion);
         editAsReply(interaction);
-        new Thread(new CompleteGenerator());
+        GeneratorManager.queue(generator, this::onUpdate, this::onFinish);
+    }
+
+    public void onUpdate(double completion) {
+
+    }
+
+    public void onFinish() {
+
     }
 
     private enum SubPhase {
@@ -1070,15 +1079,6 @@ public class BuildMessage extends ACDGui {
                 }
             }
             return order[Math.min(order.length - 1, Math.max(0, index))];
-        }
-    }
-
-    private class CompleteGenerator implements Runnable {
-        @Override
-        public void run() {
-            long start = System.currentTimeMillis();
-            generator.generate(1);
-            System.out.println("Total time: " + (System.currentTimeMillis() - start) + " || Size: " + generator.size());
         }
     }
 }

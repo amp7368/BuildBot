@@ -68,7 +68,7 @@ public class BuildMain {
         builds.addConstraint(new ConstraintHp(14500));
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
             builds.addConstraint(exclusion);
-        builds.generate();
+        builds.generateLowerLevel();
         return builds;
     }
 
@@ -106,7 +106,7 @@ public class BuildMain {
         builds.addConstraint(new ConstraintHp(12500));
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
             builds.addConstraint(exclusion);
-        builds.generate();
+        builds.generateLowerLevel();
         return builds;
     }
 
@@ -136,7 +136,7 @@ public class BuildMain {
         builds.addConstraint(new ConstraintHp(11500));
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
             builds.addConstraint(exclusion);
-        builds.generate();
+        builds.generateLowerLevel();
         return builds;
     }
 
@@ -164,7 +164,10 @@ public class BuildMain {
     }
 
     private static void finish(BuildGenerator builds, long start) {
-        builds.generate(9);
+        while (builds.isWorking()) {
+            System.out.println("working for 10-20 seconds");
+            builds.runFor(10000, 20000);
+        }
         System.out.println(builds.getBuildsAll().size());
         int i = 0;
         for (Build build : builds.getBuildsAll()) {

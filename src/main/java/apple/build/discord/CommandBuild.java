@@ -1,4 +1,4 @@
-package apple.build.discord.commands;
+package apple.build.discord;
 
 import apple.discord.acd.ACD;
 import apple.discord.acd.command.ACDCommand;

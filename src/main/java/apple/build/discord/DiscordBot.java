@@ -1,7 +1,6 @@
 package apple.build.discord;
 
 import apple.build.BuildMain;
-import apple.build.discord.commands.CommandBuild;
 import apple.discord.acd.ACD;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;

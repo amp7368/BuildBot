@@ -60,7 +60,7 @@ public class Preindexing {
             builds.addConstraint(new ConstraintHp(11000));
             for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
                 builds.addConstraint(exclusion);
-            builds.generate();
+            builds.generateLowerLevel();
             try {
                 InsertIndexDB.insertResults(builds);
             } catch (SQLException throwables) {
