@@ -71,7 +71,6 @@ public class Preindexing {
 
     public static void saveResult(BuildGenerator generator) {
         try {
-
             InsertIndexDB.insertResults(generator);
         } catch (SQLException throwables) {
             throwables.printStackTrace();

@@ -1,6 +1,6 @@
 package apple.build.discord;
 
-import apple.build.discord.DiscordBot;
+import apple.build.BuildMain;
 import apple.build.search.BuildGenerator;
 import apple.build.search.GeneratorManager;
 import apple.build.search.constraints.advanced_damage.ConstraintMainDamage;
@@ -23,6 +23,7 @@ import apple.discord.acd.reaction.buttons.GuiMenu;
 import apple.discord.acd.reaction.gui.ACDGui;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -44,7 +45,7 @@ import java.util.stream.Collectors;
 import static apple.build.search.enums.WynnClass.Constants.*;
 
 
-public class BuildMessage extends ACDGui {
+public class BuildQueryMessage extends ACDGui {
     // component ids
     public static final String SUBMIT_BUTTON_ID = "submit";
     public static final String MAJOR_ID_SELECTION_ID = "major_id_sel";
@@ -89,7 +90,7 @@ public class BuildMessage extends ACDGui {
     private static final int RAW_SPELL_DMG_INCREMENT = 100;
 
     // metadata about the BuildMessage
-    private BuildPhase phase = BuildPhase.ID;
+    private BuildPhase phase = BuildPhase.CONFIRM;
     private final List<SubPhase> subPages = new ArrayList<>();
     private MessageEmbed error = null;
     private int idPage = 0;
@@ -97,9 +98,10 @@ public class BuildMessage extends ACDGui {
     // fields for the actual build
     private final List<ElementSkill> elements = new ArrayList<>();
     private final List<String> majorIds = new ArrayList<>();
-    private WynnClass wynnClass = WynnClass.ARCHER;
+    private WynnClass wynnClass = WynnClass.MAGE;
     private Integer[] spellDmg = new Integer[wynnClass.getSpells().length];
     private final ACD acd;
+    private final Member member;
     private int rawMainDmg = 0;
     private int mainDmg = 0;
     private int health = 0;
@@ -113,10 +115,16 @@ public class BuildMessage extends ACDGui {
     // temporary use values for sending arguments through threads
     private ElementSkill currentElementMiscUse;
     private BuildGenerator generator = null;
+    private double progress = 0;
+    private BuildShowListMessage buildsGui = null;
+    private GeneratorManager.TaskType priority = GeneratorManager.TaskType.PRIMARY;
+    private int placeInLine;
+    private UUID taskUUID;
 
-    public BuildMessage(ACD acd, MessageChannel channel) {
+    public BuildQueryMessage(ACD acd, Member member, MessageChannel channel) {
         super(acd, channel);
         this.acd = acd;
+        this.member = member;
     }
 
     @Override
@@ -141,6 +149,8 @@ public class BuildMessage extends ACDGui {
                 case MISC -> makeMiscMessage();
                 case ID -> makeIdMessage();
                 case CONFIRM -> makeConfirmMessage();
+                case WAITING_UPDATES -> makeWaitingUpdatesMessage();
+                case BUILD -> makeBuildsMessage();
                 default -> new MessageBuilder("incomplete").build();
             };
         } else {
@@ -985,9 +995,23 @@ public class BuildMessage extends ACDGui {
         return messageBuilder.build();
     }
 
+    private Message makeWaitingUpdatesMessage() {
+        MessageBuilder messageBuilder = new MessageBuilder();
+        EmbedBuilder embed = new EmbedBuilder();
+        embed.setTitle(String.format("Progress: %.2f%%", progress * 100));
+        embed.setAuthor(String.format("Priority: %s task", Pretty.uppercaseFirst(priority.name())));
+        embed.setDescription("Place in queue: " + (placeInLine == 1 ? "working" : placeInLine));
+        messageBuilder.setEmbeds(embed.build());
+        return messageBuilder.build();
+    }
+
+    private Message makeBuildsMessage() {
+        return buildsGui.makeMessage();
+    }
+
     private void finishSubmit(ComponentInteraction interaction) {
         List<List<Item>> items = new ArrayList<>();
-        for (List<Item> pieceRaw : List.of(Item.helmets, Item.chestplates, Item.leggings, Item.boots, wynnClass.getWeapons())) {
+        for (List<Item> pieceRaw : List.of(Item.helmets, Item.chestplates, Item.leggings, Item.boots)) {
             List<Item> piece = new ArrayList<>(pieceRaw);
             piece.removeIf(item -> item.level < 80);
             items.add(piece);
@@ -995,6 +1019,7 @@ public class BuildMessage extends ACDGui {
         for (List<Item> pieceRaw : List.of(Item.rings, Item.rings, Item.bracelets, Item.necklaces)) {
             items.add(new ArrayList<>(pieceRaw));
         }
+        items.add(wynnClass.getWeapons());
         this.generator = new BuildGenerator(items.toArray(new ArrayList[0]), new HashSet<>(elements));
 
         generator.addConstraint(new ConstraintHpr(healthRegen));
@@ -1023,16 +1048,30 @@ public class BuildMessage extends ACDGui {
         }
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
             generator.addConstraint(exclusion);
+        phase = BuildPhase.WAITING_UPDATES;
+        BuildGenerator builds = BuildMain.wfaNeptaSpellSpam(items.toArray(new ArrayList[0]));
+        this.taskUUID = GeneratorManager.queue(builds, this::onUpdate, this::onFinish, this::onPriorityChange);
+        this.placeInLine = GeneratorManager.placeInLine(taskUUID);
         editAsReply(interaction);
-        GeneratorManager.queue(generator, this::onUpdate, this::onFinish);
     }
 
-    public void onUpdate(double completion) {
-
+    public void onUpdate(double progress) {
+        this.progress = progress;
+        editMessage();
     }
 
     public void onFinish() {
+        System.out.println("finished");
+        this.buildsGui = new BuildShowListMessage(acd, message, generator.getBuildsAll());
+        this.phase = BuildPhase.BUILD;
+        editMessage();
+        message.getChannel().sendMessage(member.getAsMention() + " Hey, I finished making the build: " + message.getJumpUrl()).queue();
+    }
 
+    public void onPriorityChange(GeneratorManager.TaskType priority, int placeInLine) {
+        this.priority = priority;
+        this.placeInLine = placeInLine;
+        editMessage();
     }
 
     private enum SubPhase {
@@ -1054,7 +1093,9 @@ public class BuildMessage extends ACDGui {
         MAIN_ATTACK(5),
         MISC(6),
         ID(7),
-        CONFIRM(8);
+        CONFIRM(8),
+        WAITING_UPDATES(9),
+        BUILD(10);
 
         private static BuildPhase[] order;
         private final int index;

@@ -1,5 +1,6 @@
 package apple.build;
 
+import apple.build.discord.DiscordBot;
 import apple.build.search.Build;
 import apple.build.search.BuildGenerator;
 import apple.build.search.constraints.advanced_damage.ConstraintMainDamage;
@@ -22,8 +23,9 @@ public class BuildMain {
     public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException, LoginException {
         System.out.println("Starting BuildBot");
         initialize();
+        new DiscordBot();
+//        combinations();
         System.out.println("Opened database successfully");
-        combinations();
 //        GetItems.getItems();
 //        System.out.println("Inserted items");
         System.out.println("done");
@@ -40,14 +42,15 @@ public class BuildMain {
         Item.boots.removeIf(item -> item.level < 80);
 
         long start = System.currentTimeMillis();
-        BuildGenerator builds = wfaNeptaSpellSpam();
+        ArrayList[] allItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.daggers};
+        BuildGenerator builds = wfaNeptaSpellSpam(allItems);
         finish(builds, start);
     }
 
     /**
      * @return https://wynndata.tk/s/t9vo23
      */
-    private static BuildGenerator testMajorIds() {
+    public static BuildGenerator testMajorIds() {
         ArrayList[] allItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.daggers};
         BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
             add(ElementSkill.EARTH);
@@ -144,8 +147,7 @@ public class BuildMain {
      * @return https://www.wynndata.tk/s/wj4zbg
      * 23159
      */
-    private static BuildGenerator wfaNeptaSpellSpam() {
-        ArrayList[] allItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.wands};
+    public static BuildGenerator wfaNeptaSpellSpam(ArrayList<Item>[] allItems) {
         BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
             add(ElementSkill.EARTH);
             add(ElementSkill.WATER);
@@ -166,7 +168,8 @@ public class BuildMain {
     private static void finish(BuildGenerator builds, long start) {
         while (builds.isWorking()) {
             System.out.println("working for 10-20 seconds");
-            builds.runFor(10000, 20000);
+            builds.runFor(10000, 20000, (d) -> {
+            });
         }
         System.out.println(builds.getBuildsAll().size());
         int i = 0;

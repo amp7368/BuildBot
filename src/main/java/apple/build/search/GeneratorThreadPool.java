@@ -1,4 +1,4 @@
-package apple.build.search.threads;
+package apple.build.search;
 
 import apple.build.search.BuildGenerator;
 import apple.build.utils.Pair;
@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
-public class GeneratorForkJoinPool {
+public class GeneratorThreadPool {
     private final Consumer<BuildGenerator> toRun;
     private AtomicLong maxTimeToStop;
     private final PoolThread[] pool;
@@ -19,7 +19,7 @@ public class GeneratorForkJoinPool {
 
     private BigInteger sizeBeingWorkedOn = BigInteger.ZERO;
     private final Object syncSize = new Object();
-    private boolean stoppedPrematurely = true;
+    private BuildGenerator.ExitType exitType = BuildGenerator.ExitType.COMPLETE;
 
     /**
      * @param subGeneratorsRaw the subGenerators for the parent generator
@@ -27,7 +27,7 @@ public class GeneratorForkJoinPool {
      * @param myThreadsSize    the number of threads for this generator
      * @param maxTimeToStop    when we should stop working on things
      */
-    public GeneratorForkJoinPool(List<BuildGenerator> subGeneratorsRaw, Consumer<BuildGenerator> toRun, int myThreadsSize, AtomicLong maxTimeToStop) {
+    public GeneratorThreadPool(List<BuildGenerator> subGeneratorsRaw, Consumer<BuildGenerator> toRun, int myThreadsSize, AtomicLong maxTimeToStop) {
         this.toRun = toRun;
         this.maxTimeToStop = maxTimeToStop;
         int generatorSize = subGeneratorsRaw.size();
@@ -53,7 +53,7 @@ public class GeneratorForkJoinPool {
     /**
      * @return true if the generator stopped prematurely
      */
-    public boolean waitForCompletion() {
+    public BuildGenerator.ExitType waitForCompletion() {
         try {
             synchronized (this) {
                 this.wait();
@@ -61,7 +61,7 @@ public class GeneratorForkJoinPool {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        return stoppedPrematurely;
+        return exitType;
     }
 
     private synchronized void finished(int id) {
@@ -106,10 +106,12 @@ public class GeneratorForkJoinPool {
                 }
                 this.generator.generateLowerLevel();
                 if (shouldStop(maxTimeToStop)) {
-                    finished(this.id);
                     synchronized (syncSize) {
-                        stoppedPrematurely = false;
+                        exitType = BuildGenerator.ExitType.HARD_TIMEOUT;
                     }
+                    this.generator = null;
+                    finished(this.id);
+                    return;
                 }
                 this.generator = null;
             }

@@ -15,7 +15,7 @@ public class CommandBuild extends ACDCommand {
 
     @DiscordCommandAlias(alias = "build")
     public void build(MessageReceivedEvent event) {
-        final BuildMessage buildMessage = new BuildMessage(acd, event.getChannel());
+        final BuildQueryMessage buildMessage = new BuildQueryMessage(acd, event.getMember(), event.getChannel());
         buildMessage.makeFirstMessage();
     }
 }
