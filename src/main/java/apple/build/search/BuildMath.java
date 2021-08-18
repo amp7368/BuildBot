@@ -80,7 +80,8 @@ public class BuildMath {
             skillIndex++;
         }
         if (best == null) {
-            System.err.println("BuildMath had negative extraSkillPoints. There's room for optimizing.");
+            //todo test with this
+            // System.err.println("BuildMath had negative extraSkillPoints. There's room for optimizing.");
             return new DamageOutput(-1, -1,
                     new double[ElementSkill.values().length], new double[ElementSkill.values().length],
                     -1, -1,

@@ -65,4 +65,12 @@ public class BuildShowListMessage extends ACDGuiPageable {
     public void resetEdit() {
         parent.resetEdit();
     }
+
+    public int getPageIndex() {
+        return page;
+    }
+
+    public int size() {
+        return pagesList.size();
+    }
 }

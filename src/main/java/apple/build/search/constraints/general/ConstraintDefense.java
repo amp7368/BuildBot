@@ -108,8 +108,7 @@ public class ConstraintDefense extends BuildConstraintGeneral {
 
     @Override
     public boolean isMoreStrict(BuildConstraint obj) {
-        if (obj instanceof ConstraintDefense) {
-            ConstraintDefense other = (ConstraintDefense) obj;
+        if (obj instanceof ConstraintDefense other) {
             return other.name == this.name && other.val >= this.val;
         }
         return false;
@@ -121,8 +120,7 @@ public class ConstraintDefense extends BuildConstraintGeneral {
 
     @Override
     public boolean isExact(BuildConstraint constraint) {
-        if (constraint instanceof ConstraintDefense) {
-            ConstraintDefense other = (ConstraintDefense) constraint;
+        if (constraint instanceof ConstraintDefense other) {
             return other.val == this.val && other.name == this.name;
         }
         return false;

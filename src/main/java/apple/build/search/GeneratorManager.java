@@ -20,7 +20,7 @@ public class GeneratorManager implements Runnable {
         instance = new GeneratorManager();
     }
 
-    public static UUID queue(BuildGenerator generator, Consumer<Double> onUpdate, Consumer<GeneratorTask> onFinish, BiConsumer<TaskType, Integer> priorityChangeUpdate) {
+    public static UUID  queue(BuildGenerator generator, Consumer<Double> onUpdate, Consumer<GeneratorTask> onFinish, BiConsumer<TaskType, Integer> priorityChangeUpdate) {
         synchronized (sync) {
             GeneratorTask task = new GeneratorTask(generator, onUpdate, onFinish, priorityChangeUpdate);
             primaryTasks.add(task);
@@ -90,6 +90,7 @@ public class GeneratorManager implements Runnable {
             synchronized (sync) {
                 if (runningTaskUUID == null) {
                     // the running task was canceled
+                    System.out.println("the running task was canceled");
                     continue;
                 }
             }
@@ -171,7 +172,7 @@ public class GeneratorManager implements Runnable {
         }
 
         public boolean isHard() {
-            return hardTimeout >= 5;
+            return hardTimeout >= 10;
         }
 
         public boolean isWorking() {

@@ -27,9 +27,7 @@ public class BuildMain {
         System.out.println("Starting BuildBot");
         new DiscordBot();
 //        combinations();
-        System.out.println("Opened database successfully");
-//        System.out.println("Inserted items");
-        System.out.println("done");
+        System.out.println("Started BuildBot");
     }
 
     private static void combinations() {

@@ -476,6 +476,7 @@ public class Item {
                 put(6, 4.3);
             }
         };
+        private static AttackSpeed[] map = null;
 
         AttackSpeed(int speed) {
             this.speed = speed;
@@ -483,6 +484,15 @@ public class Item {
 
         public static double toModifier(int myAttackSpeed) {
             return modifierMap.get(Math.max(0, Math.min(myAttackSpeed, MAX_SPEED)));
+        }
+
+        public static AttackSpeed from(int myAttackSpeed) {
+            if (map == null) {
+                map = new AttackSpeed[values().length];
+                for (AttackSpeed attackSpeed : values())
+                    map[attackSpeed.speed] = attackSpeed;
+            }
+            return map[Math.max(0, Math.min(myAttackSpeed, MAX_SPEED))];
         }
 
         public double modifier() {

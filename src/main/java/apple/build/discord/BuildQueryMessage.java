@@ -1,6 +1,8 @@
 package apple.build.discord;
 
-import apple.build.BuildMain;
+import apple.build.query.QuerySaved;
+import apple.build.query.QuerySavingService;
+import apple.build.search.Build;
 import apple.build.search.BuildGenerator;
 import apple.build.search.GeneratorManager;
 import apple.build.search.constraints.advanced_damage.ConstraintMainDamage;
@@ -12,7 +14,6 @@ import apple.build.search.enums.ElementSkill;
 import apple.build.search.enums.IdNames;
 import apple.build.search.enums.Spell;
 import apple.build.search.enums.WynnClass;
-import apple.build.utils.Pair;
 import apple.build.utils.Pretty;
 import apple.build.wynncraft.items.Item;
 import apple.discord.acd.ACD;
@@ -28,14 +29,13 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
 import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.ButtonStyle;
 import net.dv8tion.jda.api.interactions.components.Component;
 import net.dv8tion.jda.api.interactions.components.ComponentInteraction;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
-import net.dv8tion.jda.api.utils.TimeUtil;
-import net.dv8tion.jda.api.utils.data.DataObject;
 import net.dv8tion.jda.internal.interactions.ButtonImpl;
 import net.dv8tion.jda.internal.interactions.SelectionMenuImpl;
 import org.jetbrains.annotations.NotNull;
@@ -87,6 +87,9 @@ public class BuildQueryMessage extends ACDGui {
     private static final String FORWARD_ID_BUTTON_ID = "id_menu_forward";
     private static final String CANCEL_BUILD = "cancel";
     private static final String REFRESH = "refresh";
+    private static final String EDIT_ATTACK_SPEED_MIN = "edit_attack_speed_min";
+    private static final String SAVE_BUTTON_ID = "save_query";
+    private static final String EDIT_RAW_SPELL = "edit_raw_spell_page";
 
     // constants for default modifiers
     private static final int SPELL_DMG_BIG_INCREMENT = 1000;
@@ -99,32 +102,54 @@ public class BuildQueryMessage extends ACDGui {
     private final List<SubPhase> subPages = new ArrayList<>();
     private MessageEmbed error = null;
     private int idPage = 0;
-
-    // fields for the actual build
-    private final List<ElementSkill> elements = new ArrayList<>();
-    private final List<String> majorIds = new ArrayList<>();
-    private WynnClass wynnClass = WynnClass.MAGE;
-    private Integer[] spellDmg = new Integer[wynnClass.getSpells().length];
-    private final ACD acd;
-    private final Member member;
-    private Integer rawMainDmg = null;
-    private Integer mainDmg = null;
-    private Integer health = 0;
-    private Integer healthRegen = null;
-    private Integer[] spellCost = new Integer[wynnClass.getSpells().length];
-    private final Integer[] defense = new Integer[ElementSkill.values().length];
-    private final Map<String, ConstraintId> idsConstraints = new HashMap<>();
-    private Integer rawSpellDmg = null;
-    private Spell currentSpellMiscUse;
-    private String currentIdNameMiscUse;
-    // temporary use values for sending arguments through threads
-    private ElementSkill currentElementMiscUse;
+    private QuerySaved querySaved = null;
+    private UUID taskUUID;
     private BuildGenerator generator = null;
     private double progress = 0;
     private BuildShowListMessage buildsGui = null;
     private GeneratorManager.TaskType priority = GeneratorManager.TaskType.PRIMARY;
     private int placeInLine;
-    private UUID taskUUID;
+    private final ACD acd;
+    private final Member member;
+
+    // fields for the actual build
+    private List<ElementSkill> elements = new ArrayList<>();
+    private List<String> majorIds = new ArrayList<>();
+    private WynnClass wynnClass = WynnClass.MAGE;
+    private Integer[] spellDmg = new Integer[wynnClass.getSpells().length];
+    private Integer rawMainDmg = null;
+    private Integer mainDmg = null;
+    private Integer health = 0;
+    private Integer healthRegen = null;
+    private Integer[] spellCost = new Integer[wynnClass.getSpells().length];
+    private Integer[] defense = new Integer[ElementSkill.values().length];
+    private Map<String, ConstraintId> idsConstraints = new HashMap<>();
+    private Integer rawSpellDmg = null;
+    private Item.AttackSpeed attackSpeed = Item.AttackSpeed.SUPER_SLOW;
+
+    // temporary use values for sending arguments through threads
+    private Spell currentSpellMiscUse;
+    private String currentIdNameMiscUse;
+    private ElementSkill currentElementMiscUse;
+
+    public BuildQueryMessage(ACD acd, Member member, MessageChannel channel, QuerySaved query) {
+        super(acd, channel);
+        this.member = member;
+        this.acd = acd;
+        this.elements = query.getElements();
+        this.majorIds = query.getMajorIds();
+        this.wynnClass = query.getWynnClass();
+        this.spellDmg = query.getSpellDmg();
+        this.rawMainDmg = query.getRawMainDmg();
+        this.mainDmg = query.getMainDmg();
+        this.health = query.getHealth();
+        this.healthRegen = query.getHealthRegen();
+        this.spellCost = query.getSpellCost();
+        this.defense = query.getDefense();
+        this.idsConstraints = query.getIdsConstraints();
+        this.rawSpellDmg = query.getRawSpellDmg();
+        this.attackSpeed = query.getAttackSpeed();
+    }
 
     public BuildQueryMessage(ACD acd, Member member, MessageChannel channel) {
         super(acd, channel);
@@ -149,7 +174,6 @@ public class BuildQueryMessage extends ACDGui {
                 case MAJOR_ID -> makeMajorIdMessage();
                 case CLASS -> makeClassMessage();
                 case SPELL_ATTACK -> makeSpellMessage();
-                case RAW_SPELL_ATTACK -> makeRawSpellMessage();
                 case MAIN_ATTACK -> makeMainAttackMessage();
                 case MISC -> makeMiscMessage();
                 case ID -> makeIdMessage();
@@ -160,8 +184,20 @@ public class BuildQueryMessage extends ACDGui {
             };
         } else {
             return switch (subPages.get(0)) {
-                case EDIT_HP -> makeEditSomethingMessage("Set the minimum Health", null, "Health: " + health, 100, 1000, i -> health = health == null ? i : health + i);
-                case EDIT_HPR -> makeEditSomethingMessage("Set the minimum Health Regen", null, "HPR: " + healthRegen, 100, 1000, i -> healthRegen = healthRegen == null ? i : healthRegen + i);
+                case EDIT_HP -> makeEditSomethingMessage("Set the minimum Health", null, "Health: " + health, 100, 1000, i -> {
+                    if (i == null) {
+                        if (health == null) health = 0;
+                        else health = null;
+                    } else
+                        health = health == null ? i : health + i;
+                });
+                case EDIT_HPR -> makeEditSomethingMessage("Set the minimum Health Regen", null, "HPR: " + healthRegen, 100, 1000, i -> {
+                    if (i == null) {
+                        if (healthRegen == null) healthRegen = 0;
+                        else healthRegen = null;
+                    } else healthRegen = healthRegen == null ? i : healthRegen + i;
+                });
+                case EDIT_RAW_SPELL -> makeRawSpellMessage();
                 case EDIT_MR -> {
                     addManualSimpleButton(event -> idsConstraints.remove(IdNames.MANA_REGEN.getIdName()), CLEAR_ID + IdNames.MANA_REGEN.getIdName());
                     yield makeEditSomethingMessage("Set the minimum Mana Regen",
@@ -192,13 +228,28 @@ public class BuildQueryMessage extends ACDGui {
                             10,
                             100,
                             i -> {
-                                if (this.defense[currentElementMiscUse.ordinal()] == null) {
-                                    this.defense[currentElementMiscUse.ordinal()] = i;
+                                if (i == null) {
+                                    if (this.defense[currentElementMiscUse.ordinal()] == null)
+                                        this.defense[currentElementMiscUse.ordinal()] = 0;
+                                    else this.defense[currentElementMiscUse.ordinal()] = null;
                                 } else {
-                                    this.defense[currentElementMiscUse.ordinal()] += i;
+                                    if (this.defense[currentElementMiscUse.ordinal()] == null) {
+                                        this.defense[currentElementMiscUse.ordinal()] = i;
+                                    } else {
+                                        this.defense[currentElementMiscUse.ordinal()] += i;
+                                    }
                                 }
                             }, new ButtonImpl(CLEAR_ID + currentElementMiscUse.name(), "Clear", ButtonStyle.PRIMARY, false, null));
                 }
+                case EDIT_ATTACK_SPEED_MIN -> makeEditSomethingMessage("Set the minimum attack speed",
+                        null,
+                        Pretty.uppercaseFirst(attackSpeed.name()),
+                        1,
+                        2,
+                        i -> {
+                            if (i == null) attackSpeed = Item.AttackSpeed.SUPER_SLOW;
+                            else attackSpeed = Item.AttackSpeed.from(attackSpeed.speed + i);
+                        });
                 case EDIT_SPELL_COST -> {
                     addManualSimpleButton(event -> this.spellCost[currentSpellMiscUse.spellNum - 1] = null, CLEAR_ID + currentSpellMiscUse.spellNum);
                     yield makeEditSomethingMessage("Set the spell cost for " + currentSpellMiscUse.prettyName(),
@@ -207,10 +258,18 @@ public class BuildQueryMessage extends ACDGui {
                             1,
                             2,
                             i -> {
-                                if (this.spellCost[currentSpellMiscUse.spellNum - 1] == null) {
-                                    this.spellCost[currentSpellMiscUse.spellNum - 1] = i;
+                                if (i == null) {
+                                    if (this.spellCost[currentSpellMiscUse.spellNum - 1] == null) {
+                                        this.spellCost[currentSpellMiscUse.spellNum - 1] = 0;
+                                    } else {
+                                        this.spellCost[currentSpellMiscUse.spellNum - 1] = null;
+                                    }
                                 } else {
-                                    this.spellCost[currentSpellMiscUse.spellNum - 1] += i;
+                                    if (this.spellCost[currentSpellMiscUse.spellNum - 1] == null) {
+                                        this.spellCost[currentSpellMiscUse.spellNum - 1] = i;
+                                    } else {
+                                        this.spellCost[currentSpellMiscUse.spellNum - 1] += i;
+                                    }
                                 }
                             }, new ButtonImpl(CLEAR_ID + currentSpellMiscUse.spellNum, "Clear", ButtonStyle.PRIMARY, false, null));
                 }
@@ -223,6 +282,13 @@ public class BuildQueryMessage extends ACDGui {
                             1,
                             10,
                             i -> {
+                                if (i == null) {
+                                    if (constraintId == null) {
+                                        idsConstraints.put(currentIdNameMiscUse, new ConstraintId(currentIdNameMiscUse, 0));
+                                    } else {
+                                        idsConstraints.remove(currentIdNameMiscUse);
+                                    }
+                                }
                                 if (constraintId == null) {
                                     idsConstraints.put(currentIdNameMiscUse, new ConstraintId(currentIdNameMiscUse, i));
                                 } else {
@@ -236,9 +302,17 @@ public class BuildQueryMessage extends ACDGui {
         }
     }
 
-    private void incrementIdConstraint(String idName, int i) {
-        ConstraintId constraintId = idsConstraints.computeIfAbsent(idName, (c) -> new ConstraintId(idName, 0));
-        constraintId.setValue(constraintId.getValue() + i);
+    private void incrementIdConstraint(String idName, Integer i) {
+        if (i == null) {
+            if (idsConstraints.containsKey(idName)) {
+                idsConstraints.remove(idName, new ConstraintId(idName, 0));
+            } else {
+                idsConstraints.put(idName, new ConstraintId(idName, 0));
+            }
+        } else {
+            ConstraintId constraintId = idsConstraints.computeIfAbsent(idName, (c) -> new ConstraintId(idName, 0));
+            constraintId.setValue(constraintId.getValue() + i);
+        }
     }
 
     @NotNull
@@ -249,6 +323,9 @@ public class BuildQueryMessage extends ACDGui {
 
     @GuiButton(id = SUBMIT_BUTTON_ID)
     public void submit(ComponentInteraction interaction) {
+        if (phase != BuildPhase.CONFIRM) {
+            this.querySaved = null;
+        }
         if (subPages.isEmpty()) {
             switch (phase) {
                 case ELEMENTS -> elementsSubmit(interaction);
@@ -460,6 +537,25 @@ public class BuildQueryMessage extends ACDGui {
         editAsReply(interaction);
     }
 
+    @GuiButton(id = EDIT_ATTACK_SPEED_MIN)
+    public void setEditAttackSpeedMin(ComponentInteraction interaction) {
+        subPages.add(SubPhase.EDIT_ATTACK_SPEED_MIN);
+        editAsReply(interaction);
+    }
+
+    @GuiButton(id = EDIT_RAW_SPELL)
+    public void editRawSpellPage(ComponentInteraction interaction) {
+        subPages.add(SubPhase.EDIT_RAW_SPELL);
+        editAsReply(interaction);
+    }
+
+    @GuiButton(id = SAVE_BUTTON_ID)
+    public void save(ComponentInteraction interaction) {
+        this.querySaved = new QuerySaved(this);
+        editAsReply(interaction);
+        QuerySavingService.get().queue(querySaved, member.getIdLong());
+    }
+
     @GuiButton(id = EDIT_MR_ID)
     public void editMr(ComponentInteraction interaction) {
         subPages.add(SubPhase.EDIT_MR);
@@ -516,7 +612,8 @@ public class BuildQueryMessage extends ACDGui {
 
     @GuiButton(id = CANCEL_BUILD)
     public void cancelButton(ComponentInteraction interaction) {
-        GeneratorManager.cancel(taskUUID);
+        if (taskUUID != null)
+            GeneratorManager.cancel(taskUUID);
         this.phase = BuildPhase.CONFIRM;
         editAsReply(interaction);
     }
@@ -792,12 +889,15 @@ public class BuildQueryMessage extends ACDGui {
         messageBuilder.setEmbeds(embed.build());
         ActionRow healthRow = ActionRow.of(
                 new ButtonImpl(EDIT_HP_ID, "Health: " + health, ButtonStyle.PRIMARY, false, null),
-                new ButtonImpl(EDIT_HPR_ID, "Health Regen: " + healthRegen, ButtonStyle.PRIMARY, false, null)
-        );
-        ActionRow manaRow = ActionRow.of(
+                new ButtonImpl(EDIT_HPR_ID, "Health Regen: " + healthRegen, ButtonStyle.PRIMARY, false, null),
                 new ButtonImpl(EDIT_MS_ID, "Mana Steal: " + getIdPretty(IdNames.MANA_STEAL), ButtonStyle.PRIMARY, false, null),
                 new ButtonImpl(EDIT_MR_ID, "Mana Regen: " + getIdPretty(IdNames.MANA_REGEN), ButtonStyle.PRIMARY, false, null)
         );
+        ActionRow attackRow = ActionRow.of(
+                new ButtonImpl(EDIT_ATTACK_SPEED_MIN, "Attack Speed Min: " + attackSpeed, ButtonStyle.PRIMARY, false, null),
+                new ButtonImpl(EDIT_RAW_SPELL, "Raw Spell Damage: " + rawSpellDmg, ButtonStyle.PRIMARY, false, null)
+        );
+
         Collection<ButtonImpl> buttons = new ArrayList<>();
         int i = 0;
         for (ElementSkill elementSkill : ElementSkill.values()) {
@@ -819,7 +919,7 @@ public class BuildQueryMessage extends ACDGui {
                 new ButtonImpl(BACK_BUTTON_ID, "Back", ButtonStyle.DANGER, false, null),
                 new ButtonImpl(SUBMIT_BUTTON_ID, "Submit", ButtonStyle.SUCCESS, false, null)
         );
-        messageBuilder.setActionRows(healthRow, manaRow, defense, spellCost, navigationRow);
+        messageBuilder.setActionRows(healthRow, attackRow, defense, spellCost, navigationRow);
         return messageBuilder.build();
     }
 
@@ -876,6 +976,9 @@ public class BuildQueryMessage extends ACDGui {
         MessageBuilder messageBuilder = new MessageBuilder();
         EmbedBuilder embed = new EmbedBuilder();
         embed.setTitle("Build Confirmation");
+        if (querySaved != null) {
+            embed.setAuthor("Query ID: " + querySaved.id);
+        }
         embed.setDescription(
                 String.join("\n",
                         "Are you ready to request a build with what you've entered?",
@@ -886,7 +989,8 @@ public class BuildQueryMessage extends ACDGui {
         messageBuilder.setEmbeds(embed.build());
         messageBuilder.setActionRows(ActionRow.of(
                 new ButtonImpl(BACK_BUTTON_ID, "Back", ButtonStyle.DANGER, false, null),
-                new ButtonImpl(SUBMIT_BUTTON_ID, "Submit", ButtonStyle.SUCCESS, false, null)
+                new ButtonImpl(SUBMIT_BUTTON_ID, "Submit", ButtonStyle.SUCCESS, false, null),
+                new ButtonImpl(SAVE_BUTTON_ID, "Save Query", ButtonStyle.PRIMARY, this.querySaved != null, null)
         ));
         return messageBuilder.build();
     }
@@ -905,8 +1009,9 @@ public class BuildQueryMessage extends ACDGui {
                 new ButtonImpl(EDIT_SOMETHING_UP, "", ButtonStyle.PRIMARY, false, DiscordEmoji.UP.getDiscordEmoji())
         );
         addManualSimpleButton(o -> incrementer.accept(smallIncrement), EDIT_SOMETHING_UP);
+        addManualSimpleButton(o -> incrementer.accept(null), "switchValue");
         Collection<ButtonImpl> valueButtons = new ArrayList<>();
-        valueButtons.add(new ButtonImpl("null1", valueLabel, ButtonStyle.SECONDARY, true, null));
+        valueButtons.add(new ButtonImpl("switchValue", valueLabel, ButtonStyle.SECONDARY, false, null));
         valueButtons.add(new ButtonImpl(SUBMIT_BUTTON_ID, "Submit", ButtonStyle.SUCCESS, false, null));
         valueButtons.addAll(Arrays.asList(buttons));
         ActionRow value = ActionRow.of(valueButtons);
@@ -926,7 +1031,10 @@ public class BuildQueryMessage extends ACDGui {
         MessageBuilder messageBuilder = new MessageBuilder();
         EmbedBuilder embed = new EmbedBuilder();
         embed.setTitle(String.format("Progress: %.2f%%", progress * 100));
-        embed.setAuthor(String.format("Priority: %s task", Pretty.uppercaseFirst(priority.name())));
+        embed.setFooter(String.format("Priority: %s task", Pretty.uppercaseFirst(priority.name())));
+        if (querySaved != null) {
+            embed.setAuthor("Query ID: " + querySaved.id);
+        }
         embed.setDescription("Place in queue: " + (placeInLine == 1 ? "working" : placeInLine));
         messageBuilder.setEmbeds(embed.build());
         messageBuilder.setActionRows(ActionRow.of(
@@ -952,7 +1060,9 @@ public class BuildQueryMessage extends ACDGui {
         }
         items.add(new ArrayList<>(wynnClass.getWeapons()));
         this.generator = new BuildGenerator(items.toArray(new ArrayList[0]), new HashSet<>(elements));
-
+        if (this.attackSpeed != Item.AttackSpeed.SUPER_SLOW) {
+            generator.addConstraint(new ConstraintMinAttackSpeed(this.attackSpeed.speed));
+        }
         if (healthRegen != null)
             generator.addConstraint(new ConstraintHpr(healthRegen));
         if (health != null)
@@ -994,15 +1104,21 @@ public class BuildQueryMessage extends ACDGui {
     }
 
     public void onFinish(GeneratorManager.GeneratorTask task) {
+        this.priority = GeneratorManager.TaskType.PRIMARY;
+        this.placeInLine = 0;
+
         if (task.isImpossible()) {
             this.phase = BuildPhase.ELEMENTS;
             editMessage();
             message.getChannel().sendMessage(member.getAsMention() + " Hey, I can't figure this build out right now. It's probably too broad. " + message.getJumpUrl()).queue();
         } else {
-            this.buildsGui = new BuildShowListMessage(acd, message, generator.getBuildsAll(), this);
+            Collection<Build> buildsAll = generator.getBuildsAll();
+            this.buildsGui = new BuildShowListMessage(acd, message, buildsAll, this);
             this.phase = BuildPhase.BUILD;
             editMessage();
-            message.getChannel().sendMessage(member.getAsMention() + " Hey, I finished making the build: " + message.getJumpUrl()).queue();
+            if (buildsAll.isEmpty()) {
+                message.getChannel().sendMessage(member.getAsMention() + " Hey, I finished, but I couldn't find any matches, so it's **probably** impossible.\n " + message.getJumpUrl()).queue();
+            }
         }
     }
 
@@ -1015,6 +1131,61 @@ public class BuildQueryMessage extends ACDGui {
     @GuiManualButton
     public void resetEdit() {
         this.phase = BuildPhase.ELEMENTS;
+        this.priority = GeneratorManager.TaskType.PRIMARY;
+        this.placeInLine = 0;
+        this.querySaved = null;
+    }
+
+    public List<ElementSkill> getElements() {
+        return elements;
+    }
+
+    public List<String> getMajorIds() {
+        return majorIds;
+    }
+
+    public WynnClass getWynnClass() {
+        return wynnClass;
+    }
+
+    public Integer[] getSpellDmg() {
+        return spellDmg;
+    }
+
+    public Integer getRawMainDmg() {
+        return rawMainDmg;
+    }
+
+    public Integer getMainDmg() {
+        return mainDmg;
+    }
+
+    public Integer getHealth() {
+        return health;
+    }
+
+    public Integer getHealthRegen() {
+        return healthRegen;
+    }
+
+    public Integer[] getSpellCost() {
+        return spellCost;
+    }
+
+    public Integer[] getDefense() {
+        return defense;
+    }
+
+    public Map<String, ConstraintId> getIdsConstraints() {
+        return idsConstraints;
+    }
+
+    public Integer getRawSpellDmg() {
+        return rawSpellDmg;
+    }
+
+    public Item.AttackSpeed getAttackSpeed() {
+        return attackSpeed;
     }
 
     private enum SubPhase {
@@ -1024,7 +1195,9 @@ public class BuildQueryMessage extends ACDGui {
         EDIT_DEFENSE,
         EDIT_HPR,
         EDIT_ID,
-        EDIT_SPELL_COST
+        EDIT_ATTACK_SPEED_MIN,
+        EDIT_SPELL_COST,
+        EDIT_RAW_SPELL
     }
 
     private enum BuildPhase {
@@ -1032,13 +1205,12 @@ public class BuildQueryMessage extends ACDGui {
         MAJOR_ID(1),
         CLASS(2),
         SPELL_ATTACK(3),
-        RAW_SPELL_ATTACK(4),
-        MAIN_ATTACK(5),
-        MISC(6),
-        ID(7),
-        CONFIRM(8),
-        WAITING_UPDATES(9),
-        BUILD(10);
+        MAIN_ATTACK(4),
+        MISC(5),
+        ID(6),
+        CONFIRM(7),
+        WAITING_UPDATES(8),
+        BUILD(9);
 
         private static BuildPhase[] order;
         private final int index;

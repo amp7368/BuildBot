@@ -60,5 +60,6 @@ public class DiscordBot extends ListenerAdapter {
         HOME_GUILD = client.getGuildById(603039156892860417L);
         client.getPresence().setPresence(Activity.playing("b!help"), true);
         new CommandBuild(ACD);
+        new CommandBuildLoad(ACD);
     }
 }

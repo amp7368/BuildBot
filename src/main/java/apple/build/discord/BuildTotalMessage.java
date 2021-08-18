@@ -31,7 +31,7 @@ public class BuildTotalMessage extends ACDGuiPageable {
         MessageBuilder messageBuilder = new MessageBuilder();
         List<Item> items = new ArrayList<>(build.items);
         EmbedBuilder embed = new EmbedBuilder();
-        embed.setTitle("Items (" + (page + 1) + ")");
+        embed.setTitle(String.format("Items ( %d / %d )", (mainGui.getPageIndex() + 1), mainGui.size()));
         for (Item.ItemType desiredType : Arrays.asList(
                 Item.ItemType.HELMET,
                 Item.ItemType.CHESTPLATE,
