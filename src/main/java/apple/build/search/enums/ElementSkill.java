@@ -4,6 +4,8 @@ import apple.build.utils.Pretty;
 import apple.build.wynncraft.items.Item;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
+
 public enum ElementSkill {
     THUNDER("dexterity", Constants.THUNDER_ID),
     AIR("agility", Constants.AIR_ID),
@@ -20,6 +22,10 @@ public enum ElementSkill {
     ElementSkill(String skill, String id) {
         this.skill = skill;
         this.id = id;
+    }
+
+    public static ElementSkill[] orderedElements() {
+        return List.of(EARTH, THUNDER, WATER, FIRE, AIR).toArray(new ElementSkill[0]);
     }
 
     public Powder getPowder() {

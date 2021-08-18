@@ -14,12 +14,13 @@ public class GeneratorManager implements Runnable {
     private static final Object sync = new Object();
 
     private static final GeneratorManager instance;
+    private static UUID runningTaskUUID;
 
     static {
         instance = new GeneratorManager();
     }
 
-    public static UUID queue(BuildGenerator generator, Consumer<Double> onUpdate, Runnable onFinish, BiConsumer<TaskType, Integer> priorityChangeUpdate) {
+    public static UUID queue(BuildGenerator generator, Consumer<Double> onUpdate, Consumer<GeneratorTask> onFinish, BiConsumer<TaskType, Integer> priorityChangeUpdate) {
         synchronized (sync) {
             GeneratorTask task = new GeneratorTask(generator, onUpdate, onFinish, priorityChangeUpdate);
             primaryTasks.add(task);
@@ -49,6 +50,18 @@ public class GeneratorManager implements Runnable {
         }
     }
 
+    public static void cancel(UUID taskUUID) {
+        System.out.println("enter cancel");
+        synchronized (sync) {
+            System.out.println("entereed cancel");
+            primaryTasks.removeIf(task -> task.equalsUUID(taskUUID));
+            backgroundTasks.removeIf(task -> task.equalsUUID(taskUUID));
+            if (runningTaskUUID.equals(taskUUID))
+                runningTaskUUID = null;
+            System.out.println("finish cancel");
+        }
+    }
+
     @Override
     public void run() {
         while (true) {
@@ -70,17 +83,20 @@ public class GeneratorManager implements Runnable {
                     // run a primary task
                     runningTask = primaryTasks.remove(0);
                 }
+                runningTaskUUID = runningTask.uuid();
             }
-            System.out.println("start");
             runningTask.waitForUpdate();
+
             synchronized (sync) {
-                if (runningTask.isImpossible()) {
-                    // the task is impossible, finish the task, and don't add it to the queue
-                    runningTask.onFinish();
-                    System.out.println("impossible");
-                } else if (runningTask.isComplete()) {
+                if (runningTaskUUID == null) {
+                    // the running task was canceled
+                    continue;
+                }
+            }
+            synchronized (sync) {
+                if (runningTask.isImpossible() || runningTask.isComplete()) {
+                    // the task is impossible, or the task is done, finish the task, and don't add it to the queue
                     int i = 1;
-                    System.out.println("complete");
                     if (wasBackground) {
                         for (GeneratorTask task : backgroundTasks) {
                             task.priorityChange(TaskType.BACKGROUND, i++);
@@ -105,24 +121,22 @@ public class GeneratorManager implements Runnable {
                             backgroundTasks.add(runningTask);
                             runningTask.priorityChange(TaskType.BACKGROUND, backgroundTasks.size());
                         }
-                        System.out.println("hard");
                     } else if (runningTask.isWorking()) {
                         runningTask.update();
                         primaryTasks.add(0, runningTask);
-                        System.out.println("primary");
                     }
                 }
             }
         }
     }
 
-    private static final class GeneratorTask {
+    public static final class GeneratorTask {
         private static final long DESIRED_MILLIS_TO_RUN = 15000;
         private static final long MAX_MILLIS_TO_RUN = 22000;
         private static final long UPDATE_INTERVAL = 4000;
         private final BuildGenerator generator;
         private final Consumer<Double> onUpdate;
-        private final Runnable onFinish;
+        private final Consumer<GeneratorTask> onFinish;
         private final BiConsumer<TaskType, Integer> priorityChangeUpdate;
         private int impossibleCount = 0;
         private int hardTimeout = 0;
@@ -130,7 +144,7 @@ public class GeneratorManager implements Runnable {
         private final UUID uuid = UUID.randomUUID();
         private long lastProgressUpdate = 0;
 
-        private GeneratorTask(BuildGenerator generator, Consumer<Double> onUpdate, Runnable onFinish, BiConsumer<TaskType, Integer> priorityChangeUpdate) {
+        private GeneratorTask(BuildGenerator generator, Consumer<Double> onUpdate, Consumer<GeneratorTask> onFinish, BiConsumer<TaskType, Integer> priorityChangeUpdate) {
             this.generator = generator;
             this.onUpdate = onUpdate;
             this.onFinish = onFinish;
@@ -141,7 +155,8 @@ public class GeneratorManager implements Runnable {
             BuildGenerator.ExitType exitType = this.generator.runFor(DESIRED_MILLIS_TO_RUN, MAX_MILLIS_TO_RUN, this::update);
             if (exitType == BuildGenerator.ExitType.IMPOSSIBLE) {
                 impossibleCount++;
-                isComplete = true;
+                if (isImpossible())
+                    isComplete = true;
             } else {
                 impossibleCount = 0;
                 if (exitType == BuildGenerator.ExitType.HARD_TIMEOUT) {
@@ -168,7 +183,7 @@ public class GeneratorManager implements Runnable {
         }
 
         public void onFinish() {
-            onFinish.run();
+            onFinish.accept(this);
         }
 
         public void update(double progress) {

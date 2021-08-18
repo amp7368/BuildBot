@@ -10,6 +10,8 @@ import apple.build.search.constraints.filter.BuildConstraintExclusion;
 import apple.build.search.constraints.general.*;
 import apple.build.search.enums.ElementSkill;
 import apple.build.search.enums.Spell;
+import apple.build.wynnbuilder.ServiceWynnbuilderItemDB;
+import apple.build.wynncraft.GetItems;
 import apple.build.wynncraft.items.Item;
 
 import javax.security.auth.login.LoginException;
@@ -21,18 +23,13 @@ import java.util.HashSet;
 
 public class BuildMain {
     public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException, LoginException {
+        ServiceWynnbuilderItemDB.callWynnbuilderToGetItemDB(false);
         System.out.println("Starting BuildBot");
-        initialize();
         new DiscordBot();
 //        combinations();
         System.out.println("Opened database successfully");
-//        GetItems.getItems();
 //        System.out.println("Inserted items");
         System.out.println("done");
-    }
-
-    public static void initialize() throws SQLException, ClassNotFoundException {
-
     }
 
     private static void combinations() {
@@ -43,15 +40,14 @@ public class BuildMain {
 
         long start = System.currentTimeMillis();
         ArrayList[] allItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.daggers};
-        BuildGenerator builds = wfaNeptaSpellSpam(allItems);
+        BuildGenerator builds = testMajorIds(allItems);
         finish(builds, start);
     }
 
     /**
      * @return https://wynndata.tk/s/t9vo23
      */
-    public static BuildGenerator testMajorIds() {
-        ArrayList[] allItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.daggers};
+    public static BuildGenerator testMajorIds(ArrayList<Item>[] allItems) {
         BuildGenerator builds = new BuildGenerator(allItems, new HashSet<>() {{
             add(ElementSkill.EARTH);
             add(ElementSkill.FIRE);
@@ -67,11 +63,11 @@ public class BuildMain {
         builds.addConstraint(new ConstraintMajorId("MAGNET"));
         builds.addConstraint(new ConstraintMainDamage(12000));
         builds.addConstraint(new ConstraintSpellCost(Spell.SMOKE_BOMB, 3));
-        builds.addConstraint(new ConstraintSpellDamage(Spell.SMOKE_BOMB, 9800));
+        builds.addConstraint(new ConstraintSpellDamage(Spell.SMOKE_BOMB, 8000));
+        builds.addConstraint(new ConstraintSpellDamage(Spell.MULTIHIT, 8000));
         builds.addConstraint(new ConstraintHp(14500));
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
             builds.addConstraint(exclusion);
-        builds.generateLowerLevel();
         return builds;
     }
 
@@ -167,7 +163,6 @@ public class BuildMain {
 
     private static void finish(BuildGenerator builds, long start) {
         while (builds.isWorking()) {
-            System.out.println("working for 10-20 seconds");
             builds.runFor(10000, 20000, (d) -> {
             });
         }

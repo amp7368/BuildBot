@@ -26,6 +26,7 @@ project.buildDir(new File('C:\\Users\\Aaron\\Desktop\\bots\\buildBot\\'))
 
 dependencies {
     testImplementation group: 'junit', name: 'junit', version: '4.12'
+    implementation 'apple.utilities:AppleUtilities:1.0.BUILD-SNAPSHOT-all'
     implementation 'apple.acd:DiscordACD:1.0.BUILD-SNAPSHOT'
     implementation 'org.jetbrains:annotations:21.0.1'
     implementation group: 'org.json', name: 'json', version: '20190722'

@@ -430,7 +430,6 @@ public class BuildMath {
     }
 
     public static void main(String[] args) throws SQLException, ClassNotFoundException {
-        BuildMain.initialize();
         List<Item> items = GetItemDB.getAllItems(Item.ItemType.DAGGER);
         Weapon item = null;
         for (Item i : items) {

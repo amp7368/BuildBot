@@ -127,9 +127,7 @@ public class BuildGenerator {
         long timingStart = System.currentTimeMillis();
         if (phase == GenerationPhase.START) {
             if (isFail()) return ExitType.COMPLETE;
-//            startedWithExactMatch = true;
             startedWithExactMatch = PreFilter.filterItemPool(this, allItems[allItems.length - 1].get(0).type);
-            System.out.println(startedWithExactMatch);
             if (isFail()) return ExitType.COMPLETE;
             filterOnBadArchetype();
             if (isFail()) return ExitType.COMPLETE;
@@ -164,15 +162,12 @@ public class BuildGenerator {
                 if (System.currentTimeMillis() >= this.desiredTimeToStop.get()) return ExitType.INCOMPLETE;
                 int iValue = topLayerIndex = Math.max(topLayerIndex, ++layerIndex);
                 onUpdate.accept(progress());
-                System.out.println("time " + (System.currentTimeMillis() - timingStart) + " | " + iValue + "/" + subGenerators.size());
             }
             phase = GenerationPhase.FINISH_SUB_GENERATORS;
         }
         subGenerators.removeIf(BuildGenerator::isEmpty);
         timeToCompute += System.currentTimeMillis() - timingStart;
-        System.out.println("time to compute " + timeToCompute);
         shouldSaveResult = !startedWithExactMatch && timeToCompute > TOO_LONG_THRESHOLD;
-        System.out.println(shouldSaveResult);
         getBuildsAll();
         phase = GenerationPhase.FINISHED;
         return ExitType.COMPLETE;

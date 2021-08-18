@@ -1,5 +1,7 @@
 package apple.build.search;
 
+import apple.build.wynnbuilder.ServiceWynnbuilderItemDB;
+import apple.build.wynncraft.items.Accessory;
 import apple.build.wynncraft.items.Item;
 
 import java.util.*;
@@ -9,6 +11,21 @@ import java.util.stream.Collectors;
 public class Build {
 
     private static final int MAX_BUILDS = 600;
+    private static final List<Item.ItemType> WYNNBUILDER_ITEM_ORDER = List.of(
+            Item.ItemType.HELMET,
+            Item.ItemType.CHESTPLATE,
+            Item.ItemType.LEGGINGS,
+            Item.ItemType.BOOTS,
+            Item.ItemType.RING,
+            Item.ItemType.BRACELET,
+            Item.ItemType.NECKLACE,
+            Item.ItemType.BOW,
+            Item.ItemType.WAND,
+            Item.ItemType.SPEAR,
+            Item.ItemType.DAGGER,
+            Item.ItemType.RELIK
+    );
+    private static final int MAX_WYNN_LEVEL = 106;
     public final List<Item> items;
     public final List<Integer> ordering = new ArrayList<>();
     public int[] skills = null;
@@ -164,5 +181,89 @@ public class Build {
             return true;
         }
         return false;
+    }
+
+    public List<Item> getItemsInOrder(List<Item.ItemType> itemTypes) {
+        List<Item> itemsSorted = new ArrayList<>();
+        List<Item> itemsCopy = new ArrayList<>(items);
+        for (Item.ItemType itemType : itemTypes) {
+            for (Item item : itemsCopy) {
+                if (item.type == itemType) {
+                    itemsSorted.add(item);
+                }
+            }
+        }
+        return itemsSorted;
+    }
+
+    private final static String digitsStr =
+            //   0       8       16      24      32      40      48      56     63
+            //   v       v       v       v       v       v       v       v      v
+            "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-";
+    private final static char[] digits = digitsStr.toCharArray();
+    private final static String[] skillpoint_order = new String[]{"str", "dex", "int", "def", "agi"};
+    private static final int POWDER_NOTHING = 0;
+
+    public static String fromIntN(int int32, int n) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < n; i++) {
+            result.insert(0, digits[int32 & 0x3f]);
+            int32 >>= 6;
+        }
+        return result.toString();
+    }
+
+    public String encodeToWynnBuilder() {
+        StringBuilder build_string = new StringBuilder("4_");
+
+        // items
+        for (Item item : getItemsInOrder(WYNNBUILDER_ITEM_ORDER)) {
+            build_string.append(fromIntN(ServiceWynnbuilderItemDB.getItemId(item), 3));
+        }
+
+        // skillpoints
+        for (String skp : skillpoint_order) {
+            build_string.append(fromIntN(0, 2)); // 0 skill points currently
+        }
+
+        // level
+        build_string.append(fromIntN(MAX_WYNN_LEVEL, 2));
+
+        // powders
+        for (Item item : getItemsInOrder(WYNNBUILDER_ITEM_ORDER)) {
+            if (item instanceof Accessory) continue;
+            int n_bits = 0; //adding no powders
+            build_string.append(fromIntN(n_bits, 1)); // Hard cap of 378 powders.
+            // Slice copy.
+            List<Object> powderset = new ArrayList<>();
+            while (!powderset.isEmpty()) {
+                List<Object> firstSix = new ArrayList<>(powderset.subList(0, Math.min(powderset.size(), 6)));
+                Collections.reverse(firstSix);
+                int powder_hash = 0;
+                for (Object powder : firstSix) {
+                    powder_hash = (powder_hash << 5) + 1 + POWDER_NOTHING; // LSB will be extracted first.
+                }
+                build_string.append(fromIntN(powder_hash, 5));
+                powderset = powderset.size() <= 6 ? Collections.emptyList() : powderset.subList(6, powderset.size());
+            }
+        }
+
+        return build_string.toString();
+//        build_string += fromIntN(player_build.level, 2);
+//        for (const _powderset of player_build.powders){
+//            let n_bits = Math.ceil(_powderset.length / 6);
+//            build_string += fromIntN(n_bits, 1); // Hard cap of 378 powders.
+//             Slice copy.
+//            let powderset = _powderset.slice();
+//            while (powderset.length != 0) {
+//                let firstSix = powderset.slice(0, 6).reverse();
+//                let powder_hash = 0;
+//                for (const powder of firstSix){
+//                    powder_hash = (powder_hash << 5) + 1 + powder; // LSB will be extracted first.
+//                }
+//                build_string += fromIntN(powder_hash, 5);
+//                powderset = powderset.slice(6);
+//            }
+//        }
     }
 }

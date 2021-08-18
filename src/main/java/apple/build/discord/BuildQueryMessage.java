@@ -12,6 +12,7 @@ import apple.build.search.enums.ElementSkill;
 import apple.build.search.enums.IdNames;
 import apple.build.search.enums.Spell;
 import apple.build.search.enums.WynnClass;
+import apple.build.utils.Pair;
 import apple.build.utils.Pretty;
 import apple.build.wynncraft.items.Item;
 import apple.discord.acd.ACD;
@@ -33,6 +34,8 @@ import net.dv8tion.jda.api.interactions.components.ButtonStyle;
 import net.dv8tion.jda.api.interactions.components.Component;
 import net.dv8tion.jda.api.interactions.components.ComponentInteraction;
 import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
+import net.dv8tion.jda.api.utils.TimeUtil;
+import net.dv8tion.jda.api.utils.data.DataObject;
 import net.dv8tion.jda.internal.interactions.ButtonImpl;
 import net.dv8tion.jda.internal.interactions.SelectionMenuImpl;
 import org.jetbrains.annotations.NotNull;
@@ -82,6 +85,8 @@ public class BuildQueryMessage extends ACDGui {
     private static final String CLEAR_ID = "clear";
     private static final String BACK_ID_BUTTON_ID = "id_menu_back";
     private static final String FORWARD_ID_BUTTON_ID = "id_menu_forward";
+    private static final String CANCEL_BUILD = "cancel";
+    private static final String REFRESH = "refresh";
 
     // constants for default modifiers
     private static final int SPELL_DMG_BIG_INCREMENT = 1000;
@@ -90,7 +95,7 @@ public class BuildQueryMessage extends ACDGui {
     private static final int RAW_SPELL_DMG_INCREMENT = 100;
 
     // metadata about the BuildMessage
-    private BuildPhase phase = BuildPhase.CONFIRM;
+    private BuildPhase phase = BuildPhase.ELEMENTS;
     private final List<SubPhase> subPages = new ArrayList<>();
     private MessageEmbed error = null;
     private int idPage = 0;
@@ -102,10 +107,10 @@ public class BuildQueryMessage extends ACDGui {
     private Integer[] spellDmg = new Integer[wynnClass.getSpells().length];
     private final ACD acd;
     private final Member member;
-    private int rawMainDmg = 0;
-    private int mainDmg = 0;
-    private int health = 0;
-    private int healthRegen = 0;
+    private Integer rawMainDmg = null;
+    private Integer mainDmg = null;
+    private Integer health = 0;
+    private Integer healthRegen = null;
     private Integer[] spellCost = new Integer[wynnClass.getSpells().length];
     private final Integer[] defense = new Integer[ElementSkill.values().length];
     private final Map<String, ConstraintId> idsConstraints = new HashMap<>();
@@ -133,7 +138,7 @@ public class BuildQueryMessage extends ACDGui {
 
     @Override
     protected long getMillisToOld() {
-        return MillisTimeUnits.MINUTE_15;
+        return MillisTimeUnits.DAY * 3;
     }
 
     @Override
@@ -155,15 +160,15 @@ public class BuildQueryMessage extends ACDGui {
             };
         } else {
             return switch (subPages.get(0)) {
-                case EDIT_HP -> makeEditSomethingMessage("Set the minimum Health", null, "Health: " + health, 100, 1000, i -> health += i);
-                case EDIT_HPR -> makeEditSomethingMessage("Set the minimum Health Regen", null, "HPR: " + healthRegen, 100, 1000, i -> healthRegen += i);
+                case EDIT_HP -> makeEditSomethingMessage("Set the minimum Health", null, "Health: " + health, 100, 1000, i -> health = health == null ? i : health + i);
+                case EDIT_HPR -> makeEditSomethingMessage("Set the minimum Health Regen", null, "HPR: " + healthRegen, 100, 1000, i -> healthRegen = healthRegen == null ? i : healthRegen + i);
                 case EDIT_MR -> {
                     addManualSimpleButton(event -> idsConstraints.remove(IdNames.MANA_REGEN.getIdName()), CLEAR_ID + IdNames.MANA_REGEN.getIdName());
                     yield makeEditSomethingMessage("Set the minimum Mana Regen",
                             null,
                             "MR:" + getIdPretty(IdNames.MANA_REGEN),
-                            100,
-                            1000,
+                            1,
+                            3,
                             i -> incrementIdConstraint(IdNames.MANA_REGEN.getIdName(), i),
                             new ButtonImpl(CLEAR_ID + IdNames.MANA_REGEN.getIdName(), "Clear", ButtonStyle.PRIMARY, false, null)
                     );
@@ -358,146 +363,30 @@ public class BuildQueryMessage extends ACDGui {
         editAsReply(interaction);
     }
 
-    @GuiButton(id = SPELL_DMG_ID_BIG_UP + "1")
-    public void Spell1DmgBigUp(ComponentInteraction interaction) {
-        if (spellDmg[0] == null) spellDmg[0] = 0;
-        spellDmg[0] += SPELL_DMG_BIG_INCREMENT;
-        editAsReply(interaction);
-    }
-
-    @GuiButton(id = SPELL_DMG_ID_UP + "1")
-    public void Spell1DmgUp(ComponentInteraction interaction) {
-        if (spellDmg[0] == null) spellDmg[0] = 0;
-        spellDmg[0] += SPELL_DMG_INCREMENT;
-        editAsReply(interaction);
-    }
-
-    @GuiButton(id = SPELL_DMG_ID_DOWN + "1")
-    public void Spell1DmgDown(ComponentInteraction interaction) {
-        if (spellDmg[0] == null) spellDmg[0] = 0;
-        spellDmg[0] -= SPELL_DMG_INCREMENT;
-        editAsReply(interaction);
-
-    }
-
-    @GuiButton(id = SPELL_DMG_ID_BIG_DOWN + "1")
-    public void Spell1DmgBigDown(ComponentInteraction interaction) {
-        if (spellDmg[0] == null) spellDmg[0] = 0;
-        spellDmg[0] -= SPELL_DMG_BIG_INCREMENT;
-        editAsReply(interaction);
-    }
-
-    @GuiButton(id = SPELL_DMG_ID_BIG_UP + "2")
-    public void Spell2DmgBigUp(ComponentInteraction interaction) {
-        if (spellDmg[1] == null) spellDmg[1] = 0;
-        spellDmg[1] += SPELL_DMG_BIG_INCREMENT;
-        editAsReply(interaction);
-    }
-
-    @GuiButton(id = SPELL_DMG_ID_UP + "2")
-    public void Spell2DmgUp(ComponentInteraction interaction) {
-        if (spellDmg[1] == null) spellDmg[1] = 0;
-        spellDmg[1] += SPELL_DMG_INCREMENT;
-        editAsReply(interaction);
-    }
-
-    @GuiButton(id = SPELL_DMG_ID_DOWN + "2")
-    public void Spell2DmgDown(ComponentInteraction interaction) {
-        if (spellDmg[1] == null) spellDmg[1] = 0;
-        spellDmg[1] -= SPELL_DMG_INCREMENT;
-        editAsReply(interaction);
-
-    }
-
-    @GuiButton(id = SPELL_DMG_ID_BIG_DOWN + "2")
-    public void Spell2DmgBigDown(ComponentInteraction interaction) {
-        if (spellDmg[1] == null) spellDmg[1] = 0;
-        spellDmg[1] -= SPELL_DMG_BIG_INCREMENT;
-        editAsReply(interaction);
-    }
-
-    @GuiButton(id = SPELL_DMG_ID_BIG_UP + "3")
-    public void Spell3DmgBigUp(ComponentInteraction interaction) {
-        if (spellDmg[2] == null) spellDmg[2] = 0;
-        spellDmg[2] += SPELL_DMG_BIG_INCREMENT;
-        editAsReply(interaction);
-    }
-
-    @GuiButton(id = SPELL_DMG_ID_UP + "3")
-    public void Spell3DmgUp(ComponentInteraction interaction) {
-        if (spellDmg[2] == null) spellDmg[2] = 0;
-        spellDmg[2] += SPELL_DMG_INCREMENT;
-        editAsReply(interaction);
-    }
-
-    @GuiButton(id = SPELL_DMG_ID_DOWN + "3")
-    public void Spell3DmgDown(ComponentInteraction interaction) {
-        if (spellDmg[2] == null) spellDmg[2] = 0;
-        spellDmg[2] -= SPELL_DMG_INCREMENT;
-        editAsReply(interaction);
-
-    }
-
-    @GuiButton(id = SPELL_DMG_ID_BIG_DOWN + "3")
-    public void Spell3DmgBigDown(ComponentInteraction interaction) {
-        if (spellDmg[2] == null) spellDmg[2] = 0;
-        spellDmg[2] -= SPELL_DMG_BIG_INCREMENT;
-        editAsReply(interaction);
-    }
-
-    @GuiButton(id = SPELL_DMG_ID_BIG_UP + "4")
-    public void Spell4DmgBigUp(ComponentInteraction interaction) {
-        if (spellDmg[3] == null) spellDmg[3] = 0;
-        spellDmg[3] += SPELL_DMG_BIG_INCREMENT;
-        editAsReply(interaction);
-    }
-
-    @GuiButton(id = SPELL_DMG_ID_UP + "4")
-    public void Spell4DmgUp(ComponentInteraction interaction) {
-        if (spellDmg[3] == null) spellDmg[3] = 0;
-        spellDmg[3] += SPELL_DMG_INCREMENT;
-        editAsReply(interaction);
-    }
-
-    @GuiButton(id = SPELL_DMG_ID_DOWN + "4")
-    public void Spell4DmgDown(ComponentInteraction interaction) {
-        if (spellDmg[3] == null) spellDmg[3] = 0;
-        spellDmg[3] -= SPELL_DMG_INCREMENT;
-        editAsReply(interaction);
-
-    }
-
-    @GuiButton(id = SPELL_DMG_ID_BIG_DOWN + "4")
-    public void Spell4DmgBigDown(ComponentInteraction interaction) {
-        if (spellDmg[3] == null) spellDmg[3] = 0;
-        spellDmg[3] -= SPELL_DMG_BIG_INCREMENT;
-        editAsReply(interaction);
-    }
 
     @GuiButton(id = RAW_SPELL_DMG_ID_BIG_UP)
-    public void RawSpell1DmgBigUp(ComponentInteraction interaction) {
+    public void rawSpellDmgBigUp(ComponentInteraction interaction) {
         if (rawSpellDmg == null) rawSpellDmg = 0;
         rawSpellDmg += RAW_SPELL_DMG_BIG_INCREMENT;
         editAsReply(interaction);
     }
 
-    @GuiButton(id = RAW_SPELL_DMG_ID_UP + "1")
-    public void RawSpell1DmgUp(ComponentInteraction interaction) {
+    @GuiButton(id = RAW_SPELL_DMG_ID_UP)
+    public void rawSpellDmgUp(ComponentInteraction interaction) {
         if (rawSpellDmg == null) rawSpellDmg = 0;
         rawSpellDmg += RAW_SPELL_DMG_INCREMENT;
         editAsReply(interaction);
     }
 
-    @GuiButton(id = RAW_SPELL_DMG_ID_DOWN + "1")
-    public void RawSpell1DmgDown(ComponentInteraction interaction) {
+    @GuiButton(id = RAW_SPELL_DMG_ID_DOWN)
+    public void rawSpellDmgDown(ComponentInteraction interaction) {
         if (rawSpellDmg == null) rawSpellDmg = 0;
         rawSpellDmg -= RAW_SPELL_DMG_INCREMENT;
         editAsReply(interaction);
-
     }
 
-    @GuiButton(id = RAW_SPELL_DMG_ID_BIG_DOWN + "1")
-    public void RawSpell1DmgBigDown(ComponentInteraction interaction) {
+    @GuiButton(id = RAW_SPELL_DMG_ID_BIG_DOWN)
+    public void rawSpellDmgBigDown(ComponentInteraction interaction) {
         if (rawSpellDmg == null) rawSpellDmg = 0;
         rawSpellDmg -= RAW_SPELL_DMG_BIG_INCREMENT;
         editAsReply(interaction);
@@ -505,48 +394,56 @@ public class BuildQueryMessage extends ACDGui {
 
     @GuiButton(id = RAW_MAIN_DMG_ID_BIG_UP)
     public void rawMainDmgBigUp(ComponentInteraction interaction) {
+        if (rawMainDmg == null) rawMainDmg = 0;
         rawMainDmg += RAW_SPELL_DMG_BIG_INCREMENT;
         editAsReply(interaction);
     }
 
     @GuiButton(id = RAW_MAIN_DMG_ID_UP)
     public void rawMainDmgUp(ComponentInteraction interaction) {
+        if (rawMainDmg == null) rawMainDmg = 0;
         rawMainDmg += RAW_SPELL_DMG_INCREMENT;
         editAsReply(interaction);
     }
 
     @GuiButton(id = RAW_MAIN_DMG_ID_DOWN)
     public void rawMainDmgDown(ComponentInteraction interaction) {
+        if (rawMainDmg == null) rawMainDmg = 0;
         rawMainDmg -= RAW_SPELL_DMG_INCREMENT;
         editAsReply(interaction);
     }
 
     @GuiButton(id = RAW_MAIN_DMG_ID_BIG_DOWN)
     public void rawMainDmgBigDown(ComponentInteraction interaction) {
+        if (rawMainDmg == null) rawMainDmg = 0;
         rawMainDmg -= RAW_SPELL_DMG_BIG_INCREMENT;
         editAsReply(interaction);
     }
 
     @GuiButton(id = MAIN_DMG_ID_BIG_UP)
     public void mainDmgBigUp(ComponentInteraction interaction) {
+        if (mainDmg == null) mainDmg = 0;
         mainDmg += SPELL_DMG_BIG_INCREMENT;
         editAsReply(interaction);
     }
 
     @GuiButton(id = MAIN_DMG_ID_UP)
     public void mainDmgUp(ComponentInteraction interaction) {
+        if (mainDmg == null) mainDmg = 0;
         mainDmg += SPELL_DMG_INCREMENT;
         editAsReply(interaction);
     }
 
     @GuiButton(id = MAIN_DMG_ID_DOWN)
     public void mainDmgDown(ComponentInteraction interaction) {
+        if (mainDmg == null) mainDmg = 0;
         mainDmg -= SPELL_DMG_INCREMENT;
         editAsReply(interaction);
     }
 
     @GuiButton(id = MAIN_DMG_ID_BIG_DOWN)
     public void mainDmgBigDown(ComponentInteraction interaction) {
+        if (mainDmg == null) mainDmg = 0;
         mainDmg -= SPELL_DMG_BIG_INCREMENT;
         editAsReply(interaction);
     }
@@ -612,6 +509,18 @@ public class BuildQueryMessage extends ACDGui {
         editAsReply(interaction);
     }
 
+    @GuiButton(id = REFRESH)
+    public void refreshButton(ComponentInteraction interaction) {
+        editAsReply(interaction);
+    }
+
+    @GuiButton(id = CANCEL_BUILD)
+    public void cancelButton(ComponentInteraction interaction) {
+        GeneratorManager.cancel(taskUUID);
+        this.phase = BuildPhase.CONFIRM;
+        editAsReply(interaction);
+    }
+
     public void elementsSubmit(ComponentInteraction interaction) {
         if (this.elements.size() > 3) {
             EmbedBuilder errorBuilder = new EmbedBuilder();
@@ -640,7 +549,7 @@ public class BuildQueryMessage extends ACDGui {
             messageBuilder.setEmbeds(embed.build(), error);
         }
         Collection<ButtonImpl> elementButtons = new ArrayList<>();
-        for (ElementSkill element : ElementSkill.values()) {
+        for (ElementSkill element : ElementSkill.orderedElements()) {
             elementButtons.add(
                     new ButtonImpl(
                             element.name(),
@@ -671,7 +580,7 @@ public class BuildQueryMessage extends ACDGui {
         for (String majorId : majorIdsAll) {
             majorIdOptions.add(
                     SelectOption.of(
-                            majorId, Pretty.uppercaseFirst(majorId)
+                            Pretty.uppercaseFirst(majorId), majorId
                     )
             );
         }
@@ -732,6 +641,7 @@ public class BuildQueryMessage extends ACDGui {
         );
         messageBuilder.setEmbeds(embed.build());
 
+        add4ManualSimpleButtons(SPELL_DMG_BIG_INCREMENT, SPELL_DMG_ID_BIG_UP, spellDmg);
         ActionRow increaseSpellLots = ActionRow.of(
                 new ButtonImpl(SPELL_DMG_ID_BIG_UP + "1", "", ButtonStyle.PRIMARY, false, DiscordEmoji.BIG_UP.getDiscordEmoji()),
                 new ButtonImpl(SPELL_DMG_ID_BIG_UP + "2", "", ButtonStyle.PRIMARY, false, DiscordEmoji.BIG_UP.getDiscordEmoji()),
@@ -739,24 +649,31 @@ public class BuildQueryMessage extends ACDGui {
                 new ButtonImpl(SPELL_DMG_ID_BIG_UP + "4", "", ButtonStyle.PRIMARY, false, DiscordEmoji.BIG_UP.getDiscordEmoji()),
                 new ButtonImpl(BACK_BUTTON_ID, "Back", ButtonStyle.DANGER, false, null)
         );
+
+        add4ManualSimpleButtons(SPELL_DMG_INCREMENT, SPELL_DMG_ID_UP, spellDmg);
         ActionRow increaseSpellSome = ActionRow.of(
                 new ButtonImpl(SPELL_DMG_ID_UP + "1", "", ButtonStyle.PRIMARY, false, DiscordEmoji.UP.getDiscordEmoji()),
                 new ButtonImpl(SPELL_DMG_ID_UP + "2", "", ButtonStyle.PRIMARY, false, DiscordEmoji.UP.getDiscordEmoji()),
                 new ButtonImpl(SPELL_DMG_ID_UP + "3", "", ButtonStyle.PRIMARY, false, DiscordEmoji.UP.getDiscordEmoji()),
                 new ButtonImpl(SPELL_DMG_ID_UP + "4", "", ButtonStyle.PRIMARY, false, DiscordEmoji.UP.getDiscordEmoji())
         );
+
         ActionRow spellInfo = ActionRow.of(
-                new ButtonImpl("null", this.spellDmg[0] == null ? "NA" : String.valueOf(this.spellDmg[0]), ButtonStyle.SECONDARY, true, null),
-                new ButtonImpl("null", this.spellDmg[1] == null ? "NA" : String.valueOf(this.spellDmg[1]), ButtonStyle.SECONDARY, true, null),
-                new ButtonImpl("null", this.spellDmg[2] == null ? "NA" : String.valueOf(this.spellDmg[2]), ButtonStyle.SECONDARY, true, null),
-                new ButtonImpl("null", this.spellDmg[3] == null ? "NA" : String.valueOf(this.spellDmg[3]), ButtonStyle.SECONDARY, true, null)
+                new ButtonImpl("null1", this.spellDmg[0] == null ? "NA" : String.valueOf(this.spellDmg[0]), ButtonStyle.SECONDARY, true, null),
+                new ButtonImpl("null2", this.spellDmg[1] == null ? "NA" : String.valueOf(this.spellDmg[1]), ButtonStyle.SECONDARY, true, null),
+                new ButtonImpl("null3", this.spellDmg[2] == null ? "NA" : String.valueOf(this.spellDmg[2]), ButtonStyle.SECONDARY, true, null),
+                new ButtonImpl("null4", this.spellDmg[3] == null ? "NA" : String.valueOf(this.spellDmg[3]), ButtonStyle.SECONDARY, true, null)
         );
+
+        add4ManualSimpleButtons(-SPELL_DMG_INCREMENT, SPELL_DMG_ID_DOWN, spellDmg);
         ActionRow decreaseSpellSome = ActionRow.of(
                 new ButtonImpl(SPELL_DMG_ID_DOWN + "1", "", ButtonStyle.PRIMARY, false, DiscordEmoji.DOWN.getDiscordEmoji()),
                 new ButtonImpl(SPELL_DMG_ID_DOWN + "2", "", ButtonStyle.PRIMARY, false, DiscordEmoji.DOWN.getDiscordEmoji()),
                 new ButtonImpl(SPELL_DMG_ID_DOWN + "3", "", ButtonStyle.PRIMARY, false, DiscordEmoji.DOWN.getDiscordEmoji()),
                 new ButtonImpl(SPELL_DMG_ID_DOWN + "4", "", ButtonStyle.PRIMARY, false, DiscordEmoji.DOWN.getDiscordEmoji())
         );
+
+        add4ManualSimpleButtons(-SPELL_DMG_BIG_INCREMENT, SPELL_DMG_ID_BIG_DOWN, spellDmg);
         ActionRow decreaseSpellLots = ActionRow.of(
                 new ButtonImpl(SPELL_DMG_ID_BIG_DOWN + "1", "", ButtonStyle.PRIMARY, false, DiscordEmoji.BIG_DOWN.getDiscordEmoji()),
                 new ButtonImpl(SPELL_DMG_ID_BIG_DOWN + "2", "", ButtonStyle.PRIMARY, false, DiscordEmoji.BIG_DOWN.getDiscordEmoji()),
@@ -767,6 +684,16 @@ public class BuildQueryMessage extends ACDGui {
 
         messageBuilder.setActionRows(increaseSpellLots, increaseSpellSome, spellInfo, decreaseSpellSome, decreaseSpellLots);
         return messageBuilder.build();
+    }
+
+    private void add4ManualSimpleButtons(int spellDmgIncrement, String spellDmgIdUp, Integer[] array) {
+        for (int i = 0; i < 4; i++) {
+            int finalI = i;
+            addManualSimpleButton(e -> {
+                if (array[finalI] == null) array[finalI] = 0;
+                array[finalI] += spellDmgIncrement;
+            }, spellDmgIdUp + (i + 1));
+        }
     }
 
     private Message makeRawSpellMessage() {
@@ -828,7 +755,7 @@ public class BuildQueryMessage extends ACDGui {
                         "",
                         "__**Buttons key:**__",
                         "**1. Raw main attack**",
-                        "**1. Main attack**"
+                        "**2. Main attack**"
                 )
         );
         messageBuilder.setEmbeds(embed.build());
@@ -842,8 +769,8 @@ public class BuildQueryMessage extends ACDGui {
                 new ButtonImpl(MAIN_DMG_ID_UP, "", ButtonStyle.PRIMARY, false, DiscordEmoji.UP.getDiscordEmoji())
         );
         ActionRow value = ActionRow.of(
-                new ButtonImpl("null", String.valueOf(rawMainDmg), ButtonStyle.SECONDARY, true, null),
-                new ButtonImpl("null", String.valueOf(mainDmg), ButtonStyle.SECONDARY, true, null)
+                new ButtonImpl("null1", String.valueOf(rawMainDmg), ButtonStyle.SECONDARY, true, null),
+                new ButtonImpl("null2", String.valueOf(mainDmg), ButtonStyle.SECONDARY, true, null)
         );
         ActionRow decrease = ActionRow.of(
                 new ButtonImpl(RAW_MAIN_DMG_ID_DOWN, "", ButtonStyle.PRIMARY, false, DiscordEmoji.DOWN.getDiscordEmoji()),
@@ -936,7 +863,7 @@ public class BuildQueryMessage extends ACDGui {
         ActionRow navigationRow = ActionRow.of(
                 new ButtonImpl(BACK_BUTTON_ID, "Back", ButtonStyle.DANGER, false, null),
                 new ButtonImpl(BACK_ID_BUTTON_ID, "Menu Back", ButtonStyle.SECONDARY, false, null),
-                new ButtonImpl("null", "Menu Page " + (idPage + 1), ButtonStyle.SECONDARY, true, null),
+                new ButtonImpl("null1", "Menu Page " + (idPage + 1), ButtonStyle.SECONDARY, true, null),
                 new ButtonImpl(FORWARD_ID_BUTTON_ID, "Menu Forward", ButtonStyle.PRIMARY, false, null),
                 new ButtonImpl(SUBMIT_BUTTON_ID, "Submit", ButtonStyle.SUCCESS, false, null)
         );
@@ -979,7 +906,7 @@ public class BuildQueryMessage extends ACDGui {
         );
         addManualSimpleButton(o -> incrementer.accept(smallIncrement), EDIT_SOMETHING_UP);
         Collection<ButtonImpl> valueButtons = new ArrayList<>();
-        valueButtons.add(new ButtonImpl("NA", valueLabel, ButtonStyle.SECONDARY, true, null));
+        valueButtons.add(new ButtonImpl("null1", valueLabel, ButtonStyle.SECONDARY, true, null));
         valueButtons.add(new ButtonImpl(SUBMIT_BUTTON_ID, "Submit", ButtonStyle.SUCCESS, false, null));
         valueButtons.addAll(Arrays.asList(buttons));
         ActionRow value = ActionRow.of(valueButtons);
@@ -1002,6 +929,10 @@ public class BuildQueryMessage extends ACDGui {
         embed.setAuthor(String.format("Priority: %s task", Pretty.uppercaseFirst(priority.name())));
         embed.setDescription("Place in queue: " + (placeInLine == 1 ? "working" : placeInLine));
         messageBuilder.setEmbeds(embed.build());
+        messageBuilder.setActionRows(ActionRow.of(
+                new ButtonImpl(CANCEL_BUILD, "Cancel", ButtonStyle.DANGER, false, DiscordEmoji.RED_X.getDiscordEmoji()),
+                new ButtonImpl(REFRESH, "Refresh", ButtonStyle.PRIMARY, false, DiscordEmoji.LOOP.getDiscordEmoji())
+        ));
         return messageBuilder.build();
     }
 
@@ -1019,14 +950,15 @@ public class BuildQueryMessage extends ACDGui {
         for (List<Item> pieceRaw : List.of(Item.rings, Item.rings, Item.bracelets, Item.necklaces)) {
             items.add(new ArrayList<>(pieceRaw));
         }
-        items.add(wynnClass.getWeapons());
+        items.add(new ArrayList<>(wynnClass.getWeapons()));
         this.generator = new BuildGenerator(items.toArray(new ArrayList[0]), new HashSet<>(elements));
 
-        generator.addConstraint(new ConstraintHpr(healthRegen));
-        generator.addConstraint(new ConstraintHp(health));
+        if (healthRegen != null)
+            generator.addConstraint(new ConstraintHpr(healthRegen));
+        if (health != null)
+            generator.addConstraint(new ConstraintHp(health));
         for (ConstraintId id : idsConstraints.values()) generator.addConstraint(id);
         for (String majorId : majorIds) generator.addConstraint(new ConstraintMajorId(majorId));
-        generator.addConstraint(new ConstraintMainDamage(mainDmg));
         for (int i = 0; i < spellDmg.length; i++) {
             if (spellDmg[i] != null) {
                 generator.addConstraint(new ConstraintSpellDamage(wynnClass.getSpells()[i], spellDmg[i]));
@@ -1039,8 +971,10 @@ public class BuildQueryMessage extends ACDGui {
         }
         if (rawSpellDmg != null)
             generator.addConstraint(new ConstraintId(IdNames.RAW_SPELL_DMG.getIdName(), rawSpellDmg));
-        generator.addConstraint(new ConstraintId(IdNames.MAIN_ATTACK_DMG.getIdName(), rawMainDmg));
-        generator.addConstraint(new ConstraintMainDamage(mainDmg));
+        if (rawMainDmg != null)
+            generator.addConstraint(new ConstraintId(IdNames.MAIN_ATTACK_DMG.getIdName(), rawMainDmg));
+        if (mainDmg != null)
+            generator.addConstraint(new ConstraintMainDamage(mainDmg));
         for (int i = 0; i < defense.length; i++) {
             if (defense[i] != null) {
                 generator.addConstraint(new ConstraintDefense(ElementSkill.values()[i], defense[i]));
@@ -1049,8 +983,7 @@ public class BuildQueryMessage extends ACDGui {
         for (BuildConstraintExclusion exclusion : BuildConstraintExclusion.all)
             generator.addConstraint(exclusion);
         phase = BuildPhase.WAITING_UPDATES;
-        BuildGenerator builds = BuildMain.wfaNeptaSpellSpam(items.toArray(new ArrayList[0]));
-        this.taskUUID = GeneratorManager.queue(builds, this::onUpdate, this::onFinish, this::onPriorityChange);
+        this.taskUUID = GeneratorManager.queue(generator, this::onUpdate, this::onFinish, this::onPriorityChange);
         this.placeInLine = GeneratorManager.placeInLine(taskUUID);
         editAsReply(interaction);
     }
@@ -1060,18 +993,28 @@ public class BuildQueryMessage extends ACDGui {
         editMessage();
     }
 
-    public void onFinish() {
-        System.out.println("finished");
-        this.buildsGui = new BuildShowListMessage(acd, message, generator.getBuildsAll());
-        this.phase = BuildPhase.BUILD;
-        editMessage();
-        message.getChannel().sendMessage(member.getAsMention() + " Hey, I finished making the build: " + message.getJumpUrl()).queue();
+    public void onFinish(GeneratorManager.GeneratorTask task) {
+        if (task.isImpossible()) {
+            this.phase = BuildPhase.ELEMENTS;
+            editMessage();
+            message.getChannel().sendMessage(member.getAsMention() + " Hey, I can't figure this build out right now. It's probably too broad. " + message.getJumpUrl()).queue();
+        } else {
+            this.buildsGui = new BuildShowListMessage(acd, message, generator.getBuildsAll(), this);
+            this.phase = BuildPhase.BUILD;
+            editMessage();
+            message.getChannel().sendMessage(member.getAsMention() + " Hey, I finished making the build: " + message.getJumpUrl()).queue();
+        }
     }
 
     public void onPriorityChange(GeneratorManager.TaskType priority, int placeInLine) {
         this.priority = priority;
         this.placeInLine = placeInLine;
         editMessage();
+    }
+
+    @GuiManualButton
+    public void resetEdit() {
+        this.phase = BuildPhase.ELEMENTS;
     }
 
     private enum SubPhase {

@@ -439,7 +439,11 @@ public class Item {
         RING,
         BRACELET,
         NECKLACE,
-        UNKNOWN
+        UNKNOWN;
+
+        public boolean isWeapon() {
+            return List.of(WAND, DAGGER, SPEAR, BOW, RELIK).contains(this);
+        }
     }
 
     public enum ClassType {

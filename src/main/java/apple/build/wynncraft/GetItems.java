@@ -30,6 +30,6 @@ public class GetItems {
             items[i++] = Item.makeItem(itemMap);
         }
         InsertItemDB.insertItems(items);
-        System.out.println("done");
+        System.out.println("get item DB");
     }
 }
