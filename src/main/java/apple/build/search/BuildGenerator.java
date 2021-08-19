@@ -17,25 +17,18 @@ import apple.build.wynncraft.items.Weapon;
 
 import java.math.BigInteger;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class BuildGenerator {
     private static final long TOO_LONG_THRESHOLD = 3 * 1000;
     private final int layer;
-    private final Set<ElementSkill> archetype;
     private ArrayList<Item>[] allItems;
     private ArrayList<BuildGenerator> subGenerators = new ArrayList<>();
-    private final List<BuildConstraintGeneral> constraints;
-    private final List<BuildConstraintExclusion> constraintsExclusion;
-    private final List<BuildConstraintAdvancedSkills> constraintsAdvancedSkill;
-    private final List<BuildConstraintAdvancedDamage> constraintsAdvancedDamage;
+    private final BuildGeneratorSettings settings;
     private Set<Build> extraBuilds = null;
 
     private boolean shouldSaveResult;
-    public final AtomicLong maxTimeToStop;
-    public AtomicLong desiredTimeToStop = new AtomicLong();
     private GenerationPhase phase = GenerationPhase.START;
     private boolean startedWithExactMatch;
     private int topLayerIndex;
@@ -50,71 +43,45 @@ public class BuildGenerator {
     public BuildGenerator(ArrayList<Item>[] allItems, Set<ElementSkill> archetype) {
         this.allItems = allItems;
         this.layer = 0;
-        this.constraints = new ArrayList<>();
-        this.constraintsAdvancedSkill = new ArrayList<>();
-        this.constraintsAdvancedDamage = new ArrayList<>();
-        this.constraintsExclusion = new ArrayList<>();
-        this.archetype = archetype;
-        this.maxTimeToStop = new AtomicLong();
+        this.settings = new BuildGeneratorSettings(archetype);
     }
 
-    private BuildGenerator(ArrayList<Item>[] subItems, List<BuildConstraintGeneral> constraints,
-                           List<BuildConstraintAdvancedSkills> constraintsAdvancedSkill,
-                           List<BuildConstraintAdvancedDamage> constraintsAdvancedDamage,
-                           List<BuildConstraintExclusion> constraintsExclusion,
-                           Set<ElementSkill> archetype,
-                           AtomicLong maxTimeToStop,
-                           int layer) {
+    private BuildGenerator(ArrayList<Item>[] subItems, BuildGeneratorSettings settings, int layer) {
         this.allItems = subItems;
-        this.constraints = constraints;
-        this.constraintsAdvancedSkill = constraintsAdvancedSkill;
-        this.constraintsAdvancedDamage = constraintsAdvancedDamage;
-        this.constraintsExclusion = constraintsExclusion;
-        this.archetype = archetype;
-        this.maxTimeToStop = maxTimeToStop;
+        this.settings = settings;
         this.layer = layer;
     }
 
     public void addConstraint(BuildConstraintGeneral constraint) {
-        this.constraints.add(constraint);
+        this.settings.addConstraint(constraint);
     }
 
     public void addConstraint(BuildConstraintAdvancedSkills constraint) {
-        this.constraintsAdvancedSkill.add(constraint);
+        this.settings.addConstraint(constraint);
     }
 
     public void addConstraint(BuildConstraintAdvancedDamage constraint) {
-        this.constraintsAdvancedDamage.add(constraint);
+        this.settings.addConstraint(constraint);
     }
 
-    public void addConstraint(BuildConstraintExclusion buildConstraintExclusion) {
-        this.constraintsExclusion.add(buildConstraintExclusion);
+    public void addConstraint(BuildConstraintExclusion constraint) {
+        this.settings.addConstraint(constraint);
     }
 
     public List<ConstraintSimplified> getSimplifiedConstraints() {
         List<ConstraintSimplified> simples = new ArrayList<>();
-        for (BuildConstraintGeneral constraint : constraints)
-            simples.add(constraint.getSimplified());
-        for (BuildConstraintExclusion constraint : constraintsExclusion)
-            simples.add(constraint.getSimplified());
-        for (BuildConstraintAdvancedSkills constraint : constraintsAdvancedSkill)
-            simples.add(constraint.getSimplified());
-        for (BuildConstraintAdvancedDamage constraint : constraintsAdvancedDamage)
+        for (BuildConstraint constraint : settings.getConstraintsAll())
             simples.add(constraint.getSimplified());
         return simples;
     }
 
     public List<BuildConstraint> getConstraints() {
-        List<BuildConstraint> allConstraints = new ArrayList<>(constraints);
-        allConstraints.addAll(constraintsExclusion);
-        allConstraints.addAll(constraintsAdvancedSkill);
-        allConstraints.addAll(constraintsAdvancedDamage);
-        return allConstraints;
+        return settings.getAllConstraints();
     }
 
     public ExitType runFor(long desiredMillisToRun, long maxMillisToRun, Consumer<Double> onUpdate) {
-        this.desiredTimeToStop.set(System.currentTimeMillis() + desiredMillisToRun);
-        this.maxTimeToStop.set(System.currentTimeMillis() + maxMillisToRun);
+        this.settings.getDesiredTimeToStop().set(System.currentTimeMillis() + desiredMillisToRun);
+        this.settings.getMaxTimeToStop().set(System.currentTimeMillis() + maxMillisToRun);
         return this.generateTopLevel(onUpdate);
     }
 
@@ -143,7 +110,7 @@ public class BuildGenerator {
             if (subGenerators.isEmpty()) return ExitType.COMPLETE;
             this.initalSubGeneratorsSize = subGenerators.size();
             phase = GenerationPhase.SUB_GENERATORS;
-            if (System.currentTimeMillis() >= this.desiredTimeToStop.get()) {
+            if (System.currentTimeMillis() >= this.settings.getDesiredTimeToStop().get()) {
                 timeToCompute += System.currentTimeMillis() - timingStart;
                 return ExitType.INCOMPLETE;
             }
@@ -159,7 +126,8 @@ public class BuildGenerator {
                     timeToCompute += System.currentTimeMillis() - timingStart;
                     return exit;
                 }
-                if (System.currentTimeMillis() >= this.desiredTimeToStop.get()) return ExitType.INCOMPLETE;
+                if (System.currentTimeMillis() >= this.settings.getDesiredTimeToStop().get())
+                    return ExitType.INCOMPLETE;
                 int iValue = topLayerIndex = Math.max(topLayerIndex, ++layerIndex);
                 onUpdate.accept(progress());
             }
@@ -194,12 +162,12 @@ public class BuildGenerator {
                 for (BuildGenerator buildGenerator : subGenerators) {
                     ExitType exit = buildGenerator.generateLowerLevel();
                     if (exit != ExitType.COMPLETE) return exit;
-                    if (GeneratorThreadPool.shouldStop(this.maxTimeToStop)) {
+                    if (GeneratorThreadPool.shouldStop(this.settings.getMaxTimeToStop())) {
                         return ExitType.HARD_TIMEOUT;
                     }
                 }
             } else {
-                ExitType exit = new GeneratorThreadPool(subGenerators, BuildGenerator::generateLowerLevel, threadsAvailable, maxTimeToStop).waitForCompletion();
+                ExitType exit = new GeneratorThreadPool(subGenerators, BuildGenerator::generateLowerLevel, threadsAvailable, this.settings.getMaxTimeToStop()).waitForCompletion();
                 if (exit != ExitType.COMPLETE) return exit;
             }
             phase = GenerationPhase.FINISH_SUB_GENERATORS;
@@ -240,7 +208,7 @@ public class BuildGenerator {
         if (isFail()) return true;
         filterWeaponOnAdvancedDamageConstraintsFirstPass();
         if (isFail()) return true;
-        filterOnSkillReqsFirstPass(archetype);
+        filterOnSkillReqsFirstPass(this.settings.getArchetype());
         return isFail();
     }
 
@@ -255,14 +223,14 @@ public class BuildGenerator {
                 break;
             }
         }
-        for (BuildConstraintExclusion exclusion : constraintsExclusion) {
+        for (BuildConstraintExclusion exclusion : settings.getConstraintsExclusion()) {
             for (int i = start; i < allItems.length; i++)
                 exclusion.filter(allItems[i], knownItems);
         }
     }
 
     private boolean filterOnExclusion(Build build) {
-        for (BuildConstraintExclusion exclusion : constraintsExclusion) {
+        for (BuildConstraintExclusion exclusion : settings.getConstraintsExclusion()) {
             if (!exclusion.isValid(build.items)) return true;
         }
         return false;
@@ -280,7 +248,7 @@ public class BuildGenerator {
     }
 
     private boolean filterOnConstraintsAdvancedSkill(Build build) {
-        for (BuildConstraintAdvancedSkills constaint : constraintsAdvancedSkill) {
+        for (BuildConstraintAdvancedSkills constaint : settings.getConstraintsAdvancedSkill()) {
             if (!constaint.isValid(build.skills, build.extraSkillPoints, build.extraSkillPerElement, build.items))
                 return true;
         }
@@ -320,7 +288,7 @@ public class BuildGenerator {
         if (build.getHawkeye()) {
             input.setHawkeye(true);
         }
-        for (BuildConstraintAdvancedDamage constraint : constraintsAdvancedDamage) {
+        for (BuildConstraintAdvancedDamage constraint : settings.getConstraintsAdvancedDamage()) {
             if (!constraint.isValid(input, weapon)) return true;
         }
         return false;
@@ -462,7 +430,7 @@ public class BuildGenerator {
             DamageInput input = new DamageInput(myFinalSpellDmg, myFinalMainDmg, mySpellDmgRaw, myMainDmgRaw, mySkills, extraSkillPoints, extraSkillsPerElement, myElemental, Item.AttackSpeed.toModifier(myAttackSpeed));
             if (finalHawkeye)
                 input.setHawkeye(true);
-            for (BuildConstraintAdvancedDamage constraint : constraintsAdvancedDamage) {
+            for (BuildConstraintAdvancedDamage constraint : settings.getConstraintsAdvancedDamage()) {
                 if (!constraint.isValid(input, (Weapon) item)) return true;
             }
             return false;
@@ -541,12 +509,7 @@ public class BuildGenerator {
             }
             subGenerators.add(new BuildGenerator(
                     subItems,
-                    constraints,
-                    constraintsAdvancedSkill,
-                    constraintsAdvancedDamage,
-                    constraintsExclusion,
-                    archetype,
-                    maxTimeToStop,
+                    settings,
                     layer + 1));
         }
         allItems = new ArrayList[0];
@@ -793,6 +756,7 @@ public class BuildGenerator {
      * remove items that don't fit our archetype
      */
     private void filterOnBadArchetype() {
+        Set<ElementSkill> archetype = settings.getArchetype();
         for (List<Item> items : allItems) {
             Iterator<Item> itemIterator = items.iterator();
             while (itemIterator.hasNext()) {
@@ -836,10 +800,10 @@ public class BuildGenerator {
     private void filterOnBadContribution() {
         for (List<Item> items : allItems) {
             items.removeIf(item -> {
-                for (BuildConstraintGeneral constraint : constraints) {
+                for (BuildConstraintGeneral constraint : settings.getConstraintsGeneral()) {
                     if (constraint.contributes(item)) return false;
                 }
-                for (BuildConstraintAdvancedSkills constraint : constraintsAdvancedSkill) {
+                for (BuildConstraintAdvancedSkills constraint : settings.getConstraintsAdvancedSkill()) {
                     if (constraint.contributes(item)) return false;
                 }
                 return !BuildUtils.contributesToUseful(item);
@@ -860,7 +824,7 @@ public class BuildGenerator {
                 for (Item item : items) {
                     if (!item.equals(asBest) && !badItems.contains(item)) {
                         boolean isCool = false;
-                        for (BuildConstraintGeneral constraint : constraints) {
+                        for (BuildConstraintGeneral constraint : settings.getConstraintsGeneral()) {
                             if (constraint.compare(asBest, item) <= 0) {
                                 isCool = true;
                                 break;
@@ -882,7 +846,7 @@ public class BuildGenerator {
      * filters item pool based on if the item is possible given that all the other items would be optimal for the constraint
      */
     private void filterOnConstraints() {
-        for (BuildConstraintGeneral constraint : constraints) {
+        for (BuildConstraintGeneral constraint : settings.getConstraintsGeneral()) {
             for (int optimizingIndex = 0; optimizingIndex < allItems.length; optimizingIndex++) {
                 List<Item> bestItems = new ArrayList<>(allItems.length);
                 for (int index = 0; index < allItems.length; index++) {
@@ -900,7 +864,7 @@ public class BuildGenerator {
     }
 
     private boolean filterOnConstraints(Build build) {
-        for (BuildConstraintGeneral constraint : constraints) {
+        for (BuildConstraintGeneral constraint : settings.getConstraintsGeneral()) {
             if (!constraint.isValid(build.items)) {
                 return true;
             }
@@ -940,7 +904,7 @@ public class BuildGenerator {
         //todo it's possible to narrow down further
         // by recalculating skillsAll and requiredSkillsAll for each item using a double array and skipping the current item
 
-        for (BuildConstraintAdvancedSkills constraint : constraintsAdvancedSkill) {
+        for (BuildConstraintAdvancedSkills constraint : settings.getConstraintsAdvancedSkill()) {
             for (int optimizingIndex = 0; optimizingIndex < allItems.length; optimizingIndex++) {
                 List<Item> bestItems = new ArrayList<>();
                 for (int index = 0; index < allItems.length; index++) {
@@ -998,40 +962,6 @@ public class BuildGenerator {
         }
     }
 
-    private boolean c(Build build) {
-        for (Item item : build.items) {
-            if (!d(Collections.singletonList(item)))
-                return false;
-        }
-        return true;
-    }
-
-    private boolean c() {
-        if (allItems.length == 0) return false;
-        for (List<Item> items : allItems) {
-            if (!d(items)) return false;
-        }
-        return true;
-    }
-
-    private boolean d(List<Item> items) {
-        Set<String> set = new HashSet<>() {{
-            add("Pride of the Aerie");
-            add("Elysium-Engraved Aegis");
-            add("Sagittarius");
-            add("Revenant");
-            add("Diamond Fiber Ring");
-            add("Old Keeper's Ring");
-            add("Vindicator");
-            add("Swift");
-            add("Ivory");
-        }};
-        for (Item item : items) {
-            if (set.contains(item.name) || set.contains(item.displayName)) return true;
-        }
-        return false;
-    }
-
     public Set<Item> getItemsInBuilds() {
         Collection<Build> builds = getBuildsAll();
         if (builds.size() != 0) {
@@ -1045,7 +975,7 @@ public class BuildGenerator {
     }
 
     public Set<ElementSkill> getArchetype() {
-        return archetype;
+        return settings.getArchetype();
     }
 
     public void refineItemPoolTo(Map<Item.ItemType, List<String>> results) {

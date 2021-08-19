@@ -1,6 +1,8 @@
 package apple.build.search.constraints;
 
 
+import org.jetbrains.annotations.NotNull;
+
 public interface BuildConstraint {
     /**
      * checks if other is more strict than me
@@ -13,4 +15,9 @@ public interface BuildConstraint {
     ConstraintSimplified.ConstraintSimplifiedName getSimplifiedName();
 
     boolean isExact(BuildConstraint constraint);
+
+    /**
+     * @return the database ready version of this constraint
+     */
+    @NotNull ConstraintSimplified getSimplified();
 }

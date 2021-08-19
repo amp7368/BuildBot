@@ -51,14 +51,11 @@ public class GeneratorManager implements Runnable {
     }
 
     public static void cancel(UUID taskUUID) {
-        System.out.println("enter cancel");
         synchronized (sync) {
-            System.out.println("entereed cancel");
             primaryTasks.removeIf(task -> task.equalsUUID(taskUUID));
             backgroundTasks.removeIf(task -> task.equalsUUID(taskUUID));
             if (runningTaskUUID.equals(taskUUID))
                 runningTaskUUID = null;
-            System.out.println("finish cancel");
         }
     }
 

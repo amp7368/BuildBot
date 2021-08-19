@@ -1052,7 +1052,7 @@ public class BuildQueryMessage extends ACDGui {
         List<List<Item>> items = new ArrayList<>();
         for (List<Item> pieceRaw : List.of(Item.helmets, Item.chestplates, Item.leggings, Item.boots)) {
             List<Item> piece = new ArrayList<>(pieceRaw);
-            piece.removeIf(item -> item.level < 80);
+            piece.removeIf(item -> item.level < 73);
             items.add(piece);
         }
         for (List<Item> pieceRaw : List.of(Item.rings, Item.rings, Item.bracelets, Item.necklaces)) {
@@ -1113,7 +1113,7 @@ public class BuildQueryMessage extends ACDGui {
             message.getChannel().sendMessage(member.getAsMention() + " Hey, I can't figure this build out right now. It's probably too broad. " + message.getJumpUrl()).queue();
         } else {
             Collection<Build> buildsAll = generator.getBuildsAll();
-            this.buildsGui = new BuildShowListMessage(acd, message, buildsAll, this);
+            this.buildsGui = new BuildShowListMessage(acd, message, buildsAll, this, querySaved == null ? null : querySaved.id);
             this.phase = BuildPhase.BUILD;
             editMessage();
             if (buildsAll.isEmpty()) {

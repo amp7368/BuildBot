@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.interactions.components.ButtonStyle;
 import net.dv8tion.jda.internal.interactions.ButtonImpl;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.List;
@@ -21,11 +22,11 @@ import java.util.function.Supplier;
 public class BuildShowListMessage extends ACDGuiPageable {
     private BuildQueryMessage parent;
 
-    public BuildShowListMessage(ACD acd, Message msg, @NotNull Collection<Build> buildsAll, BuildQueryMessage parent) {
+    public BuildShowListMessage(ACD acd, Message msg, @NotNull Collection<Build> buildsAll, BuildQueryMessage parent, @Nullable String queryId) {
         super(acd, msg, parent);
         this.parent = parent;
         for (Build build : buildsAll) {
-            addPage((Supplier<BuildTotalMessage>) () -> new BuildTotalMessage(acd, message, build, this));
+            addPage((Supplier<BuildTotalMessage>) () -> new BuildTotalMessage(acd, message, build, this,queryId));
         }
     }
 

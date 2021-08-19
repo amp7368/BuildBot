@@ -44,10 +44,10 @@ public class Preindexing {
     }};
 
     public static void preIndex() {
-        Item.helmets.removeIf(item -> item.level < 80);
-        Item.chestplates.removeIf(item -> item.level < 80);
-        Item.leggings.removeIf(item -> item.level < 80);
-        Item.boots.removeIf(item -> item.level < 80);
+        Item.helmets.removeIf(item -> item.level < 50);
+        Item.chestplates.removeIf(item -> item.level < 50);
+        Item.leggings.removeIf(item -> item.level < 50);
+        Item.boots.removeIf(item -> item.level < 50);
         ArrayList[] bowItems = {Item.helmets, Item.chestplates, Item.leggings, Item.boots, new ArrayList<>(Item.rings), Item.rings, Item.bracelets, Item.necklaces, Item.wands};
         List<Set<ElementSkill>> archetypes = Arrays.asList(EWF, EWA, TWF, TWA, WFA);
         for (Set<ElementSkill> archetype : archetypes) {

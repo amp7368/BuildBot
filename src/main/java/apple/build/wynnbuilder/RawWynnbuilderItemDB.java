@@ -5,7 +5,6 @@ import java.util.Arrays;
 
 public class RawWynnbuilderItemDB {
     public ArrayList<RawWynnbuilderItem> items;
-
     @Override
     public String toString() {
         return "RawWynnbuilderItemDB{" +

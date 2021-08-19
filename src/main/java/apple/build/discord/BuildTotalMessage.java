@@ -13,17 +13,20 @@ import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.ButtonStyle;
 import net.dv8tion.jda.api.interactions.components.Component;
 import net.dv8tion.jda.internal.interactions.ButtonImpl;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
 public class BuildTotalMessage extends ACDGuiPageable {
     private final Build build;
     private final BuildShowListMessage mainGui;
+    private String queryId;
 
-    public BuildTotalMessage(ACD acd, Message msg, Build build, BuildShowListMessage mainGui) {
+    public BuildTotalMessage(ACD acd, Message msg, Build build, BuildShowListMessage mainGui, @Nullable String queryId) {
         super(acd, msg, mainGui);
         this.build = build;
         this.mainGui = mainGui;
+        this.queryId = queryId;
         this.addPage(this::items);
     }
 
@@ -31,6 +34,9 @@ public class BuildTotalMessage extends ACDGuiPageable {
         MessageBuilder messageBuilder = new MessageBuilder();
         List<Item> items = new ArrayList<>(build.items);
         EmbedBuilder embed = new EmbedBuilder();
+        if (queryId != null) {
+            embed.setAuthor("Query id: " + queryId);
+        }
         embed.setTitle(String.format("Items ( %d / %d )", (mainGui.getPageIndex() + 1), mainGui.size()));
         for (Item.ItemType desiredType : Arrays.asList(
                 Item.ItemType.HELMET,
