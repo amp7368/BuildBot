@@ -1,4 +1,4 @@
-package apple.build.discord;
+package apple.build.discord.build;
 
 import apple.build.search.Build;
 import apple.build.utils.Pretty;
@@ -11,7 +11,6 @@ import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.ButtonStyle;
-import net.dv8tion.jda.api.interactions.components.Component;
 import net.dv8tion.jda.internal.interactions.ButtonImpl;
 import org.jetbrains.annotations.Nullable;
 

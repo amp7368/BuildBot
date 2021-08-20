@@ -1,6 +1,6 @@
 package apple.build.query;
 
-import apple.build.discord.BuildQueryMessage;
+import apple.build.discord.build.BuildQueryMessage;
 import apple.build.search.constraints.ConstraintSimplified;
 import apple.build.search.constraints.general.ConstraintId;
 import apple.build.search.enums.ElementSkill;

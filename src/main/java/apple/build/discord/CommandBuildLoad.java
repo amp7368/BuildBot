@@ -16,7 +16,7 @@ public class CommandBuildLoad extends ACDCommand {
     @DiscordCommandAlias(alias = "load")
     public void onLoad(MessageReceivedEvent event, @ParameterSingle(usage = "build_id") String buildId) {
         event.getMessage().addReaction(DiscordEmoji.WORKING.getEmoji()).queue();
-        if (!QuerySavingService.get().queue(buildId, (query) -> {
+        if (!QuerySavingService.queue(buildId, (query) -> {
             query.toQueryMessage(acd, event.getMember(), event.getChannel()).makeFirstMessage();
             event.getMessage().removeReaction(DiscordEmoji.WORKING.getEmoji(), acd.getSelfUser()).queue();
         })) {

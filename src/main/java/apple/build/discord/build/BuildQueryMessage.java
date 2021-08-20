@@ -1,5 +1,6 @@
-package apple.build.discord;
+package apple.build.discord.build;
 
+import apple.build.discord.DiscordBot;
 import apple.build.query.QuerySaved;
 import apple.build.query.QuerySavingService;
 import apple.build.search.Build;
@@ -29,7 +30,6 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.events.interaction.ButtonClickEvent;
 import net.dv8tion.jda.api.events.interaction.SelectionMenuEvent;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
 import net.dv8tion.jda.api.interactions.components.ButtonStyle;
@@ -115,7 +115,7 @@ public class BuildQueryMessage extends ACDGui {
     // fields for the actual build
     private List<ElementSkill> elements = new ArrayList<>();
     private List<String> majorIds = new ArrayList<>();
-    private WynnClass wynnClass = WynnClass.MAGE;
+    private WynnClass wynnClass = WynnClass.ARCHER;
     private Integer[] spellDmg = new Integer[wynnClass.getSpells().length];
     private Integer rawMainDmg = null;
     private Integer mainDmg = null;
@@ -136,6 +136,29 @@ public class BuildQueryMessage extends ACDGui {
         super(acd, channel);
         this.member = member;
         this.acd = acd;
+        setFromQuery(query);
+    }
+
+    public BuildQueryMessage(ACD acd, Member member, MessageChannel channel) {
+        super(acd, channel);
+        this.acd = acd;
+        this.member = member;
+    }
+
+    public BuildQueryMessage(ACD acd, Member member, Message message, QuerySaved query) {
+        super(acd, message);
+        this.member = member;
+        this.acd = acd;
+        setFromQuery(query);
+    }
+
+    public BuildQueryMessage(ACD acd, Member member, Message message) {
+        super(acd, message);
+        this.acd = acd;
+        this.member = member;
+    }
+
+    private void setFromQuery(QuerySaved query) {
         this.elements = query.getElements();
         this.majorIds = query.getMajorIds();
         this.wynnClass = query.getWynnClass();
@@ -149,12 +172,6 @@ public class BuildQueryMessage extends ACDGui {
         this.idsConstraints = query.getIdsConstraints();
         this.rawSpellDmg = query.getRawSpellDmg();
         this.attackSpeed = query.getAttackSpeed();
-    }
-
-    public BuildQueryMessage(ACD acd, Member member, MessageChannel channel) {
-        super(acd, channel);
-        this.acd = acd;
-        this.member = member;
     }
 
     @Override
@@ -553,7 +570,7 @@ public class BuildQueryMessage extends ACDGui {
     public void save(ComponentInteraction interaction) {
         this.querySaved = new QuerySaved(this);
         editAsReply(interaction);
-        QuerySavingService.get().queue(querySaved, member.getIdLong());
+        QuerySavingService.queue(querySaved, member.getIdLong());
     }
 
     @GuiButton(id = EDIT_MR_ID)

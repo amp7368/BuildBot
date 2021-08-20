@@ -1,14 +1,16 @@
 package apple.build.search;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import apple.build.query.QuerySaved;
+import apple.build.query.QuerySavingService;
+
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class GeneratorManager implements Runnable {
-    private static final List<GeneratorTask> primaryTasks = new ArrayList<>();
-    private static final List<GeneratorTask> backgroundTasks = new ArrayList<>();
+    private static final Map<TaskType, List<GeneratorTask>> allTasks = new HashMap<>() {{
+        for (TaskType type : TaskType.values()) put(type, new ArrayList<>());
+    }};
 
     private static boolean isManagerRunning = false;
     private static final Object sync = new Object();
@@ -20,10 +22,10 @@ public class GeneratorManager implements Runnable {
         instance = new GeneratorManager();
     }
 
-    public static UUID  queue(BuildGenerator generator, Consumer<Double> onUpdate, Consumer<GeneratorTask> onFinish, BiConsumer<TaskType, Integer> priorityChangeUpdate) {
+    public static UUID queue(BuildGenerator generator, Consumer<Double> onUpdate, Consumer<GeneratorTask> onFinish, BiConsumer<TaskType, Integer> priorityChangeUpdate) {
         synchronized (sync) {
             GeneratorTask task = new GeneratorTask(generator, onUpdate, onFinish, priorityChangeUpdate);
-            primaryTasks.add(task);
+            allTasks.get(TaskType.PRIMARY).add(task);
             if (!isManagerRunning) {
                 isManagerRunning = true;
                 new Thread(instance).start();
@@ -34,17 +36,13 @@ public class GeneratorManager implements Runnable {
 
     public static int placeInLine(UUID taskUUID) {
         synchronized (sync) {
-            int size = primaryTasks.size();
-            for (int i = 0; i < size; i++) {
-                GeneratorTask task = primaryTasks.get(i);
-                if (task.equalsUUID(taskUUID))
-                    return i + 1;
-            }
-            size = backgroundTasks.size();
-            for (int i = 0; i < size; i++) {
-                GeneratorTask task = backgroundTasks.get(i);
-                if (task.equalsUUID(taskUUID))
-                    return i + 1;
+            for (List<GeneratorTask> tasks : allTasks.values()) {
+                int place = 0;
+                for (GeneratorTask task : tasks) {
+                    if (task.equalsUUID(taskUUID))
+                        return place + 1;
+                    place++;
+                }
             }
             return -1;
         }
@@ -52,8 +50,9 @@ public class GeneratorManager implements Runnable {
 
     public static void cancel(UUID taskUUID) {
         synchronized (sync) {
-            primaryTasks.removeIf(task -> task.equalsUUID(taskUUID));
-            backgroundTasks.removeIf(task -> task.equalsUUID(taskUUID));
+            for (List<GeneratorTask> tasks : allTasks.values()) {
+                tasks.removeIf(task -> task.equalsUUID(taskUUID));
+            }
             if (runningTaskUUID.equals(taskUUID))
                 runningTaskUUID = null;
         }
@@ -63,65 +62,56 @@ public class GeneratorManager implements Runnable {
     public void run() {
         while (true) {
             // get a task to work on
-            GeneratorTask runningTask;
-            boolean wasBackground = false;
+            GeneratorTask runningTask = null;
+            TaskType taskType = null;
             synchronized (sync) {
-                if (primaryTasks.isEmpty()) {
-                    if (backgroundTasks.isEmpty()) {
-                        // be done running
-                        isManagerRunning = false;
-                        return;
-                    } else {
-                        // run a background task for a bit
-                        runningTask = backgroundTasks.remove(0);
-                        wasBackground = true;
+                for (TaskType typeToCheck : TaskType.order()) {
+                    if (!allTasks.get(typeToCheck).isEmpty()) {
+                        runningTask = allTasks.get(typeToCheck).remove(0);
+                        runningTaskUUID = runningTask.uuid();
+                        taskType = typeToCheck;
+                        break;
                     }
-                } else {
-                    // run a primary task
-                    runningTask = primaryTasks.remove(0);
                 }
-                runningTaskUUID = runningTask.uuid();
+                if (runningTask == null) {
+                    isManagerRunning = false;
+                    return;
+                }
             }
             runningTask.waitForUpdate();
 
             synchronized (sync) {
                 if (runningTaskUUID == null) {
                     // the running task was canceled
-                    System.out.println("the running task was canceled");
                     continue;
                 }
             }
             synchronized (sync) {
+                List<GeneratorTask> myTaskTypeTasks = allTasks.get(taskType);
                 if (runningTask.isImpossible() || runningTask.isComplete()) {
                     // the task is impossible, or the task is done, finish the task, and don't add it to the queue
                     int i = 1;
-                    if (wasBackground) {
-                        for (GeneratorTask task : backgroundTasks) {
-                            task.priorityChange(TaskType.BACKGROUND, i++);
-                        }
-                    } else {
-                        for (GeneratorTask task : primaryTasks) {
-                            task.priorityChange(TaskType.PRIMARY, i++);
-                        }
+                    for (GeneratorTask task : myTaskTypeTasks) {
+                        task.priorityChange(TaskType.BACKGROUND, i++);
                     }
                     runningTask.onFinish();
                 } else {
                     // the task is not impossible
-
-                    // if the task is hard, add it to the background, otherwise add it to the primary tasks
-                    if (runningTask.isHard()) {
+                    // if the task is hard, add it to the background, otherwise add it to the corresponding task
+                    if (taskType == TaskType.INDEXING || !runningTask.isHard()) {
+                        // add it back to the indexing
+                        runningTask.update();
+                        myTaskTypeTasks.add(0, runningTask);
+                    } else {
                         // if the task was a background task before, add it to the start of the queue
                         // otherwise add it to the end of the queue
-                        if (wasBackground) {
-                            backgroundTasks.add(0, runningTask);
+                        if (taskType == TaskType.BACKGROUND) {
+                            myTaskTypeTasks.add(0, runningTask);
                             runningTask.update();
                         } else {
-                            backgroundTasks.add(runningTask);
-                            runningTask.priorityChange(TaskType.BACKGROUND, backgroundTasks.size());
+                            myTaskTypeTasks.add(runningTask);
+                            runningTask.priorityChange(TaskType.BACKGROUND, myTaskTypeTasks.size());
                         }
-                    } else if (runningTask.isWorking()) {
-                        runningTask.update();
-                        primaryTasks.add(0, runningTask);
                     }
                 }
             }
@@ -172,10 +162,6 @@ public class GeneratorManager implements Runnable {
             return hardTimeout >= 10;
         }
 
-        public boolean isWorking() {
-            return generator.isWorking();
-        }
-
         public boolean isComplete() {
             return isComplete;
         }
@@ -212,7 +198,25 @@ public class GeneratorManager implements Runnable {
     }
 
     public enum TaskType {
-        PRIMARY,
-        BACKGROUND
+        PRIMARY(0),
+        BACKGROUND(1),
+        INDEXING(2);
+
+        private static TaskType[] listOrder;
+        private final int order;
+
+        TaskType(int order) {
+            this.order = order;
+        }
+
+        public static TaskType[] order() {
+            if (listOrder == null) {
+                listOrder = new TaskType[values().length];
+                for (TaskType taskType : values()) {
+                    listOrder[taskType.order] = taskType;
+                }
+            }
+            return listOrder;
+        }
     }
 }

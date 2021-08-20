@@ -23,7 +23,7 @@ public class ServiceWynnbuilderItemDB extends AppleRequestService {
         fileToSave = new File(String.join("/", path.subList(0, path.size() - 1)) + "/wynnbuilder/itemDB.json");
     }
 
-    private static ServiceWynnbuilderItemDB getInstance() {
+    public static ServiceWynnbuilderItemDB getInstance() {
         return instance;
     }
 

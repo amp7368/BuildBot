@@ -1,9 +1,8 @@
-package apple.build.discord;
+package apple.build.discord.build;
 
 import apple.discord.acd.ACD;
 import apple.discord.acd.command.ACDCommand;
 import apple.discord.acd.command.DiscordCommandAlias;
-import apple.discord.acd.parameters.ParameterVargs;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 
 public class CommandBuild extends ACDCommand {

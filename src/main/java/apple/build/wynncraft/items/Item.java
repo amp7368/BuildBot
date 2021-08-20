@@ -255,7 +255,7 @@ public class Item {
         Object classRequirementTemp = itemMap.remove("classRequirement");
         ClassType classRequirement = null;
         try {
-            classRequirement = (classRequirementTemp == JSONObject.NULL) ? null : ClassType.valueOf(classRequirementTemp.toString().toUpperCase());
+            classRequirement = (classRequirementTemp == null || classRequirementTemp == JSONObject.NULL) ? null : ClassType.valueOf(classRequirementTemp.toString().toUpperCase());
         } catch (NullPointerException e) {
             // just null if we can't figure it out
             e.printStackTrace();
@@ -272,15 +272,14 @@ public class Item {
         Pair<Integer, Integer> damageTemp = null;
         AttackSpeed attackSpeed = null;
         switch (category) {
-            case "armor":
+            case "armor" -> {
                 itemMap.remove("armorColor");
                 armorTypeTemp = itemMap.remove("armorType").toString();
                 typeTemp = ItemType.valueOf(((String) itemMap.remove("type")).toUpperCase());
-                break;
-            case "weapon":
+            }
+            case "weapon" -> {
                 Object attackSpeedTemp = itemMap.remove("attackSpeed");
                 attackSpeed = (attackSpeedTemp == JSONObject.NULL) ? null : AttackSpeed.valueOf(attackSpeedTemp.toString().toUpperCase());
-
                 typeTemp = ItemType.valueOf(((String) itemMap.remove("type")).toUpperCase());
                 String[] dmg = ((String) itemMap.remove("thunderDamage")).split("-");
                 thunderDamageTemp = new Pair<>(Integer.parseInt(dmg[0]), Integer.parseInt(dmg[1]));
@@ -294,12 +293,9 @@ public class Item {
                 fireDamageTemp = new Pair<>(Integer.parseInt(dmg[0]), Integer.parseInt(dmg[1]));
                 dmg = ((String) itemMap.remove("damage")).split("-");
                 damageTemp = new Pair<>(Integer.parseInt(dmg[0]), Integer.parseInt(dmg[1]));
-                break;
-            case "accessory":
-                typeTemp = ItemType.valueOf(((String) itemMap.remove("accessoryType")).toUpperCase());
-                break;
-            default:
-                typeTemp = ItemType.UNKNOWN;
+            }
+            case "accessory" -> typeTemp = ItemType.valueOf(((String) itemMap.remove("accessoryType")).toUpperCase());
+            default -> typeTemp = ItemType.UNKNOWN;
         }
         String[] majorIdsTemp;
         if (itemMap.containsKey("majorIds")) {
@@ -312,12 +308,19 @@ public class Item {
         } else majorIdsTemp = new String[0];
         boolean identified = itemMap.containsKey("identified") && (Boolean) itemMap.remove("identified");
 
+        itemMap.remove("allowCraftsman");
+
         String levelTemp = itemMap.remove("level").toString();
         int level = Integer.parseInt(levelTemp);
         itemMap.remove("skin");
         Map<String, Integer> idsTemp = new HashMap<>();
         for (Map.Entry<String, Object> entry : itemMap.entrySet()) {
-            idsTemp.put(entry.getKey(), (Integer) entry.getValue());
+            try {
+                idsTemp.put(entry.getKey(), (Integer) entry.getValue());
+            } catch (ClassCastException e) {
+                System.out.println(entry);
+                throw e;
+            }
         }
         return switch (typeTemp) {
             case HELMET, CHESTPLATE, LEGGINGS, BOOTS -> new Armor(idsTemp, name, displayName, level, strength, dexterity, intelligence, agility, defense, tier, sockets, dropType, restrictions, set, addedLore, material, quest, classRequirement, majorIdsTemp, identified, typeTemp, armorTypeTemp, health);

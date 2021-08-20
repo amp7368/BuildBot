@@ -26,7 +26,7 @@ public class BuildMain {
         System.out.println("Starting BuildBot");
         ServiceWynnbuilderItemDB.callWynnbuilderToGetItemDB(false);
         // uncomment if you want to retrieve the items from the wynn api
-        // GetItems.getItems();
+        GetItems.getItems(false);
         new DiscordBot();
         System.out.println("Started BuildBot");
     }

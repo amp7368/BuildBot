@@ -1,6 +1,9 @@
 package apple.build.discord;
 
 import apple.build.BuildMain;
+import apple.build.discord.build.CommandBuild;
+import apple.build.discord.saved.CommandBrowse;
+import apple.build.discord.saved.CommandSaveAsPreset;
 import apple.discord.acd.ACD;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -61,5 +64,7 @@ public class DiscordBot extends ListenerAdapter {
         client.getPresence().setPresence(Activity.playing("b!help"), true);
         new CommandBuild(ACD);
         new CommandBuildLoad(ACD);
+        new CommandSaveAsPreset(ACD);
+        new CommandBrowse(ACD);
     }
 }
