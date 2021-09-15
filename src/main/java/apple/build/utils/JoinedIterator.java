@@ -14,7 +14,10 @@ public class JoinedIterator<T> implements Iterator<T> {
 
     @Override
     public boolean hasNext() {
-        if (currentIterator == null) return index < iterators.length;
+        if (currentIterator == null) {
+            if (index == iterators.length) return false;
+            currentIterator = iterators[index++];
+        }
         while (!currentIterator.hasNext()) {
             if (index == iterators.length) return false;
             currentIterator = iterators[index++];
@@ -24,12 +27,8 @@ public class JoinedIterator<T> implements Iterator<T> {
 
     @Override
     public T next() {
-        while (currentIterator == null || !currentIterator.hasNext()) {
-            if (index < iterators.length) {
-                currentIterator = iterators[index++];
-            } else {
-                throw new NoSuchElementException("There are no more iterators");
-            }
+        if (!currentIterator.hasNext()) {
+            throw new NoSuchElementException("There are no more iterators");
         }
         return currentIterator.next();
     }

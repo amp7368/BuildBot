@@ -1,6 +1,7 @@
 package apple.build.discord.build;
 
 import apple.build.search.Build;
+import apple.build.search.enums.WynnClass;
 import apple.discord.acd.ACD;
 import apple.discord.acd.MillisTimeUnits;
 import apple.discord.acd.reaction.gui.ACDGuiPageable;
@@ -19,12 +20,14 @@ import java.util.function.Supplier;
 
 public class BuildShowListMessage extends ACDGuiPageable {
     private BuildQueryMessage parent;
+    private String queryId;
 
     public BuildShowListMessage(ACD acd, Message msg, @NotNull Collection<Build> buildsAll, BuildQueryMessage parent, @Nullable String queryId) {
         super(acd, msg, parent);
         this.parent = parent;
+        this.queryId = queryId;
         for (Build build : buildsAll) {
-            addPage((Supplier<BuildTotalMessage>) () -> new BuildTotalMessage(acd, message, build, this,queryId));
+            addPage((Supplier<BuildTotalMessage>) () -> new BuildTotalMessage(acd, message, build, this, queryId));
         }
     }
 
@@ -32,6 +35,9 @@ public class BuildShowListMessage extends ACDGuiPageable {
     protected Message emptyPage() {
         MessageBuilder messageBuilder = new MessageBuilder();
         EmbedBuilder embed = new EmbedBuilder();
+        if (queryId != null) {
+            embed.setAuthor("Query id: " + queryId);
+        }
         embed.setTitle("There were no builds generated");
         messageBuilder.setEmbeds(embed.build());
         messageBuilder.setActionRows(List.of(
@@ -71,5 +77,9 @@ public class BuildShowListMessage extends ACDGuiPageable {
 
     public int size() {
         return pagesList.size();
+    }
+
+    public WynnClass getWynnClass() {
+        return this.parent.getWynnClass();
     }
 }

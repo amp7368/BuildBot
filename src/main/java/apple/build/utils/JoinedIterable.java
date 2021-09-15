@@ -16,6 +16,6 @@ public record JoinedIterable<T>(Iterable<T>... iterables) implements Iterable<T>
         for (int i = 0; i < iterables.length; i++) {
             iterators[i] = iterables[i].iterator();
         }
-        return new JoinedIterator<T>(iterators);
+        return new JoinedIterator<>(iterators);
     }
 }

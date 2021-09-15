@@ -26,7 +26,7 @@ public class ConstraintSpellDamage extends BuildConstraintAdvancedDamage {
     @Override
     public boolean isValid(DamageInput input, Weapon weapon) {
         DamageOutput damage = BuildMath.getDamage(spell, input, weapon);
-        return damage.dps() > dmgRequired;
+        return damage.dpsWithRaw() > dmgRequired;
     }
 
     @Override

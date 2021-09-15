@@ -1,13 +1,13 @@
 package apple.build.search;
 
-import apple.build.BuildMain;
 import apple.build.search.constraints.answers.DamageInput;
 import apple.build.search.constraints.answers.DamageOutput;
 import apple.build.search.enums.ElementSkill;
 import apple.build.search.enums.Powder;
 import apple.build.search.enums.Spell;
-import apple.build.sql.itemdb.GetItemDB;
+import apple.build.search.enums.SpellPart;
 import apple.build.utils.Pair;
+import apple.build.wynnbuilder.ServiceWynnbuilderItemDB;
 import apple.build.wynncraft.items.Item;
 import apple.build.wynncraft.items.Weapon;
 import org.jetbrains.annotations.NotNull;
@@ -15,7 +15,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Objects;
 
 public class BuildMath {
     private static final int MAX_SKILL_POINT_ALLOCATION = 150;
@@ -59,145 +59,165 @@ public class BuildMath {
         int elementLength = ElementSkill.values().length;
         double maxIdBoostNoSP = 0;
         double[] assignedIdBoost = new double[elementLength];
-        int i = 0;
         for (ElementSkill elementSkill : ElementSkill.values()) {
+            int i = elementSkill.ordinal();
             double elementalIdBoost = Math.max(0, getSkillImprovement(input.skills[i]) / 100);
             double extra = input.elemental[i];
             elementalIdBoost += extra;
             if (elementalIdBoost > maxIdBoostNoSP) maxIdBoostNoSP = elementalIdBoost;
             assignedIdBoost[i] = Math.max(0, getSkillImprovement(input.skills[i] + input.extraSkillPoints) / 100) + extra;
-            i++;
         }
         int skillIndex = 0;
         DamageOutput best = null;
         for (ElementSkill elementSkill : ElementSkill.values()) {
             if (assignedIdBoost[skillIndex] > maxIdBoostNoSP) {
                 DamageOutput out = getDamage(spell, input, weapon, elementSkill.getPowder());
-                if (best == null || out.dps() > best.dps()) best = out;
+                if (best == null || out.dpsWithRaw() > best.dpsWithRaw()) best = out;
             } else if (best == null && assignedIdBoost[skillIndex] == maxIdBoostNoSP) {
                 best = getDamage(spell, input, weapon, elementSkill.getPowder());
             }
             skillIndex++;
         }
-        if (best == null) {
-            //todo test with this
-            // System.err.println("BuildMath had negative extraSkillPoints. There's room for optimizing.");
-            return new DamageOutput(-1, -1,
-                    new double[ElementSkill.values().length], new double[ElementSkill.values().length],
-                    -1, -1,
-                    new double[ElementSkill.values().length], new double[ElementSkill.values().length],
-                    0, 0);
-        }
-        return best;
+        //todo test with this
+        // System.err.println("BuildMath had negative extraSkillPoints. There's room for optimizing.");
+        return Objects.requireNonNullElseGet(best, () -> new DamageOutput(-1, -1,
+                new double[ElementSkill.values().length], new double[ElementSkill.values().length],
+                -1, -1,
+                new double[ElementSkill.values().length], new double[ElementSkill.values().length],
+                0, 0, new int[ElementSkill.values().length]));
     }
 
     @NotNull
     public static DamageOutput getDamage(Spell spell, DamageInput input, Weapon weapon, @Nullable Powder powder) {
-        double neutralLower = weapon.damage.getKey();
-        double neutralUpper = weapon.damage.getValue();
         int elementSkillsLength = ElementSkill.values().length;
+
+
+        double neutralLowerFinal = 0, neutralUpperFinal = 0, neutralLowerCritFinal = 0, neutralUpperCritFinal = 0, rawSpellFinal = 0;
+        double[] elementalLowerFinal = new double[elementSkillsLength];
+        double[] elementalUpperFinal = new double[elementSkillsLength];
+        double[] elementalLowerCritFinal = new double[elementSkillsLength];
+        double[] elementalUpperCritFinal = new double[elementSkillsLength];
+        int[] skills = null;
+        for (SpellPart spellPart : spell.spellParts) {
+            if (spell == Spell.ARROW_STORM && input.hawkeye)
+                spellPart = SpellPart.HAWKEYE;
+            DamageOutput spellPartOutput = spellPartDamage(spellPart, input, weapon, powder, skills);
+            if (skills == null) {
+                skills = spellPartOutput.getSkills();
+            }
+            rawSpellFinal += spellPartOutput.raw;
+            neutralLowerFinal += spellPartOutput.neutralLower;
+            neutralUpperFinal += spellPartOutput.neutralUpper;
+            neutralLowerCritFinal += spellPartOutput.neutralLowerCrit;
+            neutralUpperCritFinal += spellPartOutput.neutralUpperCrit;
+            for (int i = 0; i < elementSkillsLength; i++) {
+                elementalLowerFinal[i] += spellPartOutput.elementalLower[i];
+                elementalUpperFinal[i] += spellPartOutput.elementalUpper[i];
+                elementalLowerCritFinal[i] += spellPartOutput.elementalLowerCrit[i];
+                elementalUpperCritFinal[i] += spellPartOutput.elementalUpperCrit[i];
+            }
+        }
+
+        final float critChance = skills == null ? 0 : getSkillImprovement(ElementSkill.THUNDER.getSkill(skills));
+        return new DamageOutput(neutralLowerFinal, neutralUpperFinal, elementalLowerFinal, elementalUpperFinal,
+                neutralLowerCritFinal, neutralUpperCritFinal, elementalLowerCritFinal, elementalUpperCritFinal,
+                critChance / 100, rawSpellFinal, skills);
+    }
+
+    private static DamageOutput spellPartDamage(SpellPart spellPart, DamageInput input, Weapon weapon, Powder powder, int[] skills) {
+        double neutralLowerOriginal = weapon.damage.getKey();
+        double neutralUpperOriginal = weapon.damage.getValue();
+        int elementSkillsLength = ElementSkill.values().length;
+        // get the base damage
         double[] elementalLower = new double[elementSkillsLength];
         double[] elementalUpper = new double[elementSkillsLength];
         int i = 0;
-        // get the base damage
         for (Pair<Integer, Integer> elemental : weapon.elemental) {
             elementalLower[i] = elemental.getKey();
             elementalUpper[i++] = elemental.getValue();
         }
         // multiply by spell elemental multiplier
-        double multiplier = 1;
         int totalBaseDmg = 0;
+        double multiplier = 1;
 
         for (i = 0; i < elementSkillsLength; i++) {
-            double elementalMultiplier = spell.elemental[i];
+            double elementalMultiplier = spellPart.elemental[i];
             multiplier -= elementalMultiplier;
-            elementalLower[i] += neutralLower * elementalMultiplier;
-            elementalUpper[i] += neutralUpper * elementalMultiplier;
+            elementalLower[i] += neutralLowerOriginal * elementalMultiplier;
+            elementalUpper[i] += neutralUpperOriginal * elementalMultiplier;
             totalBaseDmg += elementalLower[i] + elementalUpper[i];
         }
+        multiplier = Math.max(0, multiplier);
         if (powder != null) {
-            i = 0;
-            for (ElementSkill elementSkill : ElementSkill.values()) {
-                if (powder.getElement() == elementSkill) {
-                    double powderMultiplier = Math.min(multiplier, powder.getPerc() * weapon.sockets);
-                    multiplier -= powderMultiplier;
-                    elementalLower[i] += powder.getLower() * weapon.sockets;
-                    elementalUpper[i] += powder.getUpper() * weapon.sockets;
-                    elementalLower[i] += neutralLower * powderMultiplier;
-                    elementalUpper[i] += neutralUpper * powderMultiplier;
-                    break;
-                }
-                i++;
-            }
+            i = powder.getElement().ordinal();
+            double powderMultiplier = Math.min(multiplier, powder.getPerc() * weapon.sockets);
+            multiplier -= powderMultiplier;
+            elementalLower[i] += neutralLowerOriginal * powderMultiplier + powder.getLower() * weapon.sockets;
+            elementalUpper[i] += neutralUpperOriginal * powderMultiplier + powder.getUpper() * weapon.sockets;
         }
-        neutralLower *= Math.max(0, multiplier);
-        neutralUpper *= Math.max(0, multiplier);
-        totalBaseDmg += neutralLower + neutralUpper;
+        double neutralLower = neutralLowerOriginal * multiplier;
+        double neutralUpper = neutralUpperOriginal * multiplier;
+        totalBaseDmg += neutralLowerOriginal + neutralUpperOriginal;
 
         // figure out where to assign the skill points
         double[] elementEffectiveness = new double[elementSkillsLength];
-        i = 0;
         for (ElementSkill elementSkill : ElementSkill.values()) {
+            i = elementSkill.ordinal();
             if (elementSkill == ElementSkill.THUNDER || elementSkill == ElementSkill.EARTH) {
-                elementEffectiveness[i] = 1 + ((elementalLower[i] + elementalUpper[i]) / (double) totalBaseDmg);
-            } else {
-                elementEffectiveness[i] = ((elementalLower[i] + elementalUpper[i]) / (double) totalBaseDmg);
+                elementEffectiveness[i] += 1;
             }
-            i++;
+            elementEffectiveness[i] += ((elementalLower[i] + elementalUpper[i]) / (double) totalBaseDmg);
         }
-        int[] skills = findMaximum(elementEffectiveness, input.skills, input.extraSkillPoints, input.extraSkillsPerElement);
+        if (skills == null)
+            skills = findMaximum(elementEffectiveness, input.skills, input.extraSkillPoints, input.extraSkillsPerElement);
 
         // idBoost
-        double idBoost = 1;
-        idBoost += input.spellDamage;
-        idBoost += getSkillImprovement(ElementSkill.EARTH.getSkill(skills)) / 100;
+        double idBoost = 1 + input.spellDamage;
+        idBoost = Math.max(0, idBoost);
 
-        double idBoostCrit = idBoost + 1;
-        double neutralLowerCrit = neutralLower;
-        double neutralUpperCrit = neutralUpper;
+        // strengthBoost
+        float strengthBoost = 1 + getSkillImprovement(ElementSkill.EARTH.getSkill(skills)) / 100;
+        double critBoost = Math.max(0, strengthBoost + 1);
+        strengthBoost = Math.max(0, strengthBoost);
+
         double[] elementalLowerCrit = new double[elementSkillsLength];
         double[] elementalUpperCrit = new double[elementSkillsLength];
         System.arraycopy(elementalLower, 0, elementalLowerCrit, 0, elementSkillsLength);
         System.arraycopy(elementalUpper, 0, elementalUpperCrit, 0, elementSkillsLength);
 
-        neutralLower *= idBoost;
-        neutralUpper *= idBoost;
-        neutralLowerCrit *= idBoostCrit;
-        neutralUpperCrit *= idBoostCrit;
-        for (i = 0; i < elementalLower.length; i++) {
-            double elementalIdBoost = Math.max(0, getSkillImprovement(skills[i]) / 100) + input.elemental[i];
-            double idBoostElemental = Math.max(0, idBoost + elementalIdBoost);
-            double idBoostElementalCrit = Math.max(0, idBoostCrit + elementalIdBoost);
-            elementalLower[i] *= idBoostElemental;
-            elementalUpper[i] *= idBoostElemental;
-            elementalLowerCrit[i] *= idBoostElementalCrit;
-            elementalUpperCrit[i] *= idBoostElementalCrit;
+        multiplier = weapon.attackSpeed.modifier() * spellPart.damage;
+        neutralLower *= strengthBoost * idBoost * multiplier;
+        neutralUpper *= strengthBoost * idBoost * multiplier;
+        double neutralLowerCrit = neutralLower * critBoost * idBoost * multiplier;
+        double neutralUpperCrit = neutralUpper * critBoost * idBoost * multiplier;
+        for (i = 0; i < elementSkillsLength; i++) {
+            double elementalIdBoost = Math.max(0, idBoost + Math.max(0, getSkillImprovement(skills[i]) / 100) + input.elemental[i]);
+            double idBoostElemental = strengthBoost * elementalIdBoost * multiplier;
+            double idBoostElementalCrit = critBoost * elementalIdBoost * multiplier;
+            elementalLower[i] = Math.floor(elementalLower[i] * idBoostElemental);
+            elementalUpper[i] = Math.floor(elementalUpper[i] * idBoostElemental);
+            elementalLowerCrit[i] = Math.floor(elementalLowerCrit[i] * idBoostElementalCrit);
+            elementalUpperCrit[i] = Math.floor(elementalUpperCrit[i] * idBoostElementalCrit);
         }
-        multiplier = weapon.attackSpeed.modifier() * (spell.damage);
-        if (input.hawkeye && spell == Spell.ARROW_STORM) {
-            multiplier *= 5 / 3d;
-        }
-        neutralLower = Math.floor(neutralLower * multiplier);
-        neutralUpper = Math.floor(neutralUpper * multiplier);
-        neutralLowerCrit = Math.floor(neutralLowerCrit * multiplier);
-        neutralUpperCrit = Math.floor(neutralUpperCrit * multiplier);
-        for (i = 0; i < elementalLower.length; i++) {
-            elementalLower[i] = Math.floor(elementalLower[i] * multiplier);
-            elementalUpper[i] = Math.floor(elementalUpper[i] * multiplier);
-            elementalLowerCrit[i] = Math.floor(elementalLowerCrit[i] * multiplier);
-            elementalUpperCrit[i] = Math.floor(elementalUpperCrit[i] * multiplier);
-        }
-        double rawSpell = input.spellDamageRaw * (spell.damage);
-        if (input.hawkeye && spell == Spell.ARROW_STORM) {
-            rawSpell *= 5 / 3d;
-        }
-        return new DamageOutput(neutralLower, neutralUpper, elementalLower, elementalUpper,
-                neutralLowerCrit, neutralUpperCrit, elementalLowerCrit, elementalUpperCrit,
-                getSkillImprovement(ElementSkill.THUNDER.getSkill(skills)) / 100, rawSpell);
+        final float critChance = getSkillImprovement(ElementSkill.THUNDER.getSkill(skills)) / 100;
+        double rawSpell = input.spellDamageRaw * spellPart.damage;
+        return new DamageOutput(
+                neutralLower,
+                neutralUpper,
+                elementalLower,
+                elementalUpper,
+                neutralLowerCrit,
+                neutralUpperCrit,
+                elementalLowerCrit,
+                elementalUpperCrit,
+                critChance,
+                rawSpell,
+                skills);
     }
 
 
-    private static int[] findMaximum(double[] elementEffectiveness, int[] skills, int extraSkillPoints, int[] extraSkillsPerElement) {
+    private static int[] findMaximum(double[] elementEffectiveness, int[] skills, int extraSkillPoints,
+                                     int[] extraSkillsPerElement) {
         if (extraSkillPoints == 0) {
             return skills;
         }
@@ -334,7 +354,7 @@ public class BuildMath {
         for (ElementSkill elementSkill : ElementSkill.values()) {
             if (assignedIdBoost[skillIndex] > maxIdBoostNoSP) {
                 DamageOutput out = getDamage(input, weapon, elementSkill.getPowder());
-                if (best == null || out.dps() > best.dps()) best = out;
+                if (best == null || out.dpsWithRaw() > best.dpsWithRaw()) best = out;
             } else if (best == null && assignedIdBoost[skillIndex] == maxIdBoostNoSP) {
                 best = getDamage(input, weapon, elementSkill.getPowder());
             }
@@ -346,7 +366,7 @@ public class BuildMath {
                     new double[ElementSkill.values().length], new double[ElementSkill.values().length],
                     -1, -1,
                     new double[ElementSkill.values().length], new double[ElementSkill.values().length],
-                    0, 0);
+                    0, 0, new int[ElementSkill.values().length]);
         }
         return best;
     }
@@ -370,19 +390,13 @@ public class BuildMath {
         double multiplier = 1;
 
         if (powder != null) {
-            i = 0;
-            for (ElementSkill elementSkill : ElementSkill.values()) {
-                if (powder.getElement() == elementSkill) {
-                    double powderMultiplier = Math.min(multiplier, powder.getPerc() * weapon.sockets);
-                    multiplier -= powderMultiplier;
-                    elementalLower[i] += powder.getLower() * weapon.sockets;
-                    elementalUpper[i] += powder.getUpper() * weapon.sockets;
-                    elementalLower[i] += neutralLower * powderMultiplier;
-                    elementalUpper[i] += neutralUpper * powderMultiplier;
-                    break;
-                }
-                i++;
-            }
+            i = powder.getElement().ordinal();
+            double powderMultiplier = Math.min(multiplier, powder.getPerc() * weapon.sockets);
+            multiplier -= powderMultiplier;
+            elementalLower[i] += powder.getLower() * weapon.sockets;
+            elementalUpper[i] += powder.getUpper() * weapon.sockets;
+            elementalLower[i] += neutralLower * powderMultiplier;
+            elementalUpper[i] += neutralUpper * powderMultiplier;
         }
         neutralLower *= Math.max(0, multiplier);
         neutralUpper *= Math.max(0, multiplier);
@@ -404,7 +418,8 @@ public class BuildMath {
         double idBoost = 1 + input.mainDamage;
         idBoost += getSkillImprovement(ElementSkill.EARTH.getSkill(skills)) / 100f;
 
-        double idBoostCrit = idBoost + 1;
+        double idBoostCrit = Math.max(0, idBoost + 1);
+        idBoost = Math.max(0, idBoost);
         double neutralLowerCrit = neutralLower;
         double neutralUpperCrit = neutralUpper;
         double[] elementalLowerCrit = new double[elementSkillsLength];
@@ -417,38 +432,39 @@ public class BuildMath {
         neutralLowerCrit *= idBoostCrit;
         neutralUpperCrit *= idBoostCrit;
         for (i = 0; i < elementalLower.length; i++) {
-            double elementalIdBoost = Math.max(0, getSkillImprovement(input.skills[i]) / 100);
+            double elementalIdBoost = 1 + Math.max(0, getSkillImprovement(input.skills[i]) / 100);
             elementalIdBoost += input.elemental[i];
-            elementalLower[i] = Math.floor(elementalLower[i] * (idBoost + elementalIdBoost));
-            elementalUpper[i] = Math.floor(elementalUpper[i] * (idBoost + elementalIdBoost));
-            elementalLowerCrit[i] = Math.floor(elementalLowerCrit[i] * (idBoostCrit + elementalIdBoost));
-            elementalUpperCrit[i] = Math.floor(elementalUpperCrit[i] * (idBoostCrit + elementalIdBoost));
+            elementalLower[i] = Math.floor(elementalLower[i] * (idBoost * elementalIdBoost));
+            elementalUpper[i] = Math.floor(elementalUpper[i] * (idBoost * elementalIdBoost));
+            elementalLowerCrit[i] = Math.floor(elementalLowerCrit[i] * (idBoostCrit * elementalIdBoost));
+            elementalUpperCrit[i] = Math.floor(elementalUpperCrit[i] * (idBoostCrit * elementalIdBoost));
         }
         return new DamageOutput(neutralLower, neutralUpper, elementalLower, elementalUpper,
                 neutralLowerCrit, neutralUpperCrit, elementalLowerCrit, elementalUpperCrit,
-                getSkillImprovement(ElementSkill.THUNDER.getSkill(skills)) / 100, input.mainDamageRaw, input.attackSpeedModifier);
+                getSkillImprovement(ElementSkill.THUNDER.getSkill(skills)) / 100, input.mainDamageRaw, input.attackSpeedModifier, skills);
 
     }
 
-    public static void main(String[] args) throws SQLException, ClassNotFoundException {
-        List<Item> items = GetItemDB.getAllItems(Item.ItemType.DAGGER);
-        Weapon item = null;
-        for (Item i : items) {
-            if (i.name.equals("Ivory"))
-                item = (Weapon) i;
-        }
+    public static void main(String[] args) throws SQLException {
+        ServiceWynnbuilderItemDB.callWynnbuilderToGetItemDB(false);
+        Weapon item = (Weapon) Item.getItem("Thrundacrack");
         if (item == null) return;
-        DamageOutput damage = getDamage(Spell.SMOKE_BOMB, new DamageInput(
-                0.0,
-                -.20,
-                299,
-                2085,
-                new int[]{-30, 106, 107, -30, 40},
+        final DamageInput damageInput = new DamageInput(
+                -.07,
+                -.28,
+                241,
                 0,
-                new int[]{200, 100, 100, 100, 100},
-                new double[]{-.28, 1.05, .72, 0, .2},
-                Item.AttackSpeed.toModifier(Item.AttackSpeed.SUPER_FAST.speed)
-        ), item, Powder.AIR);
-        System.out.println(damage.dps());
+                new int[]{150, 69, -25, -24, 60},
+                0,
+                new int[]{0, 0, 0, 0, 0},
+                new double[]{1.15, .1, -.21, .89, .13},
+                Item.AttackSpeed.VERY_SLOW.modifier()
+        );
+        DamageOutput damage = getDamage(Spell.UPPERCUT, damageInput, item, Powder.THUNDER);
+        DamageOutput subDmg = spellPartDamage(SpellPart.PART1_UPPERCUT, damageInput, item, Powder.THUNDER, null);
+        subDmg.dpsNoRaw();
+        System.out.println(subDmg.dpsNoRaw());
+        System.out.println(damage);
+        System.out.println(damage.dpsWithRaw());
     }
 }

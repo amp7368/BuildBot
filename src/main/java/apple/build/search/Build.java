@@ -1,8 +1,15 @@
 package apple.build.search;
 
+import apple.build.search.constraints.answers.DamageInput;
+import apple.build.search.constraints.answers.DamageOutput;
+import apple.build.search.enums.ElementSkill;
+import apple.build.search.enums.IdNames;
+import apple.build.search.enums.Spell;
 import apple.build.wynnbuilder.ServiceWynnbuilderItemDB;
 import apple.build.wynncraft.items.Accessory;
 import apple.build.wynncraft.items.Item;
+import apple.build.wynncraft.items.ItemIdIndex;
+import apple.build.wynncraft.items.Weapon;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -31,6 +38,10 @@ public class Build {
     public int[] skills = null;
     public int extraSkillPoints = -1;
     public int[] extraSkillPerElement = null;
+    private Weapon weapon = null;
+    private DamageInput damageInput = null;
+    private DamageOutput mainDmg = null;
+    private HashMap<Spell, DamageOutput> spellDmg = null;
 
     public Build(List<Item> chosen) {
         items = chosen;
@@ -137,32 +148,31 @@ public class Build {
     @Override
     public int hashCode() {
         StringBuilder s = new StringBuilder();
-        int i = 0;
         long ringAddition = 0;
         for (Item item : items) {
-            if (i == 4 || i == 5) {
+            if (item.type == Item.ItemType.RING) {
                 ringAddition += item.hashCode();
             } else {
                 s.append(item.name);
             }
-            i++;
         }
         return (int) ((((long) s.toString().hashCode()) + ringAddition) % Integer.MAX_VALUE);
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof Build) {
-            Build otherBuild = (Build) obj;
+        if (obj instanceof Build otherBuild) {
             Iterator<Item> mine = items.iterator();
             Iterator<Item> other = otherBuild.items.iterator();
-            int i = 0;
             while (mine.hasNext()) {
                 if (!other.hasNext()) return false;
-                if (i == 4) {
-                    Item mr1 = mine.next();
-                    Item or1 = other.next();
+                Item mr1 = mine.next();
+                Item or1 = other.next();
+                if (mr1.type == Item.ItemType.RING) {
                     if (mr1.equals(or1)) {
+                        if (mine.hasNext() && other.hasNext()) {
+                            if (!mine.next().equals(other.next())) return false;
+                        }
                         continue;
                     }
                     if (mine.hasNext() && other.hasNext()) {
@@ -171,12 +181,12 @@ public class Build {
                         if (!mr1.equals(or2) || !or1.equals(mr2)) {
                             return false;
                         }
-                        i++;
                     }
                 } else {
-                    if (!mine.next().equals(other.next())) return false;
+                    if (!mr1.equals(or1)) {
+                        return false;
+                    }
                 }
-                i++;
             }
             return true;
         }
@@ -196,6 +206,95 @@ public class Build {
         return itemsSorted;
     }
 
+    public DamageOutput getMainDamage() {
+        if (mainDmg == null) {
+            verifyDamageInput();
+            return this.mainDmg = BuildMath.getDamage(damageInput, getWeapon());
+        }
+        return mainDmg;
+    }
+
+    public DamageOutput getSpellDamage(Spell spell) {
+        if (spellDmg == null) {
+            verifyDamageInput();
+            spellDmg = new HashMap<>();
+        }
+        return spellDmg.computeIfAbsent(spell, (s) -> BuildMath.getDamage(s, damageInput, getWeapon()));
+    }
+
+    public void verifyDamageInput() {
+        if (this.damageInput == null) {
+            this.damageInput = new DamageInput(getSpellDmgId(),
+                    getMainDmgId(),
+                    getSpellDmgRaw(),
+                    getMainDmgRaw(),
+                    skills,
+                    extraSkillPoints,
+                    extraSkillPerElement,
+                    getElemental(),
+                    getAttackSpeed().modifier()
+            );
+        }
+    }
+
+    private double[] getElemental() {
+        double[] elemental = new double[ElementSkill.values().length];
+        int i = 0;
+        for (ElementSkill elementSkill : ElementSkill.values()) {
+            elemental[i++] = getId(elementSkill.getDamageIdIndex());
+        }
+        for (i = 0; i < elemental.length; i++) {
+            elemental[i] /= 100d;
+        }
+        return elemental;
+    }
+
+    private Item.AttackSpeed getAttackSpeed() {
+        int attackSpeed = 0;
+        for (Item item : items) {
+            attackSpeed += item.getId(IdNames.ATTACK_SPEED.getIdIndex());
+            if (item instanceof Weapon weapon) {
+                attackSpeed += weapon.attackSpeed.speed;
+            }
+        }
+        return Item.AttackSpeed.from(attackSpeed);
+    }
+
+    private int getMainDmgRaw() {
+        return getId(ItemIdIndex.DAMAGE_BONUS_RAW);
+    }
+
+    private int getSpellDmgRaw() {
+        return getId(ItemIdIndex.SPELL_DAMAGE_RAW);
+    }
+
+    private double getMainDmgId() {
+        return getId(ItemIdIndex.DAMAGE_BONUS) / 100d;
+    }
+
+    private double getSpellDmgId() {
+        return getId(ItemIdIndex.SPELL_DAMAGE) / 100d;
+    }
+
+    private int getId(int idIndex) {
+        int id = 0;
+        for (Item item : items) {
+            id += item.getId(idIndex);
+        }
+        return id;
+    }
+
+    public Weapon getWeapon() {
+        if (this.weapon == null) {
+            for (Item item : this.items) {
+                if (item instanceof Weapon weapon) {
+                    this.weapon = weapon;
+                }
+            }
+        }
+        return this.weapon;
+    }
+
     private final static String digitsStr =
             //   0       8       16      24      32      40      48      56     63
             //   v       v       v       v       v       v       v       v      v
@@ -204,7 +303,7 @@ public class Build {
     private final static String[] skillpoint_order = new String[]{"str", "dex", "int", "def", "agi"};
     private static final int POWDER_NOTHING = 0;
 
-    public static String fromIntN(int int32, int n) {
+    private static String fromIntN(int int32, int n) {
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < n; i++) {
             result.insert(0, digits[int32 & 0x3f]);

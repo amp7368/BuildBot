@@ -1,28 +1,35 @@
 package apple.build.search.constraints.answers;
 
-public class DamageOutput {
-    private final int neutralLower;
-    private final int neutralUpper;
-    private final int[] elementalLower;
-    private final int[] elementalUpper;
+import apple.build.search.enums.ElementSkill;
+import org.jetbrains.annotations.Nullable;
 
-    private final int neutralLowerCrit;
-    private final int neutralUpperCrit;
-    private final int[] elementalLowerCrit;
-    private final int[] elementalUpperCrit;
+public class DamageOutput {
+    public final int neutralLower;
+    public final int neutralUpper;
+    private int[] skills;
+    public final int[] elementalLower;
+    public final int[] elementalUpper;
+
+    public final int neutralLowerCrit;
+    public final int neutralUpperCrit;
+    public final int[] elementalLowerCrit;
+    public final int[] elementalUpperCrit;
 
     private final float critChance;
 
     private final double weaponAttackSpeed;
-    private final double raw;
-    private int dps = -1;
+    public final double raw;
+    private double dps = -1;
+    private int dpsNormal;
+    private int dpsCrit;
 
     public DamageOutput(double neutralLower, double neutralUpper, double[] elementalLower, double[] elementalUpper,
                         double neutralLowerCrit, double neutralUpperCrit, double[] elementalLowerCrit, double[] elementalUpperCrit,
-                        float critChance, double rawSpell) {
+                        float critChance, double rawSpell, int[] skills) {
         this.raw = rawSpell;
         this.neutralLower = (int) neutralLower;
         this.neutralUpper = (int) neutralUpper;
+        this.skills = skills;
         int length = elementalLower.length;
         this.elementalLower = new int[length];
         this.elementalUpper = new int[length];
@@ -43,7 +50,7 @@ public class DamageOutput {
 
     public DamageOutput(double neutralLower, double neutralUpper, double[] elementalLower, double[] elementalUpper,
                         double neutralLowerCrit, double neutralUpperCrit, double[] elementalLowerCrit, double[] elementalUpperCrit,
-                        float critChance, double rawMain, double attackSpeed) {
+                        float critChance, double rawMain, double attackSpeed, int[] skills) {
         this.raw = rawMain;
         this.neutralLower = (int) neutralLower;
         this.neutralUpper = (int) neutralUpper;
@@ -66,7 +73,7 @@ public class DamageOutput {
         this.weaponAttackSpeed = attackSpeed;
     }
 
-    public int dps() {
+    private void verifyCalculated() {
         if (dps == -1) {
             double damageNormal = neutralLower + neutralUpper;
             double damageCrit = neutralLowerCrit + neutralUpperCrit;
@@ -77,13 +84,75 @@ public class DamageOutput {
 
             damageNormal /= 2;
             damageCrit /= 2;
-            double dmg = ((damageNormal * (1 - critChance)) + (damageCrit * (critChance)))+raw;
+            this.dpsNormal = (int) damageNormal;
+            this.dpsCrit = (int) damageCrit;
+            if (weaponAttackSpeed != -1) {
+                dpsNormal = (int) (dpsNormal * weaponAttackSpeed);
+                dpsCrit = (int) (dpsCrit * weaponAttackSpeed);
+            }
+            double dmg = ((damageNormal * (1 - critChance)) + (damageCrit * (critChance)));
             if (weaponAttackSpeed == -1) {
-                dps = (int) dmg;
+                dps = dmg;
             } else {
-                dps = (int) (dmg * weaponAttackSpeed);
+                dps = (dmg * weaponAttackSpeed);
             }
         }
-        return dps;
+    }
+
+    public int dpsWithRaw() {
+        verifyCalculated();
+        return (int) (dps + raw);
+    }
+
+    public int dpsNoRaw() {
+        verifyCalculated();
+        return (int) (dps);
+    }
+
+
+    public int getDpsCrit() {
+        verifyCalculated();
+        return this.dpsCrit;
+    }
+
+    public int getDpsNormal() {
+        verifyCalculated();
+        return this.dpsNormal;
+    }
+
+    public double getCritChance() {
+        return critChance;
+    }
+
+    public double getRaw() {
+        return this.raw;
+    }
+
+    public int getLowerAvg(@Nullable ElementSkill element) {
+        int normal, crit;
+        if (element == null) {
+            normal = neutralLower;
+            crit = neutralLowerCrit;
+        } else {
+            normal = elementalLower[element.ordinal()];
+            crit = elementalLowerCrit[element.ordinal()];
+        }
+        return (int) ((normal * (1 - critChance)) + (crit * (critChance)));
+    }
+
+    public int getUpperAvg(@Nullable ElementSkill element) {
+        int normal, crit;
+        if (element == null) {
+            normal = neutralUpper;
+            crit = neutralUpperCrit;
+        } else {
+            normal = elementalUpper[element.ordinal()];
+            crit = elementalUpperCrit[element.ordinal()];
+        }
+        return (int) ((normal * (1 - critChance)) + (crit * (critChance)));
+    }
+
+    public int[] getSkills() {
+        return skills;
     }
 }

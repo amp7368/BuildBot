@@ -34,6 +34,7 @@ public class BuildGenerator {
     private int topLayerIndex;
     private int initalSubGeneratorsSize = Integer.MAX_VALUE;
     private long timeToCompute = 0;
+    private boolean overrideShouldSave = false;
 
     /**
      * makes a generator for every build possible with the given items
@@ -94,11 +95,12 @@ public class BuildGenerator {
         long timingStart = System.currentTimeMillis();
         if (phase == GenerationPhase.START) {
             if (isFail()) return ExitType.COMPLETE;
-            startedWithExactMatch = PreFilter.filterItemPool(this, allItems[allItems.length - 1].get(0).type);
+            if (overrideShouldSave)
+                startedWithExactMatch = true;
+            else
+                startedWithExactMatch = PreFilter.filterItemPool(this, allItems[allItems.length - 1].get(0).type);
             if (isFail()) return ExitType.COMPLETE;
             filterOnBadArchetype();
-            if (isFail()) return ExitType.COMPLETE;
-            filterOnBadContribution();
             if (isFail()) return ExitType.COMPLETE;
             filterOnConstraints();
             if (isFail()) return ExitType.COMPLETE;
@@ -278,7 +280,7 @@ public class BuildGenerator {
             attackSpeed += item.getId(ItemIdIndex.ATTACK_SPEED_BONUS);
         }
 
-        Weapon weapon = (Weapon) build.items.get(build.items.size() - 1);
+        Weapon weapon =  build.getWeapon();
         attackSpeed += weapon.attackSpeed.speed;
         double[] elementalPrecise = new double[elemental.length];
         for (int i = 0; i < elemental.length; i++) {
@@ -939,7 +941,7 @@ public class BuildGenerator {
         }
         allItems = new ArrayList[0];
         subGenerators = new ArrayList<>(0);
-        if (shouldSaveResult) {
+        if (shouldSaveResult && !overrideShouldSave) {
             shouldSaveResult = false;
             Preindexing.saveResult(this);
         }
@@ -996,6 +998,10 @@ public class BuildGenerator {
 
     public double progress() {
         return topLayerIndex / (double) initalSubGeneratorsSize;
+    }
+
+    public void setOverrideSave(boolean shouldSave) {
+        overrideShouldSave = shouldSave;
     }
 
     private enum GenerationPhase {

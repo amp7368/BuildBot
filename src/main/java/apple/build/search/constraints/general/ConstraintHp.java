@@ -29,13 +29,15 @@ public class ConstraintHp extends BuildConstraintGeneral {
         for (Item item : items) {
             hp += getEhp(item);
         }
+
         return hp >= ehp;
     }
 
     private int getEhp(Item item) {
         int hp = 0;
-        if (item instanceof Armor armor)
+        if (item instanceof Armor armor){
             hp += armor.health;
+        }
         else if (item instanceof Accessory accessory) {
             hp += accessory.health;
         }
@@ -80,8 +82,7 @@ public class ConstraintHp extends BuildConstraintGeneral {
 
     @Override
     public boolean isMoreStrict(BuildConstraint obj) {
-        if (obj instanceof ConstraintHp) {
-            ConstraintHp other = (ConstraintHp) obj;
+        if (obj instanceof ConstraintHp other) {
             return other.ehp >= this.ehp;
         }
         return false;
@@ -94,8 +95,7 @@ public class ConstraintHp extends BuildConstraintGeneral {
 
     @Override
     public boolean isExact(BuildConstraint constraint) {
-        if (constraint instanceof ConstraintHp) {
-            ConstraintHp other = (ConstraintHp) constraint;
+        if (constraint instanceof ConstraintHp other) {
             return other.ehp == this.ehp;
         }
         return false;

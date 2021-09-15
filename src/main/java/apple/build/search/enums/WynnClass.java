@@ -8,16 +8,16 @@ import java.util.function.Supplier;
 import static apple.build.search.enums.Spell.*;
 
 public enum WynnClass {
-    ARCHER(() -> Item.bows, ARROW_STORM, ESCAPE, BOMB_ARROW, ARROW_SHIELD),
-    WARRIOR(() -> Item.spears, BASH, CHARGE, UPPERCUT, WAR_SCREAM),
-    SHAMAN(() -> Item.reliks, TOTEM, HAUL, AURA, UPROOT),
-    MAGE(() -> Item.wands, HEAL, TELEPORT, METEOR, ICE_SNAKE),
-    ASSASSIN(() -> Item.daggers, SPIN_ATTACK, VANISH, MULTIHIT, SMOKE_BOMB);
+    ARCHER(Item.ItemType.BOW, ARROW_STORM, ESCAPE, BOMB_ARROW, ARROW_SHIELD),
+    WARRIOR(Item.ItemType.SPEAR, BASH, CHARGE, UPPERCUT, WAR_SCREAM),
+    SHAMAN(Item.ItemType.RELIK, TOTEM, HAUL, AURA, UPROOT),
+    MAGE(Item.ItemType.WAND, HEAL, TELEPORT, METEOR, ICE_SNAKE),
+    ASSASSIN(Item.ItemType.DAGGER, SPIN_ATTACK, VANISH, MULTIHIT, SMOKE_BOMB);
 
-    private final Supplier<List<Item>> weaponSupplier;
+    private final Item.ItemType weaponSupplier;
     private final Spell[] spells;
 
-    WynnClass(Supplier<List<Item>> weaponSupplier, Spell... spells) {
+    WynnClass(Item.ItemType weaponSupplier, Spell... spells) {
         this.weaponSupplier = weaponSupplier;
         this.spells = new Spell[spells.length];
         for (Spell spell : spells) {
@@ -26,11 +26,15 @@ public enum WynnClass {
     }
 
     public List<Item> getWeapons() {
-        return this.weaponSupplier.get();
+        return Item.getItems(weaponSupplier);
     }
 
     public Spell[] getSpells() {
         return this.spells;
+    }
+
+    public Item.ItemType getWeaponItemType() {
+        return weaponSupplier;
     }
 
     public static class Constants {

@@ -17,13 +17,11 @@ public class GetItemDB {
             String sql = GetItemSql.getAllItems(itemType);
             Statement statement = VerifyItemDB.databaseItem.createStatement();
             ResultSet response = statement.executeQuery(sql);
-            if (!response.isClosed()) {
-                while (response.next()) {
-                    switch (itemType) {
-                        case HELMET, CHESTPLATE, LEGGINGS, BOOTS -> items.add(new Armor(response, itemType));
-                        case WAND, DAGGER, SPEAR, BOW, RELIK -> items.add(new Weapon(response, itemType));
-                        case RING, BRACELET, NECKLACE -> items.add(new Accessory(response, itemType));
-                    }
+            while (response.next()) {
+                switch (itemType) {
+                    case HELMET, CHESTPLATE, LEGGINGS, BOOTS -> items.add(new Armor(response, itemType));
+                    case WAND, DAGGER, SPEAR, BOW, RELIK -> items.add(new Weapon(response, itemType));
+                    case RING, BRACELET, NECKLACE -> items.add(new Accessory(response, itemType));
                 }
             }
             response.close();

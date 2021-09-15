@@ -23,4 +23,15 @@ public class Pretty {
         }
         return new String(chars);
     }
+
+    public static String trimWithSuffix(String s, int desiredLength) {
+        return trimWithSuffix(s, "...", desiredLength);
+    }
+
+    public static String trimWithSuffix(String s, String suffix, int desiredLength) {
+        if (s.length() > desiredLength) {
+            return s.substring(0, Math.max(0, desiredLength - suffix.length())) + suffix;
+        }
+        return s;
+    }
 }

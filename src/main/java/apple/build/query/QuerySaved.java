@@ -12,8 +12,10 @@ import net.dv8tion.jda.api.entities.MessageChannel;
 
 import java.io.File;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class QuerySaved {
+    public Map<Item.ItemType, Set<String>> requiredItems;
     public String id = UUID.randomUUID().toString();
 
     public ElementSkill[] elements;
@@ -51,6 +53,10 @@ public class QuerySaved {
         }
         this.rawSpellDmg = buildQueryMessage.getRawSpellDmg();
         this.attackSpeed = buildQueryMessage.getAttackSpeed();
+        this.requiredItems = new HashMap<>();
+        for (Map.Entry<Item.ItemType, Set<Item>> required : buildQueryMessage.getRequiredItems().entrySet()) {
+            requiredItems.put(required.getKey(), required.getValue().stream().map(item -> item.name).collect(Collectors.toSet()));
+        }
     }
 
     public File getFile(File fileToSave) {
@@ -103,6 +109,19 @@ public class QuerySaved {
 
     public Integer[] getDefense() {
         return defense;
+    }
+
+    public Map<Item.ItemType, Set<Item>> getRequiredItems() {
+        Map<Item.ItemType, Set<Item>> returnRequired = new HashMap<>();
+        if (this.requiredItems == null) return new HashMap<>();
+        for (Map.Entry<Item.ItemType, Set<String>> required : this.requiredItems.entrySet()) {
+            returnRequired.put(required.getKey(), required.getValue().stream().map(name -> {
+                Item item = Item.getItem(name);
+                if (item == null) throw new IllegalStateException("");
+                return item;
+            }).collect(Collectors.toSet()));
+        }
+        return returnRequired;
     }
 
     public Map<String, ConstraintId> getIdsConstraints() {

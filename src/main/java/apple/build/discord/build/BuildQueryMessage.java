@@ -90,6 +90,7 @@ public class BuildQueryMessage extends ACDGui {
     private static final String EDIT_ATTACK_SPEED_MIN = "edit_attack_speed_min";
     private static final String SAVE_BUTTON_ID = "save_query";
     private static final String EDIT_RAW_SPELL = "edit_raw_spell_page";
+    private static final String ADD_REQUIRED_ITEM_MENU_ID = "add_required_item_menu";
 
     // constants for default modifiers
     private static final int SPELL_DMG_BIG_INCREMENT = 1000;
@@ -126,11 +127,12 @@ public class BuildQueryMessage extends ACDGui {
     private Map<String, ConstraintId> idsConstraints = new HashMap<>();
     private Integer rawSpellDmg = null;
     private Item.AttackSpeed attackSpeed = Item.AttackSpeed.SUPER_SLOW;
-
+    private Map<Item.ItemType, Set<Item>> requiredItems = new HashMap<>();
     // temporary use values for sending arguments through threads
     private Spell currentSpellMiscUse;
     private String currentIdNameMiscUse;
     private ElementSkill currentElementMiscUse;
+    private Item.ItemType currentItemTypeMiscUse;
 
     public BuildQueryMessage(ACD acd, Member member, MessageChannel channel, QuerySaved query) {
         super(acd, channel);
@@ -172,6 +174,7 @@ public class BuildQueryMessage extends ACDGui {
         this.idsConstraints = query.getIdsConstraints();
         this.rawSpellDmg = query.getRawSpellDmg();
         this.attackSpeed = query.getAttackSpeed();
+        this.requiredItems = query.getRequiredItems();
     }
 
     @Override
@@ -190,6 +193,7 @@ public class BuildQueryMessage extends ACDGui {
                 case ELEMENTS -> makeElementsMessage();
                 case MAJOR_ID -> makeMajorIdMessage();
                 case CLASS -> makeClassMessage();
+                case REQUIRED_ITEMS -> makeRequiredItemsMessage();
                 case SPELL_ATTACK -> makeSpellMessage();
                 case MAIN_ATTACK -> makeMainAttackMessage();
                 case MISC -> makeMiscMessage();
@@ -214,6 +218,7 @@ public class BuildQueryMessage extends ACDGui {
                         else healthRegen = null;
                     } else healthRegen = healthRegen == null ? i : healthRegen + i;
                 });
+                case REQUIRED_ITEMS -> makeRequiredItemsForItemTypeMessage();
                 case EDIT_RAW_SPELL -> makeRawSpellMessage();
                 case EDIT_MR -> {
                     addManualSimpleButton(event -> idsConstraints.remove(IdNames.MANA_REGEN.getIdName()), CLEAR_ID + IdNames.MANA_REGEN.getIdName());
@@ -340,6 +345,7 @@ public class BuildQueryMessage extends ACDGui {
 
     @GuiButton(id = SUBMIT_BUTTON_ID)
     public void submit(ComponentInteraction interaction) {
+        this.idPage = 0;
         if (phase != BuildPhase.CONFIRM) {
             this.querySaved = null;
         }
@@ -361,6 +367,7 @@ public class BuildQueryMessage extends ACDGui {
 
     @GuiButton(id = BACK_BUTTON_ID)
     public void back(ComponentInteraction interaction) {
+        this.idPage = 0;
         phase = phase.getPreviousPage();
         editAsReply(interaction);
     }
@@ -610,6 +617,18 @@ public class BuildQueryMessage extends ACDGui {
         editAsReply(interaction);
     }
 
+    @GuiMenu(id = ADD_REQUIRED_ITEM_MENU_ID)
+    public void addItemMenu(SelectionMenuEvent interaction) {
+        @Nullable List<SelectOption> selections = interaction.getSelectedOptions();
+        if (selections != null && !selections.isEmpty()) {
+            SelectOption choice = selections.get(0);
+            final Item item = Item.getItem(choice.getValue());
+            if (item != null)
+                this.requiredItems.computeIfAbsent(currentItemTypeMiscUse, (key) -> new HashSet<>()).add(item);
+        }
+        editAsReply(interaction);
+    }
+
     @GuiButton(id = FORWARD_ID_BUTTON_ID)
     public void forwardIdMenu(ComponentInteraction interaction) {
         this.idPage++;
@@ -737,6 +756,38 @@ public class BuildQueryMessage extends ACDGui {
         return messageBuilder.build();
     }
 
+    private Message makeRequiredItemsMessage() {
+        MessageBuilder messageBuilder = new MessageBuilder();
+        EmbedBuilder embed = new EmbedBuilder();
+        embed.setTitle("Require a specific item in the build");
+        messageBuilder.setEmbeds(embed.build());
+        List<ActionRow> itemTypeButtons = new ArrayList<>();
+        List<ButtonImpl> row = new ArrayList<>();
+        for (Item.ItemType itemType : Item.ItemType.values()) {
+            if ((itemType.isWeapon() && itemType != wynnClass.getWeaponItemType()) || itemType == Item.ItemType.UNKNOWN)
+                continue;
+            row.add(new ButtonImpl(itemType.name(), Pretty.uppercaseFirst(itemType.name()), ButtonStyle.PRIMARY, false, null));
+            if (row.size() == 4) {
+                itemTypeButtons.add(ActionRow.of(row));
+                row = new ArrayList<>();
+            }
+            addManualSimpleButton((event) -> {
+                this.currentItemTypeMiscUse = itemType;
+                this.subPages.add(SubPhase.REQUIRED_ITEMS);
+            }, itemType.name());
+        }
+
+        if (!row.isEmpty()) {
+            itemTypeButtons.add(ActionRow.of(row));
+        }
+        ActionRow navigationRow = ActionRow.of(
+                new ButtonImpl(SUBMIT_BUTTON_ID, "Submit", ButtonStyle.SUCCESS, false, null)
+        );
+        itemTypeButtons.add(navigationRow);
+        messageBuilder.setActionRows(itemTypeButtons);
+        return messageBuilder.build();
+    }
+
     private Message makeSpellMessage() {
         final MessageBuilder messageBuilder = new MessageBuilder();
         EmbedBuilder embed = new EmbedBuilder();
@@ -829,10 +880,10 @@ public class BuildQueryMessage extends ACDGui {
             embed.setDescription(
                     String.join("\n",
                             "",
-                            "**" + Pretty.uppercaseFirst(classSpells[0].name()) + ":** " + classSpells[0].damage * rawSpellDmg,
-                            "**" + Pretty.uppercaseFirst(classSpells[1].name()) + ":** " + classSpells[1].damage * rawSpellDmg,
-                            "**" + Pretty.uppercaseFirst(classSpells[2].name()) + ":** " + classSpells[2].damage * rawSpellDmg,
-                            "**" + Pretty.uppercaseFirst(classSpells[3].name()) + ":** " + classSpells[3].damage * rawSpellDmg
+                            "**" + Pretty.uppercaseFirst(classSpells[0].name()) + ":** " + classSpells[0].getTotalDamage() * rawSpellDmg,
+                            "**" + Pretty.uppercaseFirst(classSpells[1].name()) + ":** " + classSpells[1].getTotalDamage() * rawSpellDmg,
+                            "**" + Pretty.uppercaseFirst(classSpells[2].name()) + ":** " + classSpells[2].getTotalDamage() * rawSpellDmg,
+                            "**" + Pretty.uppercaseFirst(classSpells[3].name()) + ":** " + classSpells[3].getTotalDamage() * rawSpellDmg
                     )
             );
         }
@@ -1012,6 +1063,56 @@ public class BuildQueryMessage extends ACDGui {
         return messageBuilder.build();
     }
 
+    private Message makeRequiredItemsForItemTypeMessage() {
+        MessageBuilder messageBuilder = new MessageBuilder();
+        EmbedBuilder embed = new EmbedBuilder();
+        embed.setTitle("Select an item to require in the build");
+        messageBuilder.setEmbeds(embed.build());
+
+        List<ActionRow> actionRows = new ArrayList<>();
+        List<Component> buttons = new ArrayList<>();
+        List<Item> items = new ArrayList<>(requiredItems.computeIfAbsent(currentItemTypeMiscUse, (key) -> new HashSet<>()));
+        items.sort((item1, item2) -> String.CASE_INSENSITIVE_ORDER.compare(item1.getName(), item2.getName()));
+
+        List<Item> itemsNotSet = new ArrayList<>(Item.getItems(currentItemTypeMiscUse));
+        itemsNotSet.sort((item1, item2) -> String.CASE_INSENSITIVE_ORDER.compare(item1.getName(), item2.getName()));
+        for (int indexInRow = 0, rowIndex = 2, idIndex = 0; idIndex < items.size(); idIndex++, indexInRow++) {
+            if (indexInRow == BUTTONS_IN_ACTION_ROW) {
+                indexInRow = 0;
+                actionRows.add(ActionRow.of(buttons));
+                buttons.clear();
+                if (++rowIndex == ACTION_ROWS_IN_MESSAGE) break;
+            }
+            final Item item = items.get(idIndex);
+            String idStringName = item.getName();
+            itemsNotSet.remove(item);
+            buttons.add(new ButtonImpl(item.name, idStringName, ButtonStyle.PRIMARY, false, null));
+            addManualSimpleButton(interaction -> {
+                requiredItems.computeIfAbsent(currentItemTypeMiscUse, (key) -> new HashSet<>()).remove(item);
+            }, EDIT_ID_ID + idStringName);
+        }
+        if (!buttons.isEmpty()) {
+            actionRows.add(ActionRow.of(buttons));
+        }
+        List<SelectOption> selectionItemsNotSet = itemsNotSet.stream().map(item -> SelectOption.of(Pretty.trimWithSuffix(item.getName(), 25), item.name)).collect(Collectors.toList());
+        while (selectionItemsNotSet.size() < idPage * MAX_OPTIONS_IN_SELECTION_MENU) {
+            idPage--;
+        }
+        idPage = Math.max(0, idPage);
+        selectionItemsNotSet = selectionItemsNotSet.subList(idPage * MAX_OPTIONS_IN_SELECTION_MENU, Math.min(selectionItemsNotSet.size(), (idPage + 1) * MAX_OPTIONS_IN_SELECTION_MENU));
+        actionRows.add(ActionRow.of(new SelectionMenuImpl(ADD_REQUIRED_ITEM_MENU_ID, "Select an item to require", 1, 1, false, selectionItemsNotSet)));
+        ActionRow navigationRow = ActionRow.of(
+                new ButtonImpl(BACK_BUTTON_ID, "Back", ButtonStyle.DANGER, false, null),
+                new ButtonImpl(BACK_ID_BUTTON_ID, "Menu Back", ButtonStyle.SECONDARY, false, null),
+                new ButtonImpl("null1", "Menu Page " + (idPage + 1), ButtonStyle.SECONDARY, true, null),
+                new ButtonImpl(FORWARD_ID_BUTTON_ID, "Menu Forward", ButtonStyle.PRIMARY, false, null),
+                new ButtonImpl(SUBMIT_BUTTON_ID, "Submit", ButtonStyle.SUCCESS, false, null)
+        );
+        actionRows.add(navigationRow);
+        messageBuilder.setActionRows(actionRows);
+        return messageBuilder.build();
+    }
+
     private Message makeEditSomethingMessage(String title, @Nullable String description, String valueLabel, int smallIncrement, int bigIncrement, Consumer<Integer> incrementer, ButtonImpl... buttons) {
         MessageBuilder messageBuilder = new MessageBuilder();
         EmbedBuilder embed = new EmbedBuilder();
@@ -1066,17 +1167,44 @@ public class BuildQueryMessage extends ACDGui {
     }
 
     private void finishSubmit(ComponentInteraction interaction) {
+        buildNow();
+        editAsReply(interaction);
+    }
+
+    public void buildNow() {
         List<List<Item>> items = new ArrayList<>();
-        for (List<Item> pieceRaw : List.of(Item.helmets, Item.chestplates, Item.leggings, Item.boots)) {
-            List<Item> piece = new ArrayList<>(pieceRaw);
-            piece.removeIf(item -> item.level < 73);
-            items.add(piece);
+        boolean shouldSave = true;
+        for (Item.ItemType itemType : List.of(Item.ItemType.HELMET, Item.ItemType.CHESTPLATE, Item.ItemType.LEGGINGS, Item.ItemType.BOOTS)) {
+            List<Item> pieceRaw = Item.getItems(itemType);
+            final Set<Item> required = requiredItems.get(itemType);
+            if (required == null || required.isEmpty()) {
+                List<Item> piece = new ArrayList<>(pieceRaw);
+                piece.removeIf(item -> item.level < 73);
+                items.add(piece);
+            } else {
+                items.add(new ArrayList<>(required));
+                shouldSave = false;
+            }
         }
-        for (List<Item> pieceRaw : List.of(Item.rings, Item.rings, Item.bracelets, Item.necklaces)) {
-            items.add(new ArrayList<>(pieceRaw));
+        for (Item.ItemType itemType : List.of(Item.ItemType.RING, Item.ItemType.RING, Item.ItemType.BRACELET, Item.ItemType.NECKLACE)) {
+            List<Item> pieceRaw = Item.getItems(itemType);
+            final Set<Item> required = requiredItems.get(itemType);
+            if (required == null || required.isEmpty()) {
+                items.add(new ArrayList<>(pieceRaw));
+            } else {
+                items.add(new ArrayList<>(required));
+                shouldSave = false;
+            }
         }
-        items.add(new ArrayList<>(wynnClass.getWeapons()));
+        final Set<Item> required = requiredItems.get(wynnClass.getWeaponItemType());
+        if (required == null || required.isEmpty()) {
+            items.add(new ArrayList<>(wynnClass.getWeapons()));
+        } else {
+            items.add(new ArrayList<>(required));
+            shouldSave = false;
+        }
         this.generator = new BuildGenerator(items.toArray(new ArrayList[0]), new HashSet<>(elements));
+        if (!shouldSave) this.generator.setOverrideSave(true);
         if (this.attackSpeed != Item.AttackSpeed.SUPER_SLOW) {
             generator.addConstraint(new ConstraintMinAttackSpeed(this.attackSpeed.speed));
         }
@@ -1112,7 +1240,6 @@ public class BuildQueryMessage extends ACDGui {
         phase = BuildPhase.WAITING_UPDATES;
         this.taskUUID = GeneratorManager.queue(generator, this::onUpdate, this::onFinish, this::onPriorityChange);
         this.placeInLine = GeneratorManager.placeInLine(taskUUID);
-        editAsReply(interaction);
     }
 
     public void onUpdate(double progress) {
@@ -1205,6 +1332,14 @@ public class BuildQueryMessage extends ACDGui {
         return attackSpeed;
     }
 
+    public Map<Item.ItemType, Set<Item>> getRequiredItems() {
+        return requiredItems;
+    }
+
+    public void editMessagePublic() {
+        editMessage();
+    }
+
     private enum SubPhase {
         EDIT_HP,
         EDIT_MR,
@@ -1214,6 +1349,7 @@ public class BuildQueryMessage extends ACDGui {
         EDIT_ID,
         EDIT_ATTACK_SPEED_MIN,
         EDIT_SPELL_COST,
+        REQUIRED_ITEMS,
         EDIT_RAW_SPELL
     }
 
@@ -1221,13 +1357,14 @@ public class BuildQueryMessage extends ACDGui {
         ELEMENTS(0),
         MAJOR_ID(1),
         CLASS(2),
-        SPELL_ATTACK(3),
-        MAIN_ATTACK(4),
-        MISC(5),
-        ID(6),
-        CONFIRM(7),
-        WAITING_UPDATES(8),
-        BUILD(9);
+        REQUIRED_ITEMS(3),
+        SPELL_ATTACK(4),
+        MAIN_ATTACK(5),
+        MISC(6),
+        ID(7),
+        CONFIRM(8),
+        WAITING_UPDATES(9),
+        BUILD(10);
 
         private static BuildPhase[] order;
         private final int index;

@@ -1,5 +1,6 @@
 package apple.build.wynncraft.items;
 
+import apple.build.query.QuerySavingService;
 import apple.build.search.enums.ElementSkill;
 import apple.build.sql.indexdb.VerifyIndexDB;
 import apple.build.sql.itemdb.GetItemDB;
@@ -32,6 +33,8 @@ public class Item {
     public static ArrayList<Item> daggers;
     public static ArrayList<Item> wands;
     public static ArrayList<Item> reliks;
+    private static final HashMap<ItemType, ArrayList<Item>> itemsByType = new HashMap<>();
+    private static final HashMap<String, Item> allItemsMap = new HashMap<>();
     public static final int SKILLS_FOR_PLAYER = 200;
     public static final int SKILLS_PER_ELEMENT = 100;
     private static final Set<String> UNROLLABLE = new HashSet<>() {{
@@ -91,8 +94,23 @@ public class Item {
                 add(wands);
                 add(reliks);
             }};
+            itemsByType.put(ItemType.HELMET, helmets);
+            itemsByType.put(ItemType.CHESTPLATE, chestplates);
+            itemsByType.put(ItemType.LEGGINGS, leggings);
+            itemsByType.put(ItemType.BOOTS, boots);
+            itemsByType.put(ItemType.RING, rings);
+            itemsByType.put(ItemType.BRACELET, bracelets);
+            itemsByType.put(ItemType.NECKLACE, necklaces);
+            itemsByType.put(ItemType.BOW, bows);
+            itemsByType.put(ItemType.SPEAR, spears);
+            itemsByType.put(ItemType.DAGGER, daggers);
+            itemsByType.put(ItemType.WAND, wands);
+            itemsByType.put(ItemType.RELIK, reliks);
             for (List<Item> items : allitems) {
-                items.forEach(item -> item.roll(NEGATIVE_MIN_ROLL, POSITIVE_MIN_ROLL, NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL));
+                for (Item item : items) {
+                    item.roll(NEGATIVE_MIN_ROLL, POSITIVE_MIN_ROLL, NEGATIVE_MAX_ROLL, POSITIVE_MAX_ROLL);
+                    allItemsMap.put(item.name, item);
+                }
             }
         } catch (SQLException | ClassNotFoundException throwables) {
             throwables.printStackTrace();
@@ -147,7 +165,7 @@ public class Item {
         this.level = other.level;
     }
 
-    public Item(Map<String, Integer> ids, String name, String displayName, int level, int strength, int dexterity, int intelligence, int agility, int defense, String tier, Integer sockets, String dropType,
+    protected Item(Map<String, Integer> ids, String name, String displayName, int level, int strength, int dexterity, int intelligence, int agility, int defense, String tier, Integer sockets, String dropType,
                 @Nullable String restrictions, @Nullable String set, @Nullable String addedLore, @Nullable String material,
                 @Nullable String quest, @Nullable ClassType classRequirement, String[] majorIds, boolean identified, ItemType type) {
         for (Map.Entry<String, Integer> entry : ids.entrySet()) {
@@ -182,7 +200,7 @@ public class Item {
         this.type = type;
     }
 
-    public Item(ResultSet response, ItemType itemType) throws SQLException {
+    protected Item(ResultSet response, ItemType itemType) throws SQLException {
         this.name = GetItemSql.convertFromSql(response.getString("name"));
         this.displayName = GetItemSql.convertFromSql(response.getString("displayName"));
         this.tier = response.getString("tier");
@@ -218,7 +236,7 @@ public class Item {
         } else if (other instanceof Weapon) {
             return new Weapon((Weapon) other);
         }
-        return new Item(other);
+        throw new RuntimeException("Unknown type " + other.getName());
     }
 
     public static Item makeItem(Map<String, Object> itemMap) {
@@ -342,6 +360,14 @@ public class Item {
         return idNameToUid.keySet();
     }
 
+    public static List<Item> getItems(ItemType itemType) {
+        return itemsByType.get(itemType);
+    }
+
+    public static Item getItem(String name) {
+        return allItemsMap.get(name);
+    }
+
     public void addIds(ResultSet response) throws SQLException {
         if (!response.isClosed())
             while (response.next()) {
@@ -429,19 +455,23 @@ public class Item {
         return displayName == null ? name : displayName.equals("null") ? name : displayName;
     }
 
+    public String getName() {
+        return toString();
+    }
+
     public enum ItemType {
         HELMET,
         CHESTPLATE,
         LEGGINGS,
         BOOTS,
-        WAND,
-        DAGGER,
-        SPEAR,
-        BOW,
         RELIK,
         RING,
         BRACELET,
         NECKLACE,
+        WAND,
+        DAGGER,
+        SPEAR,
+        BOW,
         UNKNOWN;
 
         public boolean isWeapon() {

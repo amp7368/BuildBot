@@ -1,7 +1,9 @@
 package apple.build.discord.build;
 
 import apple.build.search.Build;
-import apple.build.utils.Pretty;
+import apple.build.search.constraints.answers.DamageOutput;
+import apple.build.search.enums.ElementSkill;
+import apple.build.search.enums.Spell;
 import apple.build.wynncraft.items.Item;
 import apple.discord.acd.ACD;
 import apple.discord.acd.MillisTimeUnits;
@@ -16,10 +18,12 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
+import static apple.build.utils.Pretty.*;
+
 public class BuildTotalMessage extends ACDGuiPageable {
     private final Build build;
     private final BuildShowListMessage mainGui;
-    private String queryId;
+    private final String queryId;
 
     public BuildTotalMessage(ACD acd, Message msg, Build build, BuildShowListMessage mainGui, @Nullable String queryId) {
         super(acd, msg, mainGui);
@@ -27,6 +31,52 @@ public class BuildTotalMessage extends ACDGuiPageable {
         this.mainGui = mainGui;
         this.queryId = queryId;
         this.addPage(this::items);
+        this.addPage(this::mainDamagePage);
+        this.addPage(this::spellDamagePage);
+    }
+
+    private Message mainDamagePage() {
+        MessageBuilder messageBuilder = new MessageBuilder();
+        EmbedBuilder embed = new EmbedBuilder();
+        if (queryId != null) {
+            embed.setAuthor("Query id: " + queryId);
+        }
+        DamageOutput mainDmg = build.getMainDamage();
+        embed.setTitle("Main Damage");
+        embed.addField("Raw Damage", String.format("%.2f", mainDmg.getRaw()), true);
+        embed.addField("Damage", commas(String.valueOf(mainDmg.getDpsNormal())) + " - " + commas(String.valueOf(mainDmg.getDpsCrit())), true)
+        ;
+        embed.addField("Avg Damage", commas(String.valueOf(mainDmg.dpsWithRaw())), true);
+        embed.addField("Neutral", commas(String.valueOf(mainDmg.getLowerAvg(null))) + " - " + commas(String.valueOf(mainDmg.getUpperAvg(null))), true);
+        for (ElementSkill elementSkill : ElementSkill.orderedElements()) {
+            embed.addField(elementSkill.prettyName(), commas(String.valueOf(mainDmg.getLowerAvg(elementSkill))) + " - " + commas(String.valueOf(mainDmg.getUpperAvg(elementSkill))), true);
+        }
+        messageBuilder.setEmbeds(embed.build());
+        return messageBuilder.build();
+    }
+
+    private Message spellDamagePage() {
+        MessageBuilder messageBuilder = new MessageBuilder();
+        EmbedBuilder embed = new EmbedBuilder();
+        if (queryId != null) {
+            embed.setAuthor("Query id: " + queryId);
+        }
+        embed.setTitle("Spell Damage");
+        for (Spell spell : mainGui.getWynnClass().getSpells()) {
+            final DamageOutput spellDmg = build.getSpellDamage(spell);
+            embed.addField(spell.prettyName(), commas(String.valueOf(spellDmg.getDpsNormal())) + " - " + commas(String.valueOf(spellDmg.getDpsCrit())), true);
+            embed.addField("Average", commas(String.valueOf(spellDmg.dpsNoRaw())) + " + " + commas(String.valueOf((int) spellDmg.getRaw())) + " raw", true);
+            embed.addField("Total", String.format("**%s**", commas(String.valueOf(spellDmg.dpsWithRaw()))), true);
+        }
+        messageBuilder.setEmbeds(embed.build());
+        return messageBuilder.build();
+    }
+
+    private Message skillsPage() {
+        for (ElementSkill elementSkill : ElementSkill.orderedElements()) {
+
+        }
+        return emptyPage();
     }
 
     private Message items() {
@@ -54,7 +104,7 @@ public class BuildTotalMessage extends ACDGuiPageable {
             if (desiredType == null) embed.addBlankField(true);
             for (Item item : items) {
                 if (item.type == desiredType) {
-                    embed.addField(Pretty.uppercaseFirst(item.type.name()), item.name, true);
+                    embed.addField(uppercaseFirst(item.type.name()), item.name, true);
                     items.remove(item);
                     break;
                 }
@@ -62,7 +112,7 @@ public class BuildTotalMessage extends ACDGuiPageable {
         }
         for (Item item : items) {
             if (item.type.isWeapon()) {
-                embed.addField(Pretty.uppercaseFirst(item.type.name()), item.name, true);
+                embed.addField(uppercaseFirst(item.type.name()), item.name, true);
                 items.remove(item);
                 break;
             }

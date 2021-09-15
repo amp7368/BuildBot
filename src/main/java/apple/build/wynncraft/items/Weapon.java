@@ -20,21 +20,11 @@ public class Weapon extends Item {
         int i = 0;
         for (ElementSkill element : ElementSkill.values()) {
             switch (element) {
-                case THUNDER:
-                    elemental[i] = thunderDamage;
-                    break;
-                case AIR:
-                    elemental[i] = airDamage;
-                    break;
-                case EARTH:
-                    elemental[i] = earthDamage;
-                    break;
-                case WATER:
-                    elemental[i] = waterDamage;
-                    break;
-                case FIRE:
-                    elemental[i] = fireDamage;
-                    break;
+                case THUNDER -> elemental[i] = thunderDamage;
+                case AIR -> elemental[i] = airDamage;
+                case EARTH -> elemental[i] = earthDamage;
+                case WATER -> elemental[i] = waterDamage;
+                case FIRE -> elemental[i] = fireDamage;
             }
             i++;
         }
@@ -48,21 +38,11 @@ public class Weapon extends Item {
         int i = 0;
         for (ElementSkill element : ElementSkill.values()) {
             switch (element) {
-                case THUNDER:
-                    elemental[i] = new Pair<>(response.getInt("thunderDamageLower"), response.getInt("thunderDamageUpper"));
-                    break;
-                case AIR:
-                    elemental[i] = new Pair<>(response.getInt("airDamageLower"), response.getInt("airDamageUpper"));
-                    break;
-                case EARTH:
-                    elemental[i] = new Pair<>(response.getInt("earthDamageLower"), response.getInt("earthDamageUpper"));
-                    break;
-                case WATER:
-                    elemental[i] = new Pair<>(response.getInt("waterDamageLower"), response.getInt("waterDamageUpper"));
-                    break;
-                case FIRE:
-                    elemental[i] = new Pair<>(response.getInt("fireDamageLower"), response.getInt("fireDamageUpper"));
-                    break;
+                case THUNDER -> elemental[i] = new Pair<>(response.getInt("thunderDamageLower"), response.getInt("thunderDamageUpper"));
+                case AIR -> elemental[i] = new Pair<>(response.getInt("airDamageLower"), response.getInt("airDamageUpper"));
+                case EARTH -> elemental[i] = new Pair<>(response.getInt("earthDamageLower"), response.getInt("earthDamageUpper"));
+                case WATER -> elemental[i] = new Pair<>(response.getInt("waterDamageLower"), response.getInt("waterDamageUpper"));
+                case FIRE -> elemental[i] = new Pair<>(response.getInt("fireDamageLower"), response.getInt("fireDamageUpper"));
             }
             i++;
         }

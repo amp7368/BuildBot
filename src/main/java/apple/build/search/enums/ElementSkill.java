@@ -33,14 +33,7 @@ public enum ElementSkill {
     }
 
     public int getSkill(int[] skills) {
-        int i = 0;
-        for (ElementSkill element : values()) {
-            if (element == this) {
-                return skills[i];
-            }
-            i++;
-        }
-        return -1;
+        return skills[this.ordinal()];
     }
 
     public int getDamageIdIndex() {

@@ -20,7 +20,7 @@ public class ConstraintMainDamage extends BuildConstraintAdvancedDamage {
 
     @Override
     public boolean isValid(DamageInput input, Weapon item) {
-        return BuildMath.getDamage(input, item).dps() >= dmg;
+        return BuildMath.getDamage(input, item).dpsWithRaw() >= dmg;
     }
 
     @Override
